@@ -10,6 +10,8 @@
 ##            https://github.com/jackyaz/connmon            ##
 ##                                                          ##
 ##############################################################
+# Last Modified: 2024-Jul-01
+#-------------------------------------------------------------
 
 ##############        Shellcheck directives      #############
 # shellcheck disable=SC1090
@@ -28,7 +30,7 @@
 
 ### Start of script variables ###
 readonly SCRIPT_NAME="connmon"
-readonly SCRIPT_VERSION="v3.0.3"
+readonly SCRIPT_VERSION="v3.0.4"
 SCRIPT_BRANCH="develop"
 SCRIPT_REPO="https://jackyaz.io/$SCRIPT_NAME/$SCRIPT_BRANCH"
 readonly SCRIPT_DIR="/jffs/addons/$SCRIPT_NAME.d"
