@@ -10,7 +10,7 @@
 ##            https://github.com/jackyaz/connmon            ##
 ##                                                          ##
 ##############################################################
-# Last Modified: 2024-Jul-01
+# Last Modified: 2024-Jul-14
 #-------------------------------------------------------------
 
 ##############        Shellcheck directives      #############
@@ -30,7 +30,7 @@
 
 ### Start of script variables ###
 readonly SCRIPT_NAME="connmon"
-readonly SCRIPT_VERSION="v3.0.4"
+readonly SCRIPT_VERSION="v3.0.3"
 SCRIPT_BRANCH="develop"
 SCRIPT_REPO="https://jackyaz.io/$SCRIPT_NAME/$SCRIPT_BRANCH"
 readonly SCRIPT_DIR="/jffs/addons/$SCRIPT_NAME.d"
@@ -1023,14 +1023,25 @@ OutputTimeMode(){
 	esac
 }
 
-WriteStats_ToJS(){
+##----------------------------------------##
+## Modified by Martinski W. [2024-Jul-14] ##
+##----------------------------------------##
+WriteStats_ToJS()
+{
+	if [ $# -lt 4 ] ; then return 1 ; fi
+
 	echo "function $3(){" > "$2"
 	html='document.getElementById("'"$4"'").innerHTML="'
-	while IFS='' read -r line || [ -n "$line" ]; do
-		html="${html}${line}\\r\\n"
+
+	while IFS='' read -r line || [ -n "$line" ]
+	do html="${html}${line}\r\n"
 	done < "$1"
 	html="$html"'"'
-	printf "%s\\r\\n}\\r\\n" "$html" >> "$2"
+
+	if [ $# -lt 5 ] || [ -z "$5" ]
+	then printf "%s\r\n}\r\n" "$html" >> "$2"
+	else printf "%s;\r\n%s\r\n}\r\n" "$html" "$5" >> "$2"
+	fi
 }
 
 #$1 fieldname $2 tablename $3 frequency (hours) $4 length (days) $5 outputfile $6 outputfrequency $7 sqlfile $8 timestamp
@@ -1327,12 +1338,18 @@ Generate_LastXResults(){
 	mv /tmp/conn-lastx.csv "$SCRIPT_STORAGE_DIR/lastx.csv"
 }
 
-Reset_DB(){
+
+##----------------------------------------##
+## Modified by Martinski W. [2024-Jul-14] ##
+##----------------------------------------##
+Reset_DB()
+{
 	SIZEAVAIL="$(df -P -k "$SCRIPT_STORAGE_DIR" | awk '{print $4}' | tail -n 1)"
 	SIZEDB="$(ls -l "$SCRIPT_STORAGE_DIR/connstats.db" | awk '{print $5}')"
-	SIZEAVAIL="$(echo "$SIZEAVAIL" | awk '{printf("%s", $1*1024);}')"
+	SIZEAVAIL="$(echo "$SIZEAVAIL" | awk '{printf("%s", $1 * 1024);}')"
 
-	if [ "$(echo "$SIZEAVAIL $SIZEDB" | awk '{print ($1 < $2)}')" -eq 1 ]; then
+	if [ "$(echo "$SIZEAVAIL $SIZEDB" | awk '{print ($1 < $2)}')" -eq 1 ]
+	then
 		Print_Output true "Database size exceeds available space. $(ls -lh "$SCRIPT_STORAGE_DIR/connstats.db" | awk '{print $5}')B is required to create backup." "$ERR"
 		return 1
 	else
@@ -1341,11 +1358,30 @@ Reset_DB(){
 			Print_Output true "Database backup failed, please check storage device" "$WARN"
 		fi
 
+		Print_Output false "Please wait..." "$PASS"
 		echo "DELETE FROM [connstats];" > /tmp/connmon-stats.sql
 		"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/connstats.db" < /tmp/connmon-stats.sql
 		rm -f /tmp/connmon-stats.sql
 
+		## Clear/Reset all CSV files ##
+		Generate_CSVs
+
+		## Show "reset" messages on webGUI ##
+		timeDateNow="$(/bin/date +"%c")"
+		extraJScode='databaseResetDone += 1;'
+		echo "Resetting stats: $timeDateNow" > /tmp/connstatstitle.txt
+		WriteStats_ToJS /tmp/connstatstitle.txt "$SCRIPT_STORAGE_DIR/connstatstext.js" setConnmonStatsTitle statstitle "$extraJScode"
+		rm -f /tmp/connstatstitle.txt
+		sleep 2
 		Print_Output true "Database reset complete" "$WARN"
+		{
+		   sleep 4
+		   timeDateNow="$(/bin/date +"%c")"
+		   extraJScode='databaseResetDone = 0;'
+		   echo "Stats were reset: $timeDateNow" > /tmp/connstatstitle.txt
+		   WriteStats_ToJS /tmp/connstatstitle.txt "$SCRIPT_STORAGE_DIR/connstatstext.js" setConnmonStatsTitle statstitle "$extraJScode"
+		   rm -f /tmp/connstatstitle.txt
+		} &
 	fi
 }
 
@@ -3221,8 +3257,10 @@ Menu_Install(){
 	MainMenu
 }
 
-Menu_Startup(){
-	if [ -z "$1" ]; then
+Menu_Startup()
+{
+	if [ $# -eq 0 ] || [ -z "$1" ]
+	then
 		Print_Output true "Missing argument for startup, not starting $SCRIPT_NAME" "$WARN"
 		exit 1
 	elif [ "$1" != "force" ]; then
@@ -3747,7 +3785,8 @@ fi
 CSV_OUTPUT_DIR="$SCRIPT_STORAGE_DIR/csv"
 USER_SCRIPT_DIR="$SCRIPT_STORAGE_DIR/userscripts.d"
 
-if [ -z "$1" ]; then
+if [ $# -eq 0 ] || [ -z "$1" ]
+then
 	NTP_Ready
 	Entware_Ready
 	if [ ! -f /opt/bin/sqlite3 ]; then
