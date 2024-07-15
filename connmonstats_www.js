@@ -1383,7 +1383,7 @@ function getStatstitleFile()
 		success: function()
 		{
 			setConnmonStatsTitle();
-			if (databaseResetDone == 1)
+			if (databaseResetDone === 1)
 			{
 				currentNoCharts = 0;
 				$j('#Time_Format').val(getCookie('Time_Format', 'number'));
