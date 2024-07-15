@@ -868,7 +868,6 @@ function redrawAllCharts() {
 	}
 }
 
-
 function sortTable(sorttext) {
 	sortname = sorttext.replace('↑', '').replace('↓', '').trim();
 	var sorttype = 'number';
@@ -1369,15 +1368,29 @@ function getConfFile() {
 	});
 }
 
-function getStatstitleFile() {
+/**----------------------------------------**/
+/** Modified by Martinski W. [2024-Jul-14] **/
+/**----------------------------------------**/
+let databaseResetDone = 0;
+function getStatstitleFile()
+{
 	$j.ajax({
 		url: '/ext/connmon/connstatstext.js',
 		dataType: 'script',
 		error: function (xhr) {
-			setTimeout(getStatstitleFile, 1000);
+			setTimeout(getStatstitleFile, 2000);
 		},
-		success: function () {
+		success: function()
+		{
 			setConnmonStatsTitle();
+			if (databaseResetDone == 1)
+			{
+				currentNoCharts = 0;
+				$j('#Time_Format').val(getCookie('Time_Format', 'number'));
+				redrawAllCharts();
+				databaseResetDone += 1;
+			}
+			setTimeout(getStatstitleFile, 4000);
 		}
 	});
 }
