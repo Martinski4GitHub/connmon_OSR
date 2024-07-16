@@ -1,5 +1,11 @@
 # Changelog
 
+## v3.0.3
+14 July 2024
+*   FIXED: Errors when loading the webGUI page on the 3006.102.1 F/W version.
+*   FIXED: Incorrect results when computing the free space available of a large-capacity USB-attached drive. This was preventing the user from resetting the database using the CLI menu.
+*   FIXED: "Reset Database" functionality on the CLI menu was correctly resetting the database file but the result was not reflected on the webGUI page where "old" entries were still shown as if the database had not been reset.
+
 ## v3.0.2
 06 January 2022
 *   FIXED: Only download CHANGELOG on upgrade if it doesn't exist
