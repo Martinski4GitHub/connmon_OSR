@@ -1,4 +1,3 @@
-var $j = jQuery.noConflict(); //avoid conflicts on John's fork (state.js)
 
 iziToast.settings({
 	title: 'connmon',
@@ -162,27 +161,27 @@ function toggleFill() {
 function keyHandler(e) {
 	switch (e.keyCode) {
 		case 82:
-			$j(document).off('keydown');
+			$(document).off('keydown');
 			resetZoom();
 			break;
 		case 68:
-			$j(document).off('keydown');
+			$(document).off('keydown');
 			toggleDragZoom(document.form.btnDragZoom);
 			break;
 		case 70:
-			$j(document).off('keydown');
+			$(document).off('keydown');
 			toggleFill();
 			break;
 		case 76:
-			$j(document).off('keydown');
+			$(document).off('keydown');
 			toggleLines();
 			break;
 	}
 }
 
-$j(document).keydown(function (e) { keyHandler(e); });
-$j(document).keyup(function (e) {
-	$j(document).keydown(function (e) {
+$(document).keydown(function (e) { keyHandler(e); });
+$(document).keyup(function (e) {
+	$(document).keydown(function (e) {
 		keyHandler(e);
 	});
 });
@@ -191,11 +190,11 @@ function validateIP(forminput) {
 	var inputvalue = forminput.value;
 	var inputname = forminput.name;
 	if (/^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/.test(inputvalue)) {
-		$j(forminput).removeClass('invalid');
+		$(forminput).removeClass('invalid');
 		return true;
 	}
 	else {
-		$j(forminput).addClass('invalid');
+		$(forminput).addClass('invalid');
 		return false;
 	}
 }
@@ -204,11 +203,11 @@ function validateDomain(forminput) {
 	var inputvalue = forminput.value;
 	var inputname = forminput.name;
 	if (/^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9]$/.test(inputvalue)) {
-		$j(forminput).removeClass('invalid');
+		$(forminput).removeClass('invalid');
 		return true;
 	}
 	else {
-		$j(forminput).addClass('invalid');
+		$(forminput).addClass('invalid');
 		return false;
 	}
 }
@@ -218,11 +217,11 @@ function validateNumberSetting(forminput, upperlimit, lowerlimit) {
 	var inputvalue = forminput.value * 1;
 
 	if (inputvalue > upperlimit || inputvalue < lowerlimit) {
-		$j(forminput).addClass('invalid');
+		$(forminput).addClass('invalid');
 		return false;
 	}
 	else {
-		$j(forminput).removeClass('invalid');
+		$(forminput).removeClass('invalid');
 		return true;
 	}
 }
@@ -333,11 +332,11 @@ function validateSchedule(forminput, hoursmins) {
 	}
 
 	if (validationfailed === 'true') {
-		$j(forminput).addClass('invalid');
+		$(forminput).addClass('invalid');
 		return false;
 	}
 	else {
-		$j(forminput).removeClass('invalid');
+		$(forminput).removeClass('invalid');
 		return true;
 	}
 }
@@ -349,7 +348,7 @@ function validateScheduleValue(forminput) {
 	var upperlimit = 0;
 	var lowerlimit = 1;
 
-	var unittype = $j('#everyxselect').val();
+	var unittype = $('#everyxselect').val();
 
 	if (unittype === 'hours') {
 		upperlimit = 24;
@@ -359,11 +358,11 @@ function validateScheduleValue(forminput) {
 	}
 
 	if (inputvalue > upperlimit || inputvalue < lowerlimit || forminput.value.length < 1) {
-		$j(forminput).addClass('invalid');
+		$(forminput).addClass('invalid');
 		return false;
 	}
 	else {
-		$j(forminput).removeClass('invalid');
+		$(forminput).removeClass('invalid');
 		return true;
 	}
 }
@@ -580,10 +579,10 @@ function drawChartNoData(txtchartname, texttodisplay) {
 }
 
 function drawChart(txtchartname, txttitle, txtunity, bordercolourname, backgroundcolourname) {
-	var chartperiod = getChartPeriod($j('#' + txtchartname + '_Period option:selected').val());
-	var chartinterval = getChartInterval($j('#' + txtchartname + '_Interval option:selected').val());
-	var txtunitx = timeunitlist[$j('#' + txtchartname + '_Period option:selected').val()];
-	var numunitx = intervallist[$j('#' + txtchartname + '_Period option:selected').val()];
+	var chartperiod = getChartPeriod($('#' + txtchartname + '_Period option:selected').val());
+	var chartinterval = getChartInterval($('#' + txtchartname + '_Interval option:selected').val());
+	var txtunitx = timeunitlist[$('#' + txtchartname + '_Period option:selected').val()];
+	var numunitx = intervallist[$('#' + txtchartname + '_Period option:selected').val()];
 	var zoompanxaxismax = moment();
 	var chartxaxismax = null;
 	var chartxaxismin = moment().subtract(numunitx, txtunitx + 's');
@@ -597,8 +596,8 @@ function drawChart(txtchartname, txttitle, txtunity, bordercolourname, backgroun
 	var chartData = dataobject.map(function (d) { return { x: d.Time, y: d.Value }; });
 	var objchartname = window['LineChart_' + txtchartname];
 
-	var timeaxisformat = getTimeFormat($j('#Time_Format option:selected').val(), 'axis');
-	var timetooltipformat = getTimeFormat($j('#Time_Format option:selected').val(), 'tooltip');
+	var timeaxisformat = getTimeFormat($('#Time_Format option:selected').val(), 'axis');
+	var timetooltipformat = getTimeFormat($('#Time_Format option:selected').val(), 'tooltip');
 
 	if (chartinterval === 'day') {
 		charttype = 'bar';
@@ -667,7 +666,7 @@ function drawChart(txtchartname, txttitle, txtunity, bordercolourname, backgroun
 				}
 			}],
 			yAxes: [{
-				type: getChartScale($j('#' + txtchartname + '_Scale option:selected').val()),
+				type: getChartScale($('#' + txtchartname + '_Scale option:selected').val()),
 				gridLines: { display: false, color: '#282828' },
 				scaleLabel: { display: false, labelString: txtunity },
 				ticks: {
@@ -813,15 +812,15 @@ function changePeriod(e) {
 	value = e.value * 1;
 	name = e.id.substring(0, e.id.indexOf('_'));
 	if (value === 2) {
-		$j('select[id="' + name + '_Period"] option:contains(24)').text('Today');
+		$('select[id="' + name + '_Period"] option:contains(24)').text('Today');
 	}
 	else {
-		$j('select[id="' + name + '_Period"] option:contains("Today")').text('Last 24 hours');
+		$('select[id="' + name + '_Period"] option:contains("Today")').text('Last 24 hours');
 	}
 }
 
 function getLastXFile() {
-	$j.ajax({
+	$.ajax({
 		url: '/ext/connmon/lastx.htm',
 		dataType: 'text',
 		cache: false,
@@ -847,10 +846,10 @@ function setGlobalDataset(txtchartname, dataobject) {
 			iziToast.success({ message: 'Ping test complete' });
 		}
 		for (var i = 0; i < metriclist.length; i++) {
-			$j('#' + metriclist[i] + '_Interval').val(getCookie(metriclist[i] + '_Interval', 'number'));
+			$('#' + metriclist[i] + '_Interval').val(getCookie(metriclist[i] + '_Interval', 'number'));
 			changePeriod(document.getElementById(metriclist[i] + '_Interval'));
-			$j('#' + metriclist[i] + '_Period').val(getCookie(metriclist[i] + '_Period', 'number'));
-			$j('#' + metriclist[i] + '_Scale').val(getCookie(metriclist[i] + '_Scale', 'number'));
+			$('#' + metriclist[i] + '_Period').val(getCookie(metriclist[i] + '_Period', 'number'));
+			$('#' + metriclist[i] + '_Scale').val(getCookie(metriclist[i] + '_Scale', 'number'));
 			drawChart(metriclist[i], titlelist[i], measureunitlist[i], bordercolourlist[i], backgroundcolourlist[i]);
 		}
 		getLastXFile();
@@ -924,16 +923,16 @@ function sortTable(sorttext) {
 		}
 	}
 
-	$j('#sortTableContainer').empty();
-	$j('#sortTableContainer').append(buildLastXTable());
+	$('#sortTableContainer').empty();
+	$('#sortTableContainer').append(buildLastXTable());
 
-	$j('.sortable').each(function (index, element) {
+	$('.sortable').each(function (index, element) {
 		if (element.innerHTML.replace(/ \(.*\)/, '').replace(' ', '') === sortname) {
 			if (sortdir === 'asc') {
-				$j(element).html(element.innerHTML + ' ↑');
+				$(element).html(element.innerHTML + ' ↑');
 			}
 			else {
-				$j(element).html(element.innerHTML + ' ↓');
+				$(element).html(element.innerHTML + ' ↓');
 			}
 		}
 	});
@@ -962,10 +961,10 @@ function parseLastXData(data) {
 	sortTable(sortname + ' ' + sortdir.replace('desc', '↑').replace('asc', '↓').trim());
 }
 
-$j.fn.serializeObject = function () {
+$.fn.serializeObject = function () {
 	var o = customSettings;
 	var a = this.serializeArray();
-	$j.each(a, function () {
+	$.each(a, function () {
 		if (o[this.name] !== undefined && this.name.indexOf('connmon') !== -1 && this.name.indexOf('version') === -1 && this.name.indexOf('ipaddr') === -1 && this.name.indexOf('domain') === -1 &&
 			this.name.indexOf('schdays') === -1 && this.name.indexOf('pushover_list') === -1 && this.name.indexOf('pushover_list') === -1 && this.name.indexOf('webhook_list') === -1 &&
 			this.name !== 'connmon_notifications_pingtest' && this.name !== 'connmon_notifications_pingthreshold' && this.name !== 'connmon_notifications_jitterthreshold' && this.name !== 'connmon_notifications_linequalitythreshold') {
@@ -981,8 +980,8 @@ $j.fn.serializeObject = function () {
 		}
 		if (this.name.indexOf('schdays') !== -1) {
 			var schdays = [];
-			$j.each($j('input[name="connmon_schdays"]:checked'), function () {
-				schdays.push($j(this).val());
+			$.each($('input[name="connmon_schdays"]:checked'), function () {
+				schdays.push($(this).val());
 			});
 			var schdaysstring = schdays.join(',');
 			if (schdaysstring === 'Mon,Tues,Wed,Thurs,Fri,Sat,Sun') {
@@ -992,29 +991,29 @@ $j.fn.serializeObject = function () {
 		}
 		if (this.name === 'connmon_notifications_pingtest') {
 			var pingtesttypes = [];
-			$j.each($j('input[name="connmon_notifications_pingtest"]:checked'), function () {
-				pingtesttypes.push($j(this).val());
+			$.each($('input[name="connmon_notifications_pingtest"]:checked'), function () {
+				pingtesttypes.push($(this).val());
 			});
 			o['connmon_notifications_pingtest'] = pingtesttypes.join(',');
 		}
 		if (this.name === 'connmon_notifications_pingthreshold') {
 			var pingthresholdtypes = [];
-			$j.each($j('input[name="connmon_notifications_pingthreshold"]:checked'), function () {
-				pingthresholdtypes.push($j(this).val());
+			$.each($('input[name="connmon_notifications_pingthreshold"]:checked'), function () {
+				pingthresholdtypes.push($(this).val());
 			});
 			o['connmon_notifications_pingthreshold'] = pingthresholdtypes.join(',');
 		}
 		if (this.name === 'connmon_notifications_jitterthreshold') {
 			var jitterthresholdtypes = [];
-			$j.each($j('input[name="connmon_notifications_jitterthreshold"]:checked'), function () {
-				jitterthresholdtypes.push($j(this).val());
+			$.each($('input[name="connmon_notifications_jitterthreshold"]:checked'), function () {
+				jitterthresholdtypes.push($(this).val());
 			});
 			o['connmon_notifications_jitterthreshold'] = jitterthresholdtypes.join(',');
 		}
 		if (this.name === 'connmon_notifications_linequalitythreshold') {
 			var linequalitythresholdtypes = [];
-			$j.each($j('input[name="connmon_notifications_linequalitythreshold"]:checked'), function () {
-				linequalitythresholdtypes.push($j(this).val());
+			$.each($('input[name="connmon_notifications_linequalitythreshold"]:checked'), function () {
+				linequalitythresholdtypes.push($(this).val());
 			});
 			o['connmon_notifications_linequalitythreshold'] = linequalitythresholdtypes.join(',');
 		}
@@ -1029,11 +1028,11 @@ $j.fn.serializeObject = function () {
 		}
 	});
 
-	$j.each(this, function () {
+	$.each(this, function () {
 		if (this.name.indexOf('schdays') !== -1) {
 			var schdays = [];
-			$j.each($j('input[name="connmon_schdays"]:checked'), function () {
-				schdays.push($j(this).val());
+			$.each($('input[name="connmon_schdays"]:checked'), function () {
+				schdays.push($(this).val());
 			});
 			if (schdays.length === 0) {
 				o['connmon_schdays'] = '*';
@@ -1041,8 +1040,8 @@ $j.fn.serializeObject = function () {
 		}
 		if (this.name === 'connmon_notifications_pingtest') {
 			var pingtesttypes = [];
-			$j.each($j('input[name="connmon_notifications_pingtest"]:checked'), function () {
-				pingtesttypes.push($j(this).val());
+			$.each($('input[name="connmon_notifications_pingtest"]:checked'), function () {
+				pingtesttypes.push($(this).val());
 			});
 			if (pingtesttypes.length === 0) {
 				o['connmon_notifications_pingtest'] = 'None';
@@ -1050,8 +1049,8 @@ $j.fn.serializeObject = function () {
 		}
 		if (this.name === 'connmon_notifications_pingthreshold') {
 			var pingthresholdtypes = [];
-			$j.each($j('input[name="connmon_notifications_pingthreshold"]:checked'), function () {
-				pingthresholdtypes.push($j(this).val());
+			$.each($('input[name="connmon_notifications_pingthreshold"]:checked'), function () {
+				pingthresholdtypes.push($(this).val());
 			});
 			if (pingthresholdtypes.length === 0) {
 				o['connmon_notifications_pingthreshold'] = 'None';
@@ -1059,8 +1058,8 @@ $j.fn.serializeObject = function () {
 		}
 		if (this.name === 'connmon_notifications_jitterthreshold') {
 			var jitterthresholdtypes = [];
-			$j.each($j('input[name="connmon_notifications_jitterthreshold"]:checked'), function () {
-				jitterthresholdtypes.push($j(this).val());
+			$.each($('input[name="connmon_notifications_jitterthreshold"]:checked'), function () {
+				jitterthresholdtypes.push($(this).val());
 			});
 			if (jitterthresholdtypes.length === 0) {
 				o['connmon_notifications_jitterthreshold'] = 'None';
@@ -1068,8 +1067,8 @@ $j.fn.serializeObject = function () {
 		}
 		if (this.name === 'connmon_notifications_linequalitythreshold') {
 			var linequalitythresholdtypes = [];
-			$j.each($j('input[name="connmon_notifications_linequalitythreshold"]:checked'), function () {
-				linequalitythresholdtypes.push($j(this).val());
+			$.each($('input[name="connmon_notifications_linequalitythreshold"]:checked'), function () {
+				linequalitythresholdtypes.push($(this).val());
 			});
 			if (linequalitythresholdtypes.length === 0) {
 				o['connmon_notifications_linequalitythreshold'] = 'None';
@@ -1079,10 +1078,10 @@ $j.fn.serializeObject = function () {
 	return o;
 };
 
-$j.fn.serializeObjectEmail = function () {
+$.fn.serializeObjectEmail = function () {
 	var o = customSettings;
 	var a = this.serializeArray();
-	$j.each(a, function () {
+	$.each(a, function () {
 		if (o[this.name] !== undefined && this.name.indexOf('email_') !== -1 && this.name.indexOf('show_pass') === -1) {
 			if (!o[this.name].push) {
 				o[this.name] = [o[this.name]];
@@ -1117,20 +1116,20 @@ function errorCSVExport() {
 function jyNavigate(tab, type, tabslength) {
 	for (var i = 1; i <= tabslength; i++) {
 		if (tab === 0) {
-			$j('#' + type + 'Navigate' + i).show();
-			$j('#btn' + type + 'Navigate' + i).css('background', '');
-			$j('#btn' + type + 'Navigate0').css({ 'background': '#085F96', 'background': '-webkit-linear-gradient(#09639C 0%,#003047 100%)', 'background': '-o-linear-gradient(#09639C 0%,#003047 100%)', 'background': 'linear-gradient(#09639C 0%,#003047 100%)' });
+			$('#' + type + 'Navigate' + i).show();
+			$('#btn' + type + 'Navigate' + i).css('background', '');
+			$('#btn' + type + 'Navigate0').css({ 'background': '#085F96', 'background': '-webkit-linear-gradient(#09639C 0%,#003047 100%)', 'background': '-o-linear-gradient(#09639C 0%,#003047 100%)', 'background': 'linear-gradient(#09639C 0%,#003047 100%)' });
 		}
 		else {
 			if (i === tab) {
-				$j('#' + type + 'Navigate' + i).show();
-				$j('#btn' + type + 'Navigate' + i).css({ 'background': '#085F96', 'background': '-webkit-linear-gradient(#09639C 0%,#003047 100%)', 'background': '-o-linear-gradient(#09639C 0%,#003047 100%)', 'background': 'linear-gradient(#09639C 0%,#003047 100%)' });
+				$('#' + type + 'Navigate' + i).show();
+				$('#btn' + type + 'Navigate' + i).css({ 'background': '#085F96', 'background': '-webkit-linear-gradient(#09639C 0%,#003047 100%)', 'background': '-o-linear-gradient(#09639C 0%,#003047 100%)', 'background': 'linear-gradient(#09639C 0%,#003047 100%)' });
 			}
 			else {
-				$j('#' + type + 'Navigate' + i).hide();
-				$j('#btn' + type + 'Navigate' + i).css('background', '');
+				$('#' + type + 'Navigate' + i).hide();
+				$('#btn' + type + 'Navigate' + i).css('background', '');
 			}
-			$j('#btn' + type + 'Navigate0').css('background', '');
+			$('#btn' + type + 'Navigate0').css('background', '');
 		}
 	}
 }
@@ -1145,28 +1144,28 @@ function automaticTestEnableDisable(forminput) {
 
 	if (inputvalue === 'false') {
 		for (var i = 0; i < fieldnames.length; i++) {
-			$j('input[name=' + prefix + '_' + fieldnames[i] + ']').addClass('disabled');
-			$j('input[name=' + prefix + '_' + fieldnames[i] + ']').prop('disabled', true);
+			$('input[name=' + prefix + '_' + fieldnames[i] + ']').addClass('disabled');
+			$('input[name=' + prefix + '_' + fieldnames[i] + ']').prop('disabled', true);
 		}
 		for (var i = 0; i < daysofweek.length; i++) {
-			$j('#' + prefix + '_' + daysofweek[i].toLowerCase()).prop('disabled', true);
+			$('#' + prefix + '_' + daysofweek[i].toLowerCase()).prop('disabled', true);
 		}
 		for (var i = 0; i < fieldnames2.length; i++) {
-			$j('[name=' + fieldnames2[i] + ']').addClass('disabled');
-			$j('[name=' + fieldnames2[i] + ']').prop('disabled', true);
+			$('[name=' + fieldnames2[i] + ']').addClass('disabled');
+			$('[name=' + fieldnames2[i] + ']').prop('disabled', true);
 		}
 	}
 	else if (inputvalue === 'true') {
 		for (var i = 0; i < fieldnames.length; i++) {
-			$j('input[name=' + prefix + '_' + fieldnames[i] + ']').removeClass('disabled');
-			$j('input[name=' + prefix + '_' + fieldnames[i] + ']').prop('disabled', false);
+			$('input[name=' + prefix + '_' + fieldnames[i] + ']').removeClass('disabled');
+			$('input[name=' + prefix + '_' + fieldnames[i] + ']').prop('disabled', false);
 		}
 		for (var i = 0; i < daysofweek.length; i++) {
-			$j('#' + prefix + '_' + daysofweek[i].toLowerCase()).prop('disabled', false);
+			$('#' + prefix + '_' + daysofweek[i].toLowerCase()).prop('disabled', false);
 		}
 		for (var i = 0; i < fieldnames2.length; i++) {
-			$j('[name=' + fieldnames2[i] + ']').removeClass('disabled');
-			$j('[name=' + fieldnames2[i] + ']').prop('disabled', false);
+			$('[name=' + fieldnames2[i] + ']').removeClass('disabled');
+			$('[name=' + fieldnames2[i] + ']').prop('disabled', false);
 		}
 	}
 }
@@ -1178,11 +1177,11 @@ function scheduleModeToggle(forminput) {
 	if (inputvalue === 'EveryX') {
 		showhide('schfrequency', true);
 		showhide('schcustom', false);
-		if ($j('#everyxselect').val() === 'hours') {
+		if ($('#everyxselect').val() === 'hours') {
 			showhide('spanxhours', true);
 			showhide('spanxminutes', false);
 		}
-		else if ($j('#everyxselect').val() === 'minutes') {
+		else if ($('#everyxselect').val() === 'minutes') {
 			showhide('spanxhours', false);
 			showhide('spanxminutes', true);
 		}
@@ -1194,7 +1193,7 @@ function scheduleModeToggle(forminput) {
 }
 
 function getEmailConfFile() {
-	$j.ajax({
+	$.ajax({
 		url: '/ext/connmon/email_config.htm',
 		dataType: 'text',
 		cache: false,
@@ -1222,20 +1221,20 @@ function getEmailConfFile() {
 }
 
 function getCustomactionInfo() {
-	$j.ajax({
+	$.ajax({
 		url: '/ext/connmon/customactioninfo.htm',
 		dataType: 'text',
 		error: function (xhr) {
 			setTimeout(getCustomactionInfo, 1000);
 		},
 		success: function (data) {
-			$j('#customaction_details').append('\n' + data);
+			$('#customaction_details').append('\n' + data);
 		}
 	});
 }
 
 function getCustomactionList() {
-	$j.ajax({
+	$.ajax({
 		url: '/ext/connmon/customactionlist.htm',
 		dataType: 'text',
 		cache: false,
@@ -1243,14 +1242,14 @@ function getCustomactionList() {
 			setTimeout(getCustomactionList, 1000);
 		},
 		success: function (data) {
-			$j('#customaction_details').html(data);
+			$('#customaction_details').html(data);
 			getCustomactionInfo();
 		}
 	});
 }
 
 function getEmailpwFile() {
-	$j.ajax({
+	$.ajax({
 		url: '/ext/connmon/password.htm',
 		dataType: 'text',
 		cache: false,
@@ -1269,7 +1268,7 @@ function getEmailpwFile() {
 }
 
 function getConfFile() {
-	$j.ajax({
+	$.ajax({
 		url: '/ext/connmon/config.htm',
 		dataType: 'text',
 		cache: false,
@@ -1300,38 +1299,38 @@ function getConfFile() {
 				else if (settingname.indexOf('schdays') !== -1) {
 					if (settingvalue === '*') {
 						for (var i2 = 0; i2 < daysofweek.length; i2++) {
-							$j('#connmon_' + daysofweek[i2].toLowerCase()).prop('checked', true);
+							$('#connmon_' + daysofweek[i2].toLowerCase()).prop('checked', true);
 						}
 					}
 					else {
 						var schdayarray = settingvalue.split(',');
 						for (var i2 = 0; i2 < schdayarray.length; i2++) {
-							$j('#connmon_' + schdayarray[i2].toLowerCase()).prop('checked', true);
+							$('#connmon_' + schdayarray[i2].toLowerCase()).prop('checked', true);
 						}
 					}
 				}
 				else if (settingname === 'notifications_pingtest') {
 					var pingtesttypearray = settingvalue.split(',');
 					for (var i2 = 0; i2 < pingtesttypearray.length; i2++) {
-						$j('#connmon_pingtest_' + pingtesttypearray[i2].toLowerCase()).prop('checked', true);
+						$('#connmon_pingtest_' + pingtesttypearray[i2].toLowerCase()).prop('checked', true);
 					}
 				}
 				else if (settingname === 'notifications_pingthreshold') {
 					var pingthresholdtypearray = settingvalue.split(',');
 					for (var i2 = 0; i2 < pingthresholdtypearray.length; i2++) {
-						$j('#connmon_pingthreshold_' + pingthresholdtypearray[i2].toLowerCase()).prop('checked', true);
+						$('#connmon_pingthreshold_' + pingthresholdtypearray[i2].toLowerCase()).prop('checked', true);
 					}
 				}
 				else if (settingname === 'notifications_jitterthreshold') {
 					var jitterthresholdtypearray = settingvalue.split(',');
 					for (var i2 = 0; i2 < jitterthresholdtypearray.length; i2++) {
-						$j('#connmon_jitterthreshold_' + jitterthresholdtypearray[i2].toLowerCase()).prop('checked', true);
+						$('#connmon_jitterthreshold_' + jitterthresholdtypearray[i2].toLowerCase()).prop('checked', true);
 					}
 				}
 				else if (settingname === 'notifications_linequalitythreshold') {
 					var linequalitythresholdtypearray = settingvalue.split(',');
 					for (var i2 = 0; i2 < linequalitythresholdtypearray.length; i2++) {
-						$j('#connmon_linequalitythreshold_' + linequalitythresholdtypearray[i2].toLowerCase()).prop('checked', true);
+						$('#connmon_linequalitythreshold_' + linequalitythresholdtypearray[i2].toLowerCase()).prop('checked', true);
 					}
 				}
 				else if (settingname.indexOf('notifications_email_list') !== -1 || settingname.indexOf('notifications_pushover_list') !== -1 || settingname.indexOf('notifications_webhook_list') !== -1) {
@@ -1342,7 +1341,7 @@ function getConfFile() {
 				}
 
 				if (settingname.indexOf('automated') !== -1) {
-					automaticTestEnableDisable($j('#connmon_auto_' + document.form.connmon_automated.value)[0]);
+					automaticTestEnableDisable($('#connmon_auto_' + document.form.connmon_automated.value)[0]);
 				}
 
 				if (settingname.indexOf('pingduration') !== -1) {
@@ -1350,20 +1349,20 @@ function getConfFile() {
 				}
 			}
 
-			if ($j('[name=connmon_schhours]').val().indexOf('/') !== -1 && $j('[name=connmon_schmins]').val() * 1 === 0) {
+			if ($('[name=connmon_schhours]').val().indexOf('/') !== -1 && $('[name=connmon_schmins]').val() * 1 === 0) {
 				document.form.schedulemode.value = 'EveryX';
 				document.form.everyxselect.value = 'hours';
-				document.form.everyxvalue.value = $j('[name=connmon_schhours]').val().split('/')[1];
+				document.form.everyxvalue.value = $('[name=connmon_schhours]').val().split('/')[1];
 			}
-			else if ($j('[name=connmon_schmins]').val().indexOf('/') !== -1 && $j('[name=connmon_schhours]').val() === '*') {
+			else if ($('[name=connmon_schmins]').val().indexOf('/') !== -1 && $('[name=connmon_schhours]').val() === '*') {
 				document.form.schedulemode.value = 'EveryX';
 				document.form.everyxselect.value = 'minutes';
-				document.form.everyxvalue.value = $j('[name=connmon_schmins]').val().split('/')[1];
+				document.form.everyxvalue.value = $('[name=connmon_schmins]').val().split('/')[1];
 			}
 			else {
 				document.form.schedulemode.value = 'Custom';
 			}
-			scheduleModeToggle($j('#schmode_' + $j('[name=schedulemode]:checked').val().toLowerCase())[0]);
+			scheduleModeToggle($('#schmode_' + $('[name=schedulemode]:checked').val().toLowerCase())[0]);
 		}
 	});
 }
@@ -1374,7 +1373,7 @@ function getConfFile() {
 let databaseResetDone = 0;
 function getStatstitleFile()
 {
-	$j.ajax({
+	$.ajax({
 		url: '/ext/connmon/connstatstext.js',
 		dataType: 'script',
 		error: function (xhr) {
@@ -1386,7 +1385,7 @@ function getStatstitleFile()
 			if (databaseResetDone === 1)
 			{
 				currentNoCharts = 0;
-				$j('#Time_Format').val(getCookie('Time_Format', 'number'));
+				$('#Time_Format').val(getCookie('Time_Format', 'number'));
 				redrawAllCharts();
 				databaseResetDone += 1;
 			}
@@ -1396,7 +1395,7 @@ function getStatstitleFile()
 }
 
 function getCronFile() {
-	$j.ajax({
+	$.ajax({
 		url: '/ext/connmon/cron.js',
 		dataType: 'text',
 		error: function (xhr) {
@@ -1409,20 +1408,20 @@ function getCronFile() {
 }
 
 function getEmailInfo() {
-	$j.ajax({
+	$.ajax({
 		url: '/ext/connmon/emailinfo.htm',
 		dataType: 'text',
 		error: function (xhr) {
 			setTimeout(getEmailInfo, 1000);
 		},
 		success: function (data) {
-			$j('#emailinfo').html(data);
+			$('#emailinfo').html(data);
 		}
 	});
 }
 
 function getChangelogFile() {
-	$j.ajax({
+	$.ajax({
 		url: '/ext/connmon/changelog.htm',
 		dataType: 'text',
 		cache: false,
@@ -1430,7 +1429,7 @@ function getChangelogFile() {
 			setTimeout(getChangelogFile, 5000);
 		},
 		success: function (data) {
-			$j('#divchangelog').html(data);
+			$('#divchangelog').html(data);
 		}
 	});
 }
@@ -1453,7 +1452,7 @@ function getVersionNumber(versiontype) {
 }
 
 function getVersionChangelogFile() {
-	$j.ajax({
+	$.ajax({
 		url: '/ext/connmon/detect_changelog.js',
 		dataType: 'script',
 		error: function (xhr) {
@@ -1461,9 +1460,9 @@ function getVersionChangelogFile() {
 		},
 		success: function () {
 			var serverver = getVersionNumber('server');
-			$j('#connmon_version_server').html('<a style="color:#FFCC00;text-decoration:underline;" href="javascript:void(0);">Updated version available: ' + serverver + '</a>');
-			$j('#connmon_version_server').on('mouseover', function () { return overlib(changelog, 0, 0); });
-			$j('#connmon_version_server')[0].onmouseout = nd;
+			$('#connmon_version_server').html('<a style="color:#FFCC00;text-decoration:underline;" href="javascript:void(0);">Updated version available: ' + serverver + '</a>');
+			$('#connmon_version_server').on('mouseover', function () { return overlib(changelog, 0, 0); });
+			$('#connmon_version_server')[0].onmouseout = nd;
 		}
 	});
 }
@@ -1549,14 +1548,14 @@ function buildLastXTable() {
 function scriptUpdateLayout() {
 	var localver = getVersionNumber('local');
 	var serverver = getVersionNumber('server');
-	$j('#connmon_version_local').text(localver);
+	$('#connmon_version_local').text(localver);
 
 	if (localver !== serverver && serverver !== 'N/A') {
 		if (serverver.indexOf('hotfix') === -1) {
 			getVersionChangelogFile();
 		}
 		else {
-			$j('#connmon_version_server').text(serverver);
+			$('#connmon_version_server').text(serverver);
 		}
 		showhide('connmon_version_server', true);
 		showhide('btnChkUpdate', false);
@@ -1578,16 +1577,16 @@ function initial() {
 	getEmailInfo();
 	getCronFile();
 	getChangelogFile();
-	$j('#alternatelayout').prop('checked', AltLayout === 'false' ? false : true);
-	$j('#sortTableContainer').empty();
-	$j('#sortTableContainer').append(buildLastXTableNoData());
+	$('#alternatelayout').prop('checked', AltLayout === 'false' ? false : true);
+	$('#sortTableContainer').empty();
+	$('#sortTableContainer').append(buildLastXTableNoData());
 	d3.csv('/ext/connmon/csv/CompleteResults.htm').then(function (data) { parseCSVExport(data); }).catch(function () { errorCSVExport(); });
-	$j('#Time_Format').val(getCookie('Time_Format', 'number'));
+	$('#Time_Format').val(getCookie('Time_Format', 'number'));
 	redrawAllCharts();
 	scriptUpdateLayout();
 	var starttab = getCookie('StartTab', 'number');
 	if (starttab === 0) { starttab = 1; }
-	$j('#starttab').val(starttab);
+	$('#starttab').val(starttab);
 	jyNavigate(starttab, '', 5);
 	jyNavigate(1, 'Chart', 3);
 	jyNavigate(1, 'NotificationType', 4);
@@ -1595,7 +1594,7 @@ function initial() {
 }
 
 function setStartTab(dropdown) {
-	setCookie('StartTab', $j(dropdown).val());
+	setCookie('StartTab', $(dropdown).val());
 }
 
 function passChecked(obj, showobj) {
@@ -1609,7 +1608,7 @@ function toggleAlternateLayout(checkbox) {
 }
 
 function statusUpdate() {
-	$j.ajax({
+	$.ajax({
 		url: '/ext/connmon/detect_update.js',
 		dataType: 'script',
 		error: function (xhr) {
@@ -1629,7 +1628,7 @@ function statusUpdate() {
 						getVersionChangelogFile();
 					}
 					else {
-						$j('#connmon_version_server').text('Updated version available: ' + updatestatus);
+						$('#connmon_version_server').text('Updated version available: ' + updatestatus);
 					}
 					iziToast.warning({ message: 'New version available!' });
 					showhide('btnChkUpdate', false);
@@ -1637,7 +1636,7 @@ function statusUpdate() {
 				}
 				else {
 					iziToast.info({ message: 'No updates available' });
-					$j('#connmon_version_server').text('No updates available');
+					$('#connmon_version_server').text('No updates available');
 					showhide('btnChkUpdate', true);
 					showhide('btnDoUpdate', false);
 				}
@@ -1664,13 +1663,13 @@ function doUpdate() {
 
 function postConnTest() {
 	currentNoCharts = 0;
-	$j('#Time_Format').val(getCookie('Time_Format', 'number'));
+	$('#Time_Format').val(getCookie('Time_Format', 'number'));
 	getStatstitleFile();
 	setTimeout(redrawAllCharts, 3000);
 }
 
 function saveStatus(section) {
-	$j.ajax({
+	$.ajax({
 		url: '/ext/connmon/detect_save.js',
 		dataType: 'script',
 		error: function (xhr) {
@@ -1698,7 +1697,7 @@ function saveConfig(section) {
 	switch (section) {
 		case 'Navigate3':
 			if (validateAll()) {
-				var disabledfields = $j('#' + section).find('[disabled]');
+				var disabledfields = $('#' + section).find('[disabled]');
 				disabledfields.prop('disabled', false);
 
 				if (document.form.pingtype.value * 1 === 0) {
@@ -1725,7 +1724,7 @@ function saveConfig(section) {
 						document.form.connmon_schmins.value = '*/' + everyxvalue;
 					}
 				}
-				document.getElementById('amng_custom').value = JSON.stringify($j('#' + section).find('input,select,textarea').serializeObject());
+				document.getElementById('amng_custom').value = JSON.stringify($('#' + section).find('input,select,textarea').serializeObject());
 				document.formScriptActions.action_script.value = 'start_addon_settings;start_connmonconfig';
 				document.formScriptActions.submit();
 				disabledfields.prop('disabled', true);
@@ -1739,9 +1738,9 @@ function saveConfig(section) {
 			}
 			break;
 		case 'NotificationMethodNavigate1Config':
-			var disabledfields = $j('#' + section).find('[disabled]');
+			var disabledfields = $('#' + section).find('[disabled]');
 			disabledfields.prop('disabled', false);
-			document.getElementById('amng_custom').value = JSON.stringify($j('#table_connmonemailconfig').find('input,select,textarea').serializeObject());
+			document.getElementById('amng_custom').value = JSON.stringify($('#table_connmonemailconfig').find('input,select,textarea').serializeObject());
 			document.formScriptActions.action_script.value = 'start_addon_settings;start_connmonconfig';
 			document.formScriptActions.submit();
 			disabledfields.prop('disabled', true);
@@ -1751,9 +1750,9 @@ function saveConfig(section) {
 			setTimeout(saveStatus, 5000, section);
 			break;
 		case 'NotificationMethodNavigate1Email':
-			var disabledfields = $j('#' + section).find('[disabled]');
+			var disabledfields = $('#' + section).find('[disabled]');
 			disabledfields.prop('disabled', false);
-			document.getElementById('amng_custom').value = JSON.stringify($j('#table_emailconfig').find('input,select,textarea').serializeObjectEmail());
+			document.getElementById('amng_custom').value = JSON.stringify($('#table_emailconfig').find('input,select,textarea').serializeObjectEmail());
 			document.formScriptActions.action_script.value = 'start_addon_settings;start_connmonemailconfig';
 			document.formScriptActions.submit();
 			disabledfields.prop('disabled', true);
@@ -1763,9 +1762,9 @@ function saveConfig(section) {
 			setTimeout(saveStatus, 5000, section);
 			break;
 		default:
-			var disabledfields = $j('#' + section).find('[disabled]');
+			var disabledfields = $('#' + section).find('[disabled]');
 			disabledfields.prop('disabled', false);
-			document.getElementById('amng_custom').value = JSON.stringify($j('#' + section).find('input,select,textarea').serializeObject());
+			document.getElementById('amng_custom').value = JSON.stringify($('#' + section).find('input,select,textarea').serializeObject());
 			document.formScriptActions.action_script.value = 'start_addon_settings;start_connmonconfig';
 			document.formScriptActions.submit();
 			disabledfields.prop('disabled', true);
@@ -1778,7 +1777,7 @@ function saveConfig(section) {
 }
 
 function getConntestResultFile() {
-	$j.ajax({
+	$.ajax({
 		url: '/ext/connmon/ping-result.htm',
 		dataType: 'text',
 		cache: false,
@@ -1788,14 +1787,14 @@ function getConntestResultFile() {
 		success: function (data) {
 			var lines = data.trim().split('\n');
 			data = lines.join('\n');
-			$j('#conntest_output').html(data);
+			$('#conntest_output').html(data);
 			document.getElementById('conntest_output').parentElement.parentElement.style.display = '';
 		}
 	});
 }
 
 function testStatus(testname) {
-	$j.ajax({
+	$.ajax({
 		url: '/ext/connmon/detect_test.js',
 		dataType: 'script',
 		error: function (xhr) {
@@ -1844,13 +1843,13 @@ function everyXToggle(forminput) {
 		showhide('spanxminutes', true);
 	}
 
-	validateScheduleValue($j('[name=everyxvalue]')[0]);
+	validateScheduleValue($('[name=everyxvalue]')[0]);
 }
 
 var pingcount = 2;
 function updateConntest() {
 	pingcount++;
-	$j.ajax({
+	$.ajax({
 		url: '/ext/connmon/detect_connmon.js',
 		dataType: 'script',
 		error: function (xhr) {
@@ -1860,10 +1859,10 @@ function updateConntest() {
 			if (connmonstatus === 'InProgress') {
 				showhide('imgConnTest', true);
 				showhide('conntest_text', true);
-				$j('#conntest_text').html('Ping test in progress - ' + pingcount + 's elapsed');
+				$('#conntest_text').html('Ping test in progress - ' + pingcount + 's elapsed');
 			}
 			else if (connmonstatus === 'GenerateCSV') {
-				$j('#conntest_text').html('Retrieving data for charts...');
+				$('#conntest_text').html('Retrieving data for charts...');
 			}
 			else if (connmonstatus === 'Done') {
 				clearInterval(myinterval);
@@ -1871,7 +1870,7 @@ function updateConntest() {
 					intervalclear = true;
 					pingcount = 2;
 					getConntestResultFile();
-					$j('#conntest_text').html('Refreshing charts...');
+					$('#conntest_text').html('Refreshing charts...');
 					postConnTest();
 				}
 			}
@@ -1879,7 +1878,7 @@ function updateConntest() {
 				pingcount = 2;
 				clearInterval(myinterval);
 				showhide('imgConnTest', false);
-				$j('#conntest_text').html('Scheduled ping test already running!');
+				$('#conntest_text').html('Scheduled ping test already running!');
 				showhide('conntest_text', true);
 				showhide('btnRunPingtest', true);
 				document.getElementById('conntest_output').parentElement.parentElement.style.display = 'none';
@@ -1890,7 +1889,7 @@ function updateConntest() {
 				pingcount = 2;
 				clearInterval(myinterval);
 				showhide('imgConnTest', false);
-				$j('#conntest_text').html('Specified ping server is not valid');
+				$('#conntest_text').html('Specified ping server is not valid');
 				showhide('conntest_text', true);
 				showhide('btnRunPingtest', true);
 				document.getElementById('conntest_output').parentElement.parentElement.style.display = 'none';
@@ -1909,7 +1908,7 @@ function startConnTestInterval() {
 
 function runPingTest() {
 	showhide('btnRunPingtest', false);
-	$j('#conntest_output').html('');
+	$('#conntest_output').html('');
 	document.getElementById('conntest_output').parentElement.parentElement.style.display = 'none';
 	document.formScriptActions.action_script.value = 'start_addon_settings;start_connmon';
 	document.formScriptActions.submit();
