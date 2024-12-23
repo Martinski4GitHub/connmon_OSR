@@ -14,7 +14,8 @@ iziToast.settings({
 	pauseOnHover: false
 });
 
-function getCookie(cookiename, returntype) {
+function getCookie(cookiename, returntype)
+{
 	if (cookie.get('conn_' + cookiename) !== null) {
 		if (returntype === 'string') {
 			return cookie.get('conn_' + cookiename);
@@ -33,9 +34,16 @@ function getCookie(cookiename, returntype) {
 	}
 }
 
-function setCookie(cookiename, cookievalue) {
-	cookie.set('conn_' + cookiename, cookievalue, 10 * 365);
-}
+function setCookie(cookiename, cookievalue)
+{ cookie.set('conn_' + cookiename, cookievalue, 10 * 365); }
+
+/**----------------------------------------**/
+/** Modified by Martinski W. [2024-Dec-15] **/
+/**----------------------------------------**/
+let databaseResetDone = 0;
+var jffsAvailableSpace = '0 Bytes';
+var automaticModeState = 'ENABLED';
+var sqlDatabaseFileSize = '0 Bytes';
 
 var daysofweek = ['Mon', 'Tues', 'Wed', 'Thurs', 'Fri', 'Sat', 'Sun'];
 var pingtestdur = 60;
@@ -833,19 +841,24 @@ function getLastXFile() {
 	});
 }
 
-function setGlobalDataset(txtchartname, dataobject) {
+function setGlobalDataset(txtchartname, dataobject)
+{
 	window[txtchartname] = dataobject;
 	currentNoCharts++;
-	if (currentNoCharts === maxNoCharts) {
+	if (currentNoCharts === maxNoCharts)
+	{
 		showhide('imgConnTest', false);
 		showhide('conntest_text', false);
 		showhide('btnRunPingtest', true);
-		if (pingtestrunning) {
+		showhide('databaseSize_text',true);
+		if (pingtestrunning)
+		{
 			pingtestrunning = false;
 			iziToast.destroy();
 			iziToast.success({ message: 'Ping test complete' });
 		}
-		for (var i = 0; i < metriclist.length; i++) {
+		for (var i = 0; i < metriclist.length; i++)
+		{
 			$('#' + metriclist[i] + '_Interval').val(getCookie(metriclist[i] + '_Interval', 'number'));
 			changePeriod(document.getElementById(metriclist[i] + '_Interval'));
 			$('#' + metriclist[i] + '_Period').val(getCookie(metriclist[i] + '_Period', 'number'));
@@ -856,11 +869,15 @@ function setGlobalDataset(txtchartname, dataobject) {
 	}
 }
 
-function redrawAllCharts() {
-	for (var i = 0; i < metriclist.length; i++) {
+function redrawAllCharts()
+{
+	for (var i = 0; i < metriclist.length; i++)
+	{
 		drawChartNoData(metriclist[i], 'Data loading...');
-		for (var i2 = 0; i2 < chartlist.length; i2++) {
-			for (var i3 = 0; i3 < dataintervallist.length; i3++) {
+		for (var i2 = 0; i2 < chartlist.length; i2++)
+		{
+			for (var i3 = 0; i3 < dataintervallist.length; i3++)
+			{
 				d3.csv('/ext/connmon/csv/' + metriclist[i] + '_' + dataintervallist[i3] + '_' + chartlist[i2] + '.htm').then(setGlobalDataset.bind(null, metriclist[i] + '_' + dataintervallist[i3] + '_' + chartlist[i2]));
 			}
 		}
@@ -1180,8 +1197,10 @@ function errorCSVExport() {
 	document.getElementById('aExport').href = 'javascript:alert(\'Error exporting CSV,please refresh the page and try again\')';
 }
 
-function jyNavigate(tab, type, tabslength) {
-	for (var i = 1; i <= tabslength; i++) {
+function jyNavigate(tab, type, tabslength)
+{
+	for (var i = 1; i <= tabslength; i++)
+	{
 		if (tab === 0) {
 			$('#' + type + 'Navigate' + i).show();
 			$('#btn' + type + 'Navigate' + i).css('background', '');
@@ -1201,7 +1220,8 @@ function jyNavigate(tab, type, tabslength) {
 	}
 }
 
-function automaticTestEnableDisable(forminput) {
+function automaticTestEnableDisable(forminput)
+{
 	var inputname = forminput.name;
 	var inputvalue = forminput.value;
 	var prefix = inputname.substring(0, inputname.indexOf('_'));
@@ -1209,7 +1229,8 @@ function automaticTestEnableDisable(forminput) {
 	var fieldnames = ['schhours', 'schmins'];
 	var fieldnames2 = ['schedulemode', 'everyxselect', 'everyxvalue'];
 
-	if (inputvalue === 'false') {
+	if (inputvalue === 'false')
+	{
 		for (var i = 0; i < fieldnames.length; i++) {
 			$('input[name=' + prefix + '_' + fieldnames[i] + ']').addClass('disabled');
 			$('input[name=' + prefix + '_' + fieldnames[i] + ']').prop('disabled', true);
@@ -1222,7 +1243,8 @@ function automaticTestEnableDisable(forminput) {
 			$('[name=' + fieldnames2[i] + ']').prop('disabled', true);
 		}
 	}
-	else if (inputvalue === 'true') {
+	else if (inputvalue === 'true')
+	{
 		for (var i = 0; i < fieldnames.length; i++) {
 			$('input[name=' + prefix + '_' + fieldnames[i] + ']').removeClass('disabled');
 			$('input[name=' + prefix + '_' + fieldnames[i] + ']').prop('disabled', false);
@@ -1237,7 +1259,8 @@ function automaticTestEnableDisable(forminput) {
 	}
 }
 
-function scheduleModeToggle(forminput) {
+function scheduleModeToggle(forminput)
+{
 	var inputname = forminput.name;
 	var inputvalue = forminput.value;
 
@@ -1259,7 +1282,8 @@ function scheduleModeToggle(forminput) {
 	}
 }
 
-function getEmailConfFile() {
+function getEmailConfFile()
+{
 	$.ajax({
 		url: '/ext/connmon/email_config.htm',
 		dataType: 'text',
@@ -1287,7 +1311,8 @@ function getEmailConfFile() {
 	});
 }
 
-function getCustomactionInfo() {
+function getCustomactionInfo()
+{
 	$.ajax({
 		url: '/ext/connmon/customactioninfo.htm',
 		dataType: 'text',
@@ -1300,7 +1325,8 @@ function getCustomactionInfo() {
 	});
 }
 
-function getCustomactionList() {
+function getCustomactionList()
+{
 	$.ajax({
 		url: '/ext/connmon/customactionlist.htm',
 		dataType: 'text',
@@ -1315,7 +1341,8 @@ function getCustomactionList() {
 	});
 }
 
-function getEmailpwFile() {
+function getEmailpwFile()
+{
 	$.ajax({
 		url: '/ext/connmon/password.htm',
 		dataType: 'text',
@@ -1334,7 +1361,11 @@ function getEmailpwFile() {
 	});
 }
 
-function getConfFile() {
+/**----------------------------------------**/
+/** Modified by Martinski W. [2024-Dec-15] **/
+/**----------------------------------------**/
+function getConfFile()
+{
 	$.ajax({
 		url: '/ext/connmon/config.htm',
 		dataType: 'text',
@@ -1342,15 +1373,18 @@ function getConfFile() {
 		error: function (xhr) {
 			setTimeout(getConfFile, 1000);
 		},
-		success: function (data) {
+		success: function (data)
+		{
 			var configdata = data.split('\n');
 			configdata = configdata.filter(Boolean);
 
-			for (var i = 0; i < configdata.length; i++) {
+			for (var i = 0; i < configdata.length; i++)
+			{
 				let settingname = configdata[i].split('=')[0].toLowerCase();
 				let settingvalue = configdata[i].split('=')[1].replace(/(\r\n|\n|\r)/gm, '');
 
-				if (settingname.indexOf('pingserver') !== -1) {
+				if (settingname.indexOf('pingserver') !== -1)
+				{
 					var pingserver = settingvalue;
 					document.form.connmon_pingserver.value = pingserver;
 					if (validateIP(document.form.connmon_pingserver)) {
@@ -1363,7 +1397,8 @@ function getConfFile() {
 					}
 					document.form.pingtype.onchange();
 				}
-				else if (settingname.indexOf('schdays') !== -1) {
+				else if (settingname.indexOf('schdays') !== -1)
+				{
 					if (settingvalue === '*') {
 						for (var i2 = 0; i2 < daysofweek.length; i2++) {
 							$('#connmon_' + daysofweek[i2].toLowerCase()).prop('checked', true);
@@ -1376,19 +1411,22 @@ function getConfFile() {
 						}
 					}
 				}
-				else if (settingname === 'notifications_pingtest') {
+				else if (settingname === 'notifications_pingtest')
+				{
 					var pingtesttypearray = settingvalue.split(',');
 					for (var i2 = 0; i2 < pingtesttypearray.length; i2++) {
 						$('#connmon_pingtest_' + pingtesttypearray[i2].toLowerCase()).prop('checked', true);
 					}
 				}
-				else if (settingname === 'notifications_pingthreshold') {
+				else if (settingname === 'notifications_pingthreshold')
+				{
 					var pingthresholdtypearray = settingvalue.split(',');
 					for (var i2 = 0; i2 < pingthresholdtypearray.length; i2++) {
 						$('#connmon_pingthreshold_' + pingthresholdtypearray[i2].toLowerCase()).prop('checked', true);
 					}
 				}
-				else if (settingname === 'notifications_jitterthreshold') {
+				else if (settingname === 'notifications_jitterthreshold')
+				{
 					var jitterthresholdtypearray = settingvalue.split(',');
 					for (var i2 = 0; i2 < jitterthresholdtypearray.length; i2++) {
 						$('#connmon_jitterthreshold_' + jitterthresholdtypearray[i2].toLowerCase()).prop('checked', true);
@@ -1407,8 +1445,8 @@ function getConfFile() {
 					eval('document.form.connmon_' + settingname).value = settingvalue;
 				}
 
-				if (settingname.indexOf('automated') !== -1) {
-					automaticTestEnableDisable($('#connmon_auto_' + document.form.connmon_automated.value)[0]);
+				if (settingname.indexOf('automaticmode') !== -1) {
+					automaticTestEnableDisable($('#connmon_auto_' + document.form.connmon_automaticmode.value)[0]);
 				}
 
 				if (settingname.indexOf('pingduration') !== -1) {
@@ -1435,9 +1473,8 @@ function getConfFile() {
 }
 
 /**----------------------------------------**/
-/** Modified by Martinski W. [2024-Jul-14] **/
+/** Modified by Martinski W. [2024-Dec-15] **/
 /**----------------------------------------**/
-let databaseResetDone = 0;
 function getStatstitleFile()
 {
 	$.ajax({
@@ -1448,7 +1485,15 @@ function getStatstitleFile()
 		},
 		success: function()
 		{
+			var autoModeStateStr;
 			setConnmonStatsTitle();
+			document.getElementById('databaseSize_text').innerHTML = 'Database Size: '+sqlDatabaseFileSize;
+			document.getElementById('jffsFreeSpace_text').innerHTML = 'JFFS Available: '+jffsAvailableSpace;
+			if (automaticModeState === 'ENABLED')
+			{ autoModeStateStr = "<span style='margin-left:8px; background-color: #229652; color:#f2f2f2;'>&nbsp; ENABLED &nbsp;</span>" }
+			else
+			{ autoModeStateStr = "<span style='margin-left:8px; background-color: #C81927; color:#f2f2f2;'>&nbsp; DISABLED &nbsp;</span>" }
+			document.getElementById('autoModeState_text').innerHTML = 'Currently: '+autoModeStateStr;
 			if (databaseResetDone === 1)
 			{
 				currentNoCharts = 0;
@@ -1563,7 +1608,11 @@ function scriptUpdateLayout() {
 	}
 }
 
-function initial() {
+/**----------------------------------------**/
+/** Modified by Martinski W. [2024-Dec-15] **/
+/**----------------------------------------**/
+function initial()
+{
 	setCurrentPage();
 	loadCustomSettings();
 	show_menu();
@@ -1584,6 +1633,9 @@ function initial() {
 	$('#Time_Format').val(getCookie('Time_Format', 'number'));
 	redrawAllCharts();
 	scriptUpdateLayout();
+	showhide('databaseSize_text',true);
+	showhide('jffsFreeSpace_text',true);
+	showhide('autoModeState_text',true);
 	var starttab = getCookie('StartTab', 'number');
 	if (starttab === 0) { starttab = 1; }
 	$('#starttab').val(starttab);
@@ -1661,14 +1713,19 @@ function doUpdate() {
 	document.form.submit();
 }
 
-function postConnTest() {
+/**----------------------------------------**/
+/** Modified by Martinski W. [2024-Nov-22] **/
+/**----------------------------------------**/
+function postConnTest()
+{
 	currentNoCharts = 0;
 	$('#Time_Format').val(getCookie('Time_Format', 'number'));
-	getStatstitleFile();
+	setTimeout(getStatstitleFile, 3000);
 	setTimeout(redrawAllCharts, 3000);
 }
 
-function saveStatus(section) {
+function saveStatus(section)
+{
 	$.ajax({
 		url: '/ext/connmon/detect_save.js',
 		dataType: 'script',
@@ -1681,7 +1738,8 @@ function saveStatus(section) {
 			}
 			else {
 				showhide('imgSave' + section, false);
-				if (savestatus === 'Success') {
+				if (savestatus === 'Success')
+				{
 					iziToast.destroy();
 					iziToast.success({ message: 'Save successful' });
 					showhide('btnSave' + section, true);
@@ -1693,10 +1751,13 @@ function saveStatus(section) {
 	});
 }
 
-function saveConfig(section) {
-	switch (section) {
+function saveConfig(section)
+{
+	switch (section)
+	{
 		case 'Navigate3':
-			if (validateAll()) {
+			if (validateAll())
+			{
 				var disabledfields = $('#' + section).find('[disabled]');
 				disabledfields.prop('disabled', false);
 
@@ -1707,8 +1768,10 @@ function saveConfig(section) {
 					document.form.connmon_pingserver.value = document.form.connmon_domain.value;
 				}
 
-				if (document.form.schedulemode.value === 'EveryX') {
-					if (document.form.everyxselect.value === 'hours') {
+				if (document.form.schedulemode.value === 'EveryX')
+				{
+					if (document.form.everyxselect.value === 'hours')
+					{
 						var everyxvalue = document.form.everyxvalue.value * 1;
 						document.form.connmon_schmins.value = 0;
 						if (everyxvalue === 24) {
@@ -1718,7 +1781,8 @@ function saveConfig(section) {
 							document.form.connmon_schhours.value = '*/' + everyxvalue;
 						}
 					}
-					else if (document.form.everyxselect.value === 'minutes') {
+					else if (document.form.everyxselect.value === 'minutes')
+					{
 						document.form.connmon_schhours.value = '*';
 						var everyxvalue = document.form.everyxvalue.value * 1;
 						document.form.connmon_schmins.value = '*/' + everyxvalue;
@@ -1847,7 +1911,8 @@ function everyXToggle(forminput) {
 }
 
 var pingcount = 2;
-function updateConntest() {
+function updateConntest()
+{
 	pingcount++;
 	$.ajax({
 		url: '/ext/connmon/detect_connmon.js',
@@ -1900,14 +1965,20 @@ function updateConntest() {
 	});
 }
 
-function startConnTestInterval() {
+function startConnTestInterval()
+{
 	intervalclear = false;
 	pingtestrunning = true;
 	myinterval = setInterval(updateConntest, 1000);
 }
 
-function runPingTest() {
+/**----------------------------------------**/
+/** Modified by Martinski W. [2024-Nov-22] **/
+/**----------------------------------------**/
+function runPingTest()
+{
 	showhide('btnRunPingtest', false);
+	showhide('databaseSize_text',false);
 	$('#conntest_output').html('');
 	document.getElementById('conntest_output').parentElement.parentElement.style.display = 'none';
 	document.formScriptActions.action_script.value = 'start_addon_settings;start_connmon';
@@ -1918,7 +1989,8 @@ function runPingTest() {
 	iziToast.info({ message: 'Ping test started', timeout: false });
 }
 
-function changeAllCharts(e) {
+function changeAllCharts(e)
+{
 	value = e.value * 1;
 	name = e.id.substring(0, e.id.indexOf('_'));
 	setCookie(e.id, value);

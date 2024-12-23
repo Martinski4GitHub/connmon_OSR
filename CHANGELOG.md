@@ -1,11 +1,19 @@
 # Changelog
 
 ## v3.0.3
-18 August 2024
+22 December 2024
 *   FIXED: Errors when loading the webGUI page on the 3006.102.1 F/W version.
-*   FIXED: Incorrect results when computing the free space available of a large-capacity USB-attached drive. This was preventing the user from resetting the database using the CLI menu.
+*   FIXED: Bug giving incorrect results when computing the free space available of a large-capacity USB-attached drive. This was preventing the user from resetting the database using the CLI menu.
 *   FIXED: "Reset Database" functionality on the CLI menu was correctly resetting the database file but the result was not reflected on the webGUI page where "old" entries were still shown as if the database had not been reset.
+*   IMPROVED: Modified all SQLite3 calls to capture and log errors in the system log.
+*   IMPROVED: Modified SQLite3 configuration parameters to improve the trimming of records from the database and then perform "garbage collection" of deleted entries to reclaim unused space & avoid excessive fragmentation.
+*   IMPROVED: Modified SQLite3 configuration parameters to improve the processing database records.
+*   IMPROVED: Modified code to set the corresponding priority level of log entries when calling the built-in logger utility.
+*   IMPROVED: Modified the startup call made in the post-mount script to check if the USB-disk partition passed as argument has Entware installed.
+*   IMPROVED: Added code to show the current database file size information on the CLI menu and the webGUI page.
+*   IMPROVED: Added code to show the "JFFS Available" space information for the "Data Storage Location" option on the CLI menu and the webGUI page.
 *   CHANGED: Modified code related to "var $j = jQuery.noConflict();" which is now considered obsolete. 
+*   IMPROVED: Various code improvements & fine-tuning.
 
 ## v3.0.2
 06 January 2022
