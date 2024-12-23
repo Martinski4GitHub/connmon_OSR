@@ -1641,7 +1641,6 @@ _ApplyDatabaseSQLCmds_()
         sqlErrorMsg="$(tail -n1 "$tempLogFilePath")"
         if echo "$sqlErrorMsg" | grep -qE "^(Error:|Parse error|Runtime error)"
         then
-            echo "$sqlErrorMsg"
             if echo "$sqlErrorMsg" | grep -qE "^(Parse|Runtime) error .*: database is locked"
             then foundLocked=true ; sleep 2 ; continue
             fi
