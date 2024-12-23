@@ -10,7 +10,7 @@
 ##            https://github.com/jackyaz/connmon            ##
 ##                                                          ##
 ##############################################################
-# Last Modified: 2024-Dec-22
+# Last Modified: 2024-Dec-23
 #-------------------------------------------------------------
 
 ##############        Shellcheck directives      #############
@@ -1548,9 +1548,9 @@ _Check_JFFS_SpaceAvailable_()
    return 1
 }
 
-##-------------------------------------##
-## Added by Martinski W. [2024-Dec-21] ##
-##-------------------------------------##
+##----------------------------------------##
+## Modified by Martinski W. [2024-Dec-23] ##
+##----------------------------------------##
 _UpdateJFFS_FreeSpaceInfo_()
 {
    local jffsFreeSpace
@@ -1558,8 +1558,11 @@ _UpdateJFFS_FreeSpaceInfo_()
    [ ! -d "$SCRIPT_STORAGE_DIR" ] && return 1
 
    jffsFreeSpace="$(_Get_JFFS_Space_ FREE HRx)"
-   if [ ! -s "$outJSfile" ] || \
-      ! grep -q "^var jffsAvailableSpace =.*" "$outJSfile"
+
+   if [ ! -s "$outJSfile" ]
+   then
+       echo "var jffsAvailableSpace = '${jffsFreeSpace}';" >> "$outJSfile"
+   elif ! grep -q "^var jffsAvailableSpace =.*" "$outJSfile"
    then
        sed -i "1 i var jffsAvailableSpace = '${jffsFreeSpace}';" "$outJSfile"
    else
@@ -1567,9 +1570,9 @@ _UpdateJFFS_FreeSpaceInfo_()
    fi
 }
 
-##-------------------------------------##
-## Added by Martinski W. [2024-Dec-21] ##
-##-------------------------------------##
+##----------------------------------------##
+## Modified by Martinski W. [2024-Dec-23] ##
+##----------------------------------------##
 _UpdateAutomaticModeState_()
 {
    local automaticModeStatus
@@ -1580,8 +1583,11 @@ _UpdateAutomaticModeState_()
    then automaticModeStatus="ENABLED"
    else automaticModeStatus="DISABLED"
    fi
-   if [ ! -s "$outJSfile" ] || \
-      ! grep -q "^var automaticModeState =.*" "$outJSfile"
+
+   if [ ! -s "$outJSfile" ]
+   then
+       echo "var automaticModeState = '${automaticModeStatus}';" >> "$outJSfile"
+   elif ! grep -q "^var automaticModeState =.*" "$outJSfile"
    then
        sed -i "3 i var automaticModeState = '${automaticModeStatus}';" "$outJSfile"
    else
@@ -1589,9 +1595,9 @@ _UpdateAutomaticModeState_()
    fi
 }
 
-##-------------------------------------##
-## Added by Martinski W. [2024-Dec-21] ##
-##-------------------------------------##
+##----------------------------------------##
+## Modified by Martinski W. [2024-Dec-23] ##
+##----------------------------------------##
 _UpdateDatabaseFileSizeInfo_()
 {
    local databaseFileSize
@@ -1599,8 +1605,11 @@ _UpdateDatabaseFileSizeInfo_()
    [ ! -d "$SCRIPT_STORAGE_DIR" ] && return 1
 
    databaseFileSize="$(_GetFileSize_ "$CONNSTATS_DB" HRx)"
-   if [ ! -s "$outJSfile" ] || \
-      ! grep -q "^var sqlDatabaseFileSize =.*" "$outJSfile"
+
+   if [ ! -s "$outJSfile" ]
+   then
+       echo "var sqlDatabaseFileSize = '${databaseFileSize}';" >> "$outJSfile"
+   elif ! grep -q "^var sqlDatabaseFileSize =.*" "$outJSfile"
    then
        sed -i "1 i var sqlDatabaseFileSize = '${databaseFileSize}';" "$outJSfile"
    else
@@ -1610,13 +1619,13 @@ _UpdateDatabaseFileSizeInfo_()
    _UpdateAutomaticModeState_
 }
 
-##-------------------------------------##
-## Added by Martinski W. [2024-Dec-21] ##
-##-------------------------------------##
+##----------------------------------------##
+## Modified by Martinski W. [2024-Dec-23] ##
+##----------------------------------------##
 _ApplyDatabaseSQLCmds_()
 {
     local errorCount=0  maxErrorCount=5
-    local triesCount=0  maxTriesCount=15  sqlErrorMsg
+    local triesCount=0  maxTriesCount=20  sqlErrorMsg
     local tempLogFilePath="/tmp/connMonStats_TMP_$$.LOG"
 
     resultStr=""
@@ -1633,7 +1642,7 @@ _ApplyDatabaseSQLCmds_()
         if echo "$sqlErrorMsg" | grep -qE "^(Error:|Parse error|Runtime error)"
         then
             echo "$sqlErrorMsg"
-            if echo "$sqlErrorMsg" | grep -qE "^Runtime error .*: database is locked"
+            if echo "$sqlErrorMsg" | grep -qE "^(Parse|Runtime) error .*: database is locked"
             then foundLocked=true ; sleep 2 ; continue
             fi
             errorCount="$((errorCount + 1))"
