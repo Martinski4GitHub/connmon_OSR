@@ -1493,7 +1493,7 @@ function getStatstitleFile()
 			{ autoModeStateStr = '<span style="margin-left:8px; background-color: #229652; color:#f2f2f2;">&nbsp;ENABLED&nbsp;</span>' ; }
 			else
 			{ autoModeStateStr = '<span style="margin-left:8px; background-color: #C81927; color:#f2f2f2;">&nbsp;DISABLED&nbsp;</span>' ; }
-			document.getElementById('autoModeState_text').innerHTML = 'Currently: '+autoModeStateStr;
+			document.getElementById('autoModeState_text').innerHTML = '<span>Currently: '+autoModeStateStr+'</span>';
 			if (databaseResetDone === 1)
 			{
 				currentNoCharts = 0;
