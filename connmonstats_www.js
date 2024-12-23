@@ -1485,15 +1485,14 @@ function getStatstitleFile()
 		},
 		success: function()
 		{
-			var autoModeStateStr;
 			setConnmonStatsTitle();
 			document.getElementById('databaseSize_text').textContent  = 'Database Size: '+sqlDatabaseFileSize;
 			document.getElementById('jffsFreeSpace_text').textContent  = 'JFFS Available: '+jffsAvailableSpace;
 			if (automaticModeState === 'ENABLED')
-			{ autoModeStateStr = '<span style="margin-left:8px; background-color: #229652; color:#f2f2f2;">&nbsp;ENABLED&nbsp;</span>' ; }
+			{ document.getElementById('autoModeState_text').innerHTML = 'Currently: <span style="margin-left:8px; background-color: #229652; color:#f2f2f2;">&nbsp;ENABLED&nbsp;</span>' ; }
 			else
-			{ autoModeStateStr = '<span style="margin-left:8px; background-color: #C81927; color:#f2f2f2;">&nbsp;DISABLED&nbsp;</span>' ; }
-			document.getElementById('autoModeState_text').innerHTML = '<span>Currently: '+autoModeStateStr+'</span>';
+			{ document.getElementById('autoModeState_text').innerHTML = 'Currently: <span style="margin-left:8px; background-color: #C81927; color:#f2f2f2;">&nbsp;DISABLED&nbsp;</span>' ; }
+
 			if (databaseResetDone === 1)
 			{
 				currentNoCharts = 0;
