@@ -38,7 +38,7 @@ function setCookie(cookiename, cookievalue)
 { cookie.set('conn_' + cookiename, cookievalue, 10 * 365); }
 
 /**----------------------------------------**/
-/** Modified by Martinski W. [2024-Dec-15] **/
+/** Modified by Martinski W. [2024-Dec-22] **/
 /**----------------------------------------**/
 let databaseResetDone = 0;
 var jffsAvailableSpace = '0 Bytes';
@@ -1473,7 +1473,7 @@ function getConfFile()
 }
 
 /**----------------------------------------**/
-/** Modified by Martinski W. [2024-Dec-15] **/
+/** Modified by Martinski W. [2024-Dec-22] **/
 /**----------------------------------------**/
 function getStatstitleFile()
 {
@@ -1490,9 +1490,9 @@ function getStatstitleFile()
 			document.getElementById('databaseSize_text').innerHTML = 'Database Size: '+sqlDatabaseFileSize;
 			document.getElementById('jffsFreeSpace_text').innerHTML = 'JFFS Available: '+jffsAvailableSpace;
 			if (automaticModeState === 'ENABLED')
-			{ autoModeStateStr = "<span style='margin-left:8px; background-color: #229652; color:#f2f2f2;'>&nbsp; ENABLED &nbsp;</span>" }
+			{ autoModeStateStr = "<span style='margin-left:8px; background-color: #229652; color:#f2f2f2;'>&nbsp; ENABLED &nbsp;</span>" ; }
 			else
-			{ autoModeStateStr = "<span style='margin-left:8px; background-color: #C81927; color:#f2f2f2;'>&nbsp; DISABLED &nbsp;</span>" }
+			{ autoModeStateStr = "<span style='margin-left:8px; background-color: #C81927; color:#f2f2f2;'>&nbsp; DISABLED &nbsp;</span>" ; }
 			document.getElementById('autoModeState_text').innerHTML = 'Currently: '+autoModeStateStr;
 			if (databaseResetDone === 1)
 			{
