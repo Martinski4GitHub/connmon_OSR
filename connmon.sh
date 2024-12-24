@@ -1625,7 +1625,7 @@ _UpdateDatabaseFileSizeInfo_()
 _ApplyDatabaseSQLCmds_()
 {
     local errorCount=0  maxErrorCount=5
-    local triesCount=0  maxTriesCount=20  sqlErrorMsg
+    local triesCount=0  maxTriesCount=25  sqlErrorMsg
     local tempLogFilePath="/tmp/connMonStats_TMP_$$.LOG"
 
     resultStr=""
