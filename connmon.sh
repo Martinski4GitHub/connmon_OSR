@@ -10,7 +10,7 @@
 ##            https://github.com/jackyaz/connmon            ##
 ##                                                          ##
 ##############################################################
-# Last Modified: 2024-Dec-23
+# Last Modified: 2025-Jan-04
 #-------------------------------------------------------------
 
 ##############        Shellcheck directives      #############
@@ -46,12 +46,15 @@ readonly SHARED_WEB_DIR="$SCRIPT_WEBPAGE_DIR/shared-jy"
 readonly EMAIL_DIR="/jffs/addons/amtm/mail"
 readonly EMAIL_CONF="$EMAIL_DIR/email.conf"
 readonly EMAIL_REGEX="^(([A-Za-z0-9]+((\.|\-|\_|\+)?[A-Za-z0-9]?)*[A-Za-z0-9]+)|[A-Za-z0-9]+)@(([A-Za-z0-9]+)+((\.|\-|\_)?([A-Za-z0-9]+)+)*)+\.([A-Za-z]{2,})+$"
+
 [ -z "$(nvram get odmpid)" ] && ROUTER_MODEL="$(nvram get productid)" || ROUTER_MODEL="$(nvram get odmpid)"
 [ -f /opt/bin/sqlite3 ] && SQLITE3_PATH=/opt/bin/sqlite3 || SQLITE3_PATH=/usr/sbin/sqlite3
 
-##-------------------------------------##
-## Added by Martinski W. [2024-Nov-23] ##
-##-------------------------------------##
+##----------------------------------------##
+## Modified by Martinski W. [2025-Jan-04] ##
+##----------------------------------------##
+readonly scriptVersRegExp="v[0-9]{1,2}([.][0-9]{1,2})([.][0-9]{1,2})"
+
 # For daily CRON job to trim database #
 readonly defTrimDB_Hour=3
 readonly defTrimDB_Mins=1
@@ -81,6 +84,9 @@ readonly GRNct="\033[1;32m\033[1m"
 readonly CLEARct="\033[0m"
 
 ### End of output format variables ###
+
+# Give priority to built-in binaries #
+export PATH="/bin:/usr/bin:/sbin:/usr/sbin:$PATH"
 
 ##----------------------------------------##
 ## Modified by Martinski W. [2024-Dec-21] ##
@@ -161,9 +167,12 @@ Set_Version_Custom_Settings()
 	SETTINGSFILE="/jffs/addons/custom_settings.txt"
 	case "$1" in
 		local)
-			if [ -f "$SETTINGSFILE" ]; then
-				if [ "$(grep -c "connmon_version_local" $SETTINGSFILE)" -gt 0 ]; then
-					if [ "$2" != "$(grep "connmon_version_local" /jffs/addons/custom_settings.txt | cut -f2 -d' ')" ]; then
+			if [ -f "$SETTINGSFILE" ]
+			then
+				if [ "$(grep -c "connmon_version_local" $SETTINGSFILE)" -gt 0 ]
+				then
+					if [ "$2" != "$(grep "connmon_version_local" /jffs/addons/custom_settings.txt | cut -f2 -d' ')" ]
+					then
 						sed -i "s/connmon_version_local.*/connmon_version_local $2/" "$SETTINGSFILE"
 					fi
 				else
@@ -174,9 +183,12 @@ Set_Version_Custom_Settings()
 			fi
 		;;
 		server)
-			if [ -f "$SETTINGSFILE" ]; then
-				if [ "$(grep -c "connmon_version_server" $SETTINGSFILE)" -gt 0 ]; then
-					if [ "$2" != "$(grep "connmon_version_server" /jffs/addons/custom_settings.txt | cut -f2 -d' ')" ]; then
+			if [ -f "$SETTINGSFILE" ]
+			then
+				if [ "$(grep -c "connmon_version_server" $SETTINGSFILE)" -gt 0 ]
+				then
+					if [ "$2" != "$(grep "connmon_version_server" /jffs/addons/custom_settings.txt | cut -f2 -d' ')" ]
+					then
 						sed -i "s/connmon_version_server.*/connmon_version_server $2/" "$SETTINGSFILE"
 					fi
 				else
@@ -189,24 +201,30 @@ Set_Version_Custom_Settings()
 	esac
 }
 
+##----------------------------------------##
+## Modified by Martinski W. [2025-Jan-04] ##
+##----------------------------------------##
 Update_Check()
 {
 	echo 'var updatestatus = "InProgress";' > "$SCRIPT_WEB_DIR/detect_update.js"
 	doupdate="false"
-	localver="$(grep "SCRIPT_VERSION=" "/jffs/scripts/$SCRIPT_NAME" | grep -m1 -oE 'v[0-9]{1,2}([.][0-9]{1,2})([.][0-9]{1,2})')"
-	Set_Version_Custom_Settings local "$localver"
-	/usr/sbin/curl -fsL --retry 3 --connect-timeout 15 "$SCRIPT_REPO/404/$SCRIPT_NAME.sh" | grep -qF "jackyaz" || { Print_Output true "404 error detected - stopping update" "$ERR"; return 1; }
-	serverver="$(/usr/sbin/curl -fsL --retry 3 --connect-timeout 15 "$SCRIPT_REPO/version/$SCRIPT_NAME.sh" | grep "SCRIPT_VERSION=" | grep -m1 -oE 'v[0-9]{1,2}([.][0-9]{1,2})([.][0-9]{1,2})')"
-	if [ "$localver" != "$serverver" ]; then
+	localver="$(grep "SCRIPT_VERSION=" "/jffs/scripts/$SCRIPT_NAME" | grep -m1 -oE "$scriptVersRegExp")"
+	[ -n "$localver" ] && Set_Version_Custom_Settings local "$localver"
+	curl -fsL --retry 4 --retry-delay 5 "$SCRIPT_REPO/404/$SCRIPT_NAME.sh" | grep -qF "jackyaz" || \
+    { Print_Output true "404 error detected - stopping update" "$ERR"; return 1; }
+	serverver="$(curl -fsL --retry 4 --retry-delay 5 "$SCRIPT_REPO/version/$SCRIPT_NAME.sh" | grep "SCRIPT_VERSION=" | grep -m1 -oE "$scriptVersRegExp")"
+	if [ "$localver" != "$serverver" ]
+	then
 		doupdate="version"
 		Set_Version_Custom_Settings server "$serverver"
-		changelog="$(/usr/sbin/curl -fsL --retry 3 --connect-timeout 15 "$SCRIPT_REPO/files/CHANGELOG.md" | sed -n "/$serverver"'/,/##/p' | head -n -1 | sed 's/## //')"
+		changelog="$(curl -fsL --retry 4 --retry-delay 5 "$SCRIPT_REPO/files/CHANGELOG.md" | sed -n "/$serverver"'/,/##/p' | head -n -1 | sed 's/## //')"
 		echo 'var changelog = "<div style=\"width:350px;\"><b>Changelog</b><br />'"$(echo "$changelog" | tr '\n' '|' | sed 's/|/<br \/>/g')"'</div>"' > "$SCRIPT_WEB_DIR/detect_changelog.js"
 		echo 'var updatestatus = "'"$serverver"'";'  > "$SCRIPT_WEB_DIR/detect_update.js"
 	else
 		localmd5="$(md5sum "/jffs/scripts/$SCRIPT_NAME" | awk '{print $1}')"
-		remotemd5="$(curl -fsL --retry 3 "$SCRIPT_REPO/md5/$SCRIPT_NAME.sh" | md5sum | awk '{print $1}')"
-		if [ "$localmd5" != "$remotemd5" ]; then
+		remotemd5="$(curl -fsL --retry 4 --retry-delay 5 "$SCRIPT_REPO/md5/$SCRIPT_NAME.sh" | md5sum | awk '{print $1}')"
+		if [ "$localmd5" != "$remotemd5" ]
+		then
 			doupdate="md5"
 			Set_Version_Custom_Settings server "$serverver-hotfix"
 			echo 'var updatestatus = "'"$serverver-hotfix"'";'  > "$SCRIPT_WEB_DIR/detect_update.js"
@@ -218,6 +236,9 @@ Update_Check()
 	echo "$doupdate,$localver,$serverver"
 }
 
+##----------------------------------------##
+## Modified by Martinski W. [2025-Jan-04] ##
+##----------------------------------------##
 Update_Version()
 {
 	if [ $# -eq 0 ] || [ -z "$1" ]
@@ -227,9 +248,10 @@ Update_Version()
 		localver="$(echo "$updatecheckresult" | cut -f2 -d',')"
 		serverver="$(echo "$updatecheckresult" | cut -f3 -d',')"
 
-		if [ "$isupdate" = "version" ]; then
+		if [ "$isupdate" = "version" ]
+		then
 			Print_Output true "New version of $SCRIPT_NAME available - $serverver" "$PASS"
-			changelog="$(/usr/sbin/curl -fsL --retry 3 --connect-timeout 15 "$SCRIPT_REPO/files/CHANGELOG.md" | sed -n "/$serverver"'/,/##/p' | head -n -1 | sed 's/## //')"
+			changelog="$(curl -fsL --retry 4 --retry-delay 5 "$SCRIPT_REPO/files/CHANGELOG.md" | sed -n "/$serverver"'/,/##/p' | head -n -1 | sed 's/## //')"
 			printf "${BOLD}${UNDERLINE}Changelog\\n${CLEARFORMAT}%s\\n\\n" "$changelog"
 		elif [ "$isupdate" = "md5" ]; then
 			Print_Output true "MD5 hash of $SCRIPT_NAME does not match - hotfix available - $serverver" "$PASS"
@@ -237,17 +259,18 @@ Update_Version()
 
 		if [ "$isupdate" != "false" ]
 		then
-			printf "\\n${BOLD}Do you want to continue with the update? (y/n)${CLEARFORMAT}  "
+			printf "\n${BOLD}Do you want to continue with the update? (y/n)${CLEARFORMAT}  "
 			read -r confirm
 			case "$confirm" in
 				y|Y)
-					printf "\\n"
+					printf "\n"
 					Update_File CHANGELOG.md
 					Update_File README.md
 					Update_File LICENSE
 					Update_File shared-jy.tar.gz
 					Update_File connmonstats_www.asp
-					Download_File "$SCRIPT_REPO/update/$SCRIPT_NAME.sh" "/jffs/scripts/$SCRIPT_NAME" && Print_Output true "$SCRIPT_NAME successfully updated"
+					Download_File "$SCRIPT_REPO/update/$SCRIPT_NAME.sh" "/jffs/scripts/$SCRIPT_NAME" && \
+					Print_Output true "$SCRIPT_NAME successfully updated" "$PASS"
 					chmod 0755 "/jffs/scripts/$SCRIPT_NAME"
 					Set_Version_Custom_Settings local "$serverver"
 					Set_Version_Custom_Settings server "$serverver"
@@ -257,7 +280,7 @@ Update_Version()
 					exit 0
 				;;
 				*)
-					printf "\\n"
+					printf "\n"
 					Clear_Lock
 					return 1
 				;;
@@ -270,14 +293,15 @@ Update_Version()
 
 	if [ "$1" = "force" ]
 	then
-		serverver="$(/usr/sbin/curl -fsL --retry 3 --connect-timeout 15 "$SCRIPT_REPO/version/$SCRIPT_NAME.sh" | grep "SCRIPT_VERSION=" | grep -m1 -oE 'v[0-9]{1,2}([.][0-9]{1,2})([.][0-9]{1,2})')"
+		serverver="$(curl -fsL --retry 4 --retry-delay 5 "$SCRIPT_REPO/version/$SCRIPT_NAME.sh" | grep "SCRIPT_VERSION=" | grep -m1 -oE "$scriptVersRegExp")"
 		Print_Output true "Downloading latest version ($serverver) of $SCRIPT_NAME" "$PASS"
 		Update_File CHANGELOG.md
 		Update_File README.md
 		Update_File LICENSE
 		Update_File shared-jy.tar.gz
 		Update_File connmonstats_www.asp
-		Download_File "$SCRIPT_REPO/update/$SCRIPT_NAME.sh" "/jffs/scripts/$SCRIPT_NAME" && Print_Output true "$SCRIPT_NAME successfully updated"
+		Download_File "$SCRIPT_REPO/update/$SCRIPT_NAME.sh" "/jffs/scripts/$SCRIPT_NAME" && \
+		Print_Output true "$SCRIPT_NAME successfully updated" "$PASS"
 		chmod 0755 "/jffs/scripts/$SCRIPT_NAME"
 		Set_Version_Custom_Settings local "$serverver"
 		Set_Version_Custom_Settings server "$serverver"
@@ -315,7 +339,8 @@ Update_File()
 		rm -f "$tmpfile"
 	elif [ "$1" = "shared-jy.tar.gz" ]
 	then
-		if [ ! -f "$SHARED_DIR/$1.md5" ]; then
+		if [ ! -f "$SHARED_DIR/$1.md5" ]
+		then
 			Download_File "$SHARED_REPO/$1" "$SHARED_DIR/$1"
 			Download_File "$SHARED_REPO/$1.md5" "$SHARED_DIR/$1.md5"
 			tar -xzf "$SHARED_DIR/$1" -C "$SHARED_DIR"
@@ -323,8 +348,9 @@ Update_File()
 			Print_Output true "New version of $1 downloaded" "$PASS"
 		else
 			localmd5="$(cat "$SHARED_DIR/$1.md5")"
-			remotemd5="$(curl -fsL --retry 3 "$SHARED_REPO/$1.md5")"
-			if [ "$localmd5" != "$remotemd5" ]; then
+			remotemd5="$(curl -fsL --retry 4 --retry-delay 5 "$SHARED_REPO/$1.md5")"
+			if [ "$localmd5" != "$remotemd5" ]
+			then
 				Download_File "$SHARED_REPO/$1" "$SHARED_DIR/$1"
 				Download_File "$SHARED_REPO/$1.md5" "$SHARED_DIR/$1.md5"
 				tar -xzf "$SHARED_DIR/$1" -C "$SHARED_DIR"
@@ -353,7 +379,8 @@ Update_File()
 	fi
 }
 
-Validate_Number(){
+Validate_Number()
+{
 	if [ "$1" -eq "$1" ] 2>/dev/null; then
 		return 0
 	else
@@ -544,7 +571,7 @@ Create_Symlinks()
 }
 
 ##----------------------------------------##
-## Modified by Martinski W. [2024-Dec-21] ##
+## Modified by Martinski W. [2025-Jan-04] ##
 ##----------------------------------------##
 Conf_Exists()
 {
@@ -575,23 +602,27 @@ Conf_Exists()
 			PINGFREQUENCY="$(Conf_Parameters check PINGFREQUENCY)"
 			echo "SCHMINS=*/$PINGFREQUENCY" >> "$SCRIPT_CONF"
 			sed -i '/SCHEDULESTART/d;/SCHEDULEEND/d;/PINGFREQUENCY/d;' "$SCRIPT_CONF"
+			Auto_Cron delete 2>/dev/null
 		fi
 		if grep -q "OUTPUTDATAMODE" "$SCRIPT_CONF"; then
 			sed -i '/OUTPUTDATAMODE/d;' "$SCRIPT_CONF"
 		fi
-		if ! grep -q "DAYSTOKEEP" "$SCRIPT_CONF"; then
+		if ! grep -q "^OUTPUTTIMEMODE=" "$SCRIPT_CONF"; then
+			echo "OUTPUTTIMEMODE=unix" >> "$SCRIPT_CONF"
+		fi
+		if ! grep -q "^DAYSTOKEEP=" "$SCRIPT_CONF"; then
 			echo "DAYSTOKEEP=30" >> "$SCRIPT_CONF"
 		fi
-		if ! grep -q "LASTXRESULTS" "$SCRIPT_CONF"; then
+		if ! grep -q "^LASTXRESULTS=" "$SCRIPT_CONF"; then
 			echo "LASTXRESULTS=10" >> "$SCRIPT_CONF"
 		fi
-		if ! grep -q "EXCLUDEFROMQOS" "$SCRIPT_CONF"; then
+		if ! grep -q "^EXCLUDEFROMQOS=" "$SCRIPT_CONF"; then
 			echo "EXCLUDEFROMQOS=true" >> "$SCRIPT_CONF"
 		fi
 		if ! grep -q "^STORAGELOCATION=" "$SCRIPT_CONF"; then
 			echo "STORAGELOCATION=jffs" >> "$SCRIPT_CONF"
 		fi
-		if ! grep -q "NOTIFICATIONS" "$SCRIPT_CONF"
+		if ! grep -q "^NOTIFICATIONS" "$SCRIPT_CONF"
 		then
 			{
 				echo "NOTIFICATIONS_EMAIL=false"
@@ -1047,13 +1078,17 @@ Auto_Cron()
 	esac
 }
 
-Download_File(){
-	/usr/sbin/curl -fsL --retry 3 --connect-timeout 15 "$1" -o "$2"
-}
+##----------------------------------------##
+## Modified by Martinski W. [2025-Jan-04] ##
+##----------------------------------------##
+Download_File()
+{ /usr/sbin/curl -LSs --retry 4 --retry-delay 5 --retry-connrefused "$1" -o "$2" ; }
 
-Get_WebUI_Page(){
+Get_WebUI_Page()
+{
 	MyPage="none"
-	for i in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20; do
+	for i in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20
+	do
 		page="/www/user/user$i.asp"
 		if [ -f "$page" ] && [ "$(md5sum < "$1")" = "$(md5sum < "$page")" ]; then
 			MyPage="user$i.asp"
@@ -1166,7 +1201,7 @@ ExcludeFromQoS()
 	;;
 	check)
 		EXCLUDEFROMQOS="$(Conf_Parameters check EXCLUDEFROMQOS)"
-		echo "$EXCLUDEFROMQOS"
+		echo "${EXCLUDEFROMQOS:=true}"
 	;;
 	esac
 }
@@ -1201,7 +1236,8 @@ AutomaticMode()
 		;;
 		check)
 			AUTOMATICMODE="$(Conf_Parameters check AUTOMATICMODE)"
-			if [ "${AUTOMATICMODE:=true}" = "true" ]; then return 0; else return 1; fi
+			if [ "${AUTOMATICMODE:=true}" = "true" ]
+			then return 0; else return 1; fi
 		;;
 	esac
 }
@@ -1229,7 +1265,7 @@ CronTestSchedule()
 }
 
 ##----------------------------------------##
-## Modified by Martinski W. [2024-Dec-21] ##
+## Modified by Martinski W. [2025-Jan-04] ##
 ##----------------------------------------##
 ScriptStorageLocation()
 {
@@ -1256,7 +1292,7 @@ ScriptStorageLocation()
             CSV_OUTPUT_DIR="/opt/share/${SCRIPT_NAME}.d/csv"
 			ScriptStorageLocation load true
 			sleep 2
-		;;
+			;;
 		jffs)
 			printf "Please wait..."
 			sed -i 's/^STORAGELOCATION=.*$/STORAGELOCATION=jffs/' "$SCRIPT_CONF"
@@ -1279,13 +1315,13 @@ ScriptStorageLocation()
             CSV_OUTPUT_DIR="/jffs/addons/${SCRIPT_NAME}.d/csv"
 			ScriptStorageLocation load true
 			sleep 2
-		;;
+			;;
 		check)
 			STORAGELOCATION="$(Conf_Parameters check STORAGELOCATION)"
 			echo "${STORAGELOCATION:=jffs}"
-		;;
+			;;
 		load)
-			STORAGELOCATION="$(Conf_Parameters check STORAGELOCATION)"
+			STORAGELOCATION="$(ScriptStorageLocation check)"
 			if [ "$STORAGELOCATION" = "usb" ]
 			then
 				SCRIPT_STORAGE_DIR="/opt/share/${SCRIPT_NAME}.d"
@@ -1298,7 +1334,7 @@ ScriptStorageLocation()
 			USER_SCRIPT_DIR="$SCRIPT_STORAGE_DIR/userscripts.d"
 			if [ $# -gt 1 ] && [ "$2" = "true" ]
 			then _UpdateJFFS_FreeSpaceInfo_ ; fi
-		;;
+			;;
 	esac
 }
 
@@ -1315,13 +1351,13 @@ OutputTimeMode()
 		;;
 		check)
 			OUTPUTTIMEMODE="$(Conf_Parameters check OUTPUTTIMEMODE)"
-			echo "$OUTPUTTIMEMODE"
+			echo "${OUTPUTTIMEMODE:=unix}"
 		;;
 	esac
 }
 
 ##----------------------------------------##
-## Modified by Martinski W. [2024-Nov-23] ##
+## Modified by Martinski W. [2025-Jan-04] ##
 ##----------------------------------------##
 WriteStats_ToJS()
 {
@@ -1329,7 +1365,7 @@ WriteStats_ToJS()
 
 	if [ -f "$2" ]
 	then
-	    sed -i -e '/}/d;/function/d;/document.getElementById/d;/databaseResetDone/d;' "$2"
+	    sed -i -e '/^}/d;/^function/d;/^document.getElementById/d;/^databaseResetDone/d;' "$2"
 	    awk 'NF' "$2" > "${2}.tmp"
 	    mv -f "${2}.tmp" "$2"
 	fi
@@ -1725,7 +1761,7 @@ _Trim_Database_()
 ##----------------------------------------##
 Run_PingTest()
 {
-	if [ ! -f /opt/bin/xargs ] && [ -f /opt/bin/opkg ]
+	if [ ! -f /opt/bin/xargs ] && [ -x /opt/bin/opkg ]
 	then
 		Print_Output true "Installing findutils from Entware" "$PASS"
 		opkg update
@@ -2131,7 +2167,7 @@ Process_Upgrade()
 	if [ ! -f "$SCRIPT_STORAGE_DIR/lastx.csv" ]; then
 		Generate_LastXResults
 	fi
-	if [ ! -f /opt/bin/dig ] && [ -f /opt/bin/opkg ]
+	if [ ! -f /opt/bin/dig ] && [ -x /opt/bin/opkg ]
 	then
 		opkg update
 		opkg install bind-dig
@@ -2151,7 +2187,8 @@ Process_Upgrade()
 	if [ ! -f /tmp/start_apply.htm  ]
 	then
 		cp -f /www/start_apply.htm /tmp/
-		if ! grep -q 'addon_settings' /tmp/start_apply.htm ; then
+		if ! grep -q 'addon_settings' /tmp/start_apply.htm
+		then
 			sed -i "/}else if(action_script == \"start_sig_check\"){/i }else if(action_script.indexOf(\"addon_settings\") != -1){ \/\/ do nothing" /tmp/start_apply.htm
 		fi
 		umount /www/start_apply.htm 2>/dev/null
@@ -2178,7 +2215,8 @@ Shortcut_Script()
 {
 	case $1 in
 		create)
-			if [ -d /opt/bin ] && [ ! -f "/opt/bin/$SCRIPT_NAME" ] && [ -f "/jffs/scripts/$SCRIPT_NAME" ]
+			if [ -d /opt/bin ] && [ ! -f "/opt/bin/$SCRIPT_NAME" ] && \
+			   [ -f "/jffs/scripts/$SCRIPT_NAME" ]
 			then
 				ln -s "/jffs/scripts/$SCRIPT_NAME" /opt/bin
 				chmod 0755 "/opt/bin/$SCRIPT_NAME"
@@ -2390,7 +2428,8 @@ Email_Protocol(){
 	done
 }
 
-Email_SSL(){
+Email_SSL()
+{
 	SSL_FLAG=""
 	while true; do
 		printf "\\n${BOLD}Please choose the SSL security level:${CLEARFORMAT}\\n"
@@ -2419,7 +2458,8 @@ Email_SSL(){
 	done
 }
 
-Email_Password(){
+Email_Password()
+{
 	PASSWORD=""
 	while true; do
 		printf "\\n${BOLD}Enter Password:${CLEARFORMAT}  "
@@ -2444,7 +2484,8 @@ Email_Password(){
 	done
 }
 
-Email_Encrypt_Password(){
+Email_Encrypt_Password()
+{
 	PWENCFILE="$EMAIL_DIR/emailpw.enc"
 	emailPwEnc="$(grep "emailPwEnc=" "$EMAIL_CONF" | cut -f2 -d"=" | sed 's/""//')"
 	if [ -f /usr/sbin/openssl11 ]; then
@@ -2454,7 +2495,8 @@ Email_Encrypt_Password(){
 	fi
 }
 
-Email_Decrypt_Password(){
+Email_Decrypt_Password()
+{
 	PWENCFILE="$EMAIL_DIR/emailpw.enc"
 	if /usr/sbin/openssl aes-256-cbc -d -in "$PWENCFILE" -pass pass:ditbabot,isoi >/dev/null 2>&1 ; then
 		# old OpenSSL 1.0.x
@@ -2469,7 +2511,8 @@ Email_Decrypt_Password(){
 	echo "$PASSWORD"
 }
 
-Email_Recipients(){
+Email_Recipients()
+{
 	case "$1" in
 	update)
 		while true; do
@@ -2515,7 +2558,8 @@ Email_Recipients(){
 # $1 : image content id filename (match the cid:filename.png in html document)
 # $2 : image content base64 encoded
 # $3 : output file
-Encode_Image(){
+Encode_Image()
+{
 	{
 		echo "";
 		echo "--MULTIPART-RELATED-BOUNDARY";
@@ -2531,7 +2575,8 @@ Encode_Image(){
 # encode text for email inline
 # $1 : text content base64 encoded
 # $2 : output file
-Encode_Text(){
+Encode_Text()
+{
 	{
 		echo "";
 		echo "--MULTIPART-RELATED-BOUNDARY";
@@ -2543,7 +2588,8 @@ Encode_Text(){
 	} >> "$3"
 }
 
-SendEmail(){
+SendEmail()
+{
 	if ! Email_ConfExists; then
 		return 1
 	else
@@ -2606,7 +2652,7 @@ SendEmail(){
 
 		PASSWORD="$(Email_Decrypt_Password)"
 
-		/usr/sbin/curl -s --show-error --url "$PROTOCOL://$SMTP:$PORT" \
+		curl -s --show-error --url "$PROTOCOL://$SMTP:$PORT" \
 		--mail-from "$FROM_ADDRESS" --mail-rcpt "$TO_ADDRESS" \
 		--upload-file /tmp/mail.txt \
 		--ssl-reqd \
@@ -2668,7 +2714,8 @@ Webhook_Targets()
 	esac
 }
 
-SendWebhook(){
+SendWebhook()
+{
 	WEBHOOKCONTENT="$1"
 	WEBHOOKTARGET="$2"
 	if [ -z "$WEBHOOKTARGET" ]; then
@@ -2676,7 +2723,7 @@ SendWebhook(){
 		return 1
 	fi
 
-	/usr/sbin/curl -fsL --retry 3 --connect-timeout 15 --output /dev/null -H "Content-Type: application/json" \
+	curl -fsL --retry 4 --retry-delay 5 --output /dev/null -H "Content-Type: application/json" \
 -d '{"username":"'"$SCRIPT_NAME"'","content":"'"$WEBHOOKCONTENT"'"}' "$WEBHOOKTARGET"
 
 	if [ $? -eq 0 ]; then
@@ -2690,7 +2737,8 @@ SendWebhook(){
 	fi
 }
 
-Pushover_Devices(){
+Pushover_Devices()
+{
 	case "$1" in
 	update)
 		while true; do
@@ -2729,7 +2777,8 @@ Pushover_Devices(){
 	esac
 }
 
-SendPushover(){
+SendPushover()
+{
 	PUSHOVERCONTENT="$1"
 	PUSHOVER_API="$(Conf_Parameters check NOTIFICATIONS_PUSHOVER_API)"
 	PUSHOVER_USERKEY="$(Conf_Parameters check NOTIFICATIONS_PUSHOVER_USERKEY)"
@@ -2738,7 +2787,7 @@ SendPushover(){
 		return 1
 	fi
 
-	/usr/sbin/curl -fsL --retry 3 --connect-timeout 15 --output /dev/null --form-string "token=$PUSHOVER_API" \
+	curl -fsL --retry 4 --retry-delay 5 --output /dev/null --form-string "token=$PUSHOVER_API" \
 --form-string "user=$PUSHOVER_USERKEY" --form-string "message=$PUSHOVERCONTENT" https://api.pushover.net/1/messages.json
 
 	if [ $? -eq 0 ]; then
@@ -2752,13 +2801,14 @@ SendPushover(){
 	fi
 }
 
-SendHealthcheckPing(){
+SendHealthcheckPing()
+{
 	NOTIFICATIONS_HEALTHCHECK_UUID="$(Conf_Parameters check NOTIFICATIONS_HEALTHCHECK_UUID)"
 	TESTFAIL=""
 	if [ "$1" = "Fail" ]; then
 		TESTFAIL="/fail"
 	fi
-	/usr/sbin/curl -fsL --retry 3 --connect-timeout 15 --output /dev/null "https://hc-ping.com/${NOTIFICATIONS_HEALTHCHECK_UUID}${TESTFAIL}"
+	curl -fsL --retry 4 --retry-delay 5 --output /dev/null "https://hc-ping.com/${NOTIFICATIONS_HEALTHCHECK_UUID}${TESTFAIL}"
 	if [ $? -eq 0 ]; then
 		echo ""
 		Print_Output false "Healthcheck ping sent successfully" "$PASS"
@@ -2770,7 +2820,8 @@ SendHealthcheckPing(){
 	fi
 }
 
-SendToInfluxDB(){
+SendToInfluxDB()
+{
 	TIMESTAMP="$1"
 	PING="$2"
 	JITTER="$3"
@@ -2790,7 +2841,7 @@ SendToInfluxDB(){
 		INFLUX_AUTHHEADER="$(Conf_Parameters check NOTIFICATIONS_INFLUXDB_APITOKEN)"
 	fi
 
-	/usr/sbin/curl -fsL --retry 3 --connect-timeout 15 --output /dev/null -XPOST "$NOTIFICATIONS_INFLUXDB_PROTO://$NOTIFICATIONS_INFLUXDB_HOST:$NOTIFICATIONS_INFLUXDB_PORT/api/v2/write?bucket=$NOTIFICATIONS_INFLUXDB_DB&precision=s" \
+	curl -fsL --retry 4 --retry-delay 5 --output /dev/null -XPOST "$NOTIFICATIONS_INFLUXDB_PROTO://$NOTIFICATIONS_INFLUXDB_HOST:$NOTIFICATIONS_INFLUXDB_PORT/api/v2/write?bucket=$NOTIFICATIONS_INFLUXDB_DB&precision=s" \
 --header "Authorization: Token $INFLUX_AUTHHEADER" --header "Accept-Encoding: gzip" \
 --data-raw "ping value=$PING $TIMESTAMP
 jitter value=$JITTER $TIMESTAMP
@@ -3844,7 +3895,6 @@ MainMenu()
 {
 	local menuOption  STORAGE_MenuStr  automaticModeStatus
 
-	EXCLUDEFROMQOS_MENU=""
 	if [ "$(ExcludeFromQoS check)" = "true" ]
 	then EXCLUDEFROMQOS_MENU="excluded from"
 	else EXCLUDEFROMQOS_MENU="included in"
@@ -3897,7 +3947,7 @@ MainMenu()
 	printf "e.    Exit %s\n\n" "$SCRIPT_NAME"
 	printf "z.    Uninstall %s\n" "$SCRIPT_NAME"
 	printf "\n"
-	printf "${BOLD}##############################################################${CLEARFORMAT}\\n"
+	printf "${BOLD}##############################################################${CLEARFORMAT}\n"
 	printf "\n"
 
 	while true
@@ -4000,7 +4050,7 @@ MainMenu()
 				break
 			;;
 			u)
-				printf "\\n"
+				printf "\n"
 				if Check_Lock menu; then
 					Update_Version
 					Clear_Lock
@@ -4009,7 +4059,7 @@ MainMenu()
 				break
 			;;
 			uf)
-				printf "\\n"
+				printf "\n"
 				if Check_Lock menu; then
 					Update_Version force
 					Clear_Lock
@@ -4022,7 +4072,7 @@ MainMenu()
 				break
 			;;
 			r)
-				printf "\\n"
+				printf "\n"
 				if Check_Lock menu; then
 					Menu_ResetDB
 					Clear_Lock
@@ -4032,12 +4082,13 @@ MainMenu()
 			;;
 			e)
 				ScriptHeader
-				printf "\\n${BOLD}Thanks for using %s!${CLEARFORMAT}\\n\\n\\n" "$SCRIPT_NAME"
+				printf "\n${BOLD}Thanks for using %s!${CLEARFORMAT}\n\n\n" "$SCRIPT_NAME"
 				exit 0
 			;;
 			z)
-				while true; do
-					printf "\\n${BOLD}Are you sure you want to uninstall %s? (y/n)${CLEARFORMAT}  " "$SCRIPT_NAME"
+				while true
+				do
+					printf "\n${BOLD}Are you sure you want to uninstall %s? (y/n)${CLEARFORMAT}  " "$SCRIPT_NAME"
 					read -r confirm
 					case "$confirm" in
 						y|Y)
@@ -4068,19 +4119,22 @@ Check_Requirements()
 {
 	CHECKSFAILED="false"
 
-	if [ "$(nvram get jffs2_scripts)" -ne 1 ]; then
+	if [ "$(nvram get jffs2_scripts)" -ne 1 ]
+	then
 		nvram set jffs2_scripts=1
 		nvram commit
 		Print_Output true "Custom JFFS Scripts enabled" "$WARN"
 	fi
 
-	if [ ! -f /opt/bin/opkg ]; then
-		Print_Output true "Entware not detected!" "$CRIT"
+	if [ ! -f /opt/bin/opkg ]
+	then
+		Print_Output true "Entware NOT detected!" "$CRIT"
 		CHECKSFAILED="true"
 	fi
 
-	if ! Firmware_Version_Check; then
-		Print_Output true "Unsupported firmware version detected" "$ERR"
+	if ! Firmware_Version_Check
+	then
+		Print_Output true "Unsupported firmware version detected" "$CRIT"
 		Print_Output true "$SCRIPT_NAME requires Merlin 384.15/384.13_4 or Fork 43E5 (or later)" "$ERR"
 		CHECKSFAILED="true"
 	fi
@@ -4991,7 +5045,7 @@ if [ $# -eq 0 ] || [ -z "$1" ]
 then
 	NTP_Ready
 	Entware_Ready
-	if [ ! -f /opt/bin/sqlite3 ] && [ -f /opt/bin/opkg ]
+	if [ ! -f /opt/bin/sqlite3 ] && [ -x /opt/bin/opkg ]
     then
 		Print_Output true "Installing required version of sqlite3 from Entware" "$PASS"
 		opkg update
@@ -5235,8 +5289,10 @@ case "$1" in
 		else Auto_Cron delete 2>/dev/null
 		fi
 		Auto_ServiceEvent create 2>/dev/null
-		Shortcut_Script create
 		Process_Upgrade
+		Shortcut_Script create
+		Set_Version_Custom_Settings local "$SCRIPT_VERSION"
+		Set_Version_Custom_Settings server "$SCRIPT_VERSION"
 		exit 0
 	;;
 	uninstall)
