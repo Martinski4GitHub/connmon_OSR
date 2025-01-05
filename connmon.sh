@@ -688,7 +688,6 @@ PingServer()
 	case "$1" in
 		update)
 			exitOK=false
-			exitEsc=false
 			while true
 			do
 				ScriptHeader
@@ -733,7 +732,7 @@ PingServer()
 							fi
 						done
 					;;
-					e) exitEsc=true ; break
+					e) break
 					;;
 					*)
 						printf "\n${BOLD}${ERR}Please choose a valid option.${CLEARFORMAT}\n\n"
@@ -1578,7 +1577,7 @@ _Check_JFFS_SpaceAvailable_()
    [ "$requiredSpace" -lt "$jffsFreeSpace" ] && return 0
 
    requiredSpace="$(du -hc "$1" | grep -w 'total$' | awk -F ' ' '{print $1}')"
-   errorMsg1="Not enough free space ["$(_Get_JFFS_Space_ FREE HR)"] available in JFFS."
+   errorMsg1="Not enough free space [$(_Get_JFFS_Space_ FREE HR)] available in JFFS."
    errorMsg2="Minimum storage space required: $requiredSpace"
    Print_Output true "${errorMsg1} ${errorMsg2}" "$CRIT"
    return 1
@@ -3889,7 +3888,7 @@ _CronScheduleHourMinsInfo_()
 }
 
 ##----------------------------------------##
-## Modified by Martinski W. [2024-Dec-21] ##
+## Modified by Martinski W. [2025-Jan-04] ##
 ##----------------------------------------##
 MainMenu()
 {
@@ -3915,7 +3914,7 @@ MainMenu()
 	fi
 	TEST_SCHEDULE_MENU="$(_CronScheduleHourMinsInfo_ "$CRON_SCHED_HOUR" "$CRON_SCHED_MINS")"
 
-	STORAGE_MenuStr="$(echo "$(ScriptStorageLocation check)" | tr 'a-z' 'A-Z')"
+	STORAGE_MenuStr="$(ScriptStorageLocation check | tr 'a-z' 'A-Z')"
 
 	printf "WebUI for %s is available at:\n${SETTING}%s${CLEARFORMAT}\n\n" "$SCRIPT_NAME" "$(Get_WebUI_URL)"
 	printf "1.    Check connection now\n"
