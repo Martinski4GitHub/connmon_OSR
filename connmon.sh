@@ -10,7 +10,7 @@
 ##            https://github.com/jackyaz/connmon            ##
 ##                                                          ##
 ##############################################################
-# Last Modified: 2025-Jan-04
+# Last Modified: 2025-Jan-28
 #-------------------------------------------------------------
 
 ##############        Shellcheck directives      #############
@@ -160,8 +160,9 @@ Clear_Lock()
 	return 0
 }
 
-############################################################################
-
+##----------------------------------------##
+## Modified by Martinski W. [2025-Jan-28] ##
+##----------------------------------------##
 Set_Version_Custom_Settings()
 {
 	SETTINGSFILE="/jffs/addons/custom_settings.txt"
@@ -169,11 +170,11 @@ Set_Version_Custom_Settings()
 		local)
 			if [ -f "$SETTINGSFILE" ]
 			then
-				if [ "$(grep -c "connmon_version_local" $SETTINGSFILE)" -gt 0 ]
+				if [ "$(grep -c "^connmon_version_local" $SETTINGSFILE)" -gt 0 ]
 				then
-					if [ "$2" != "$(grep "connmon_version_local" /jffs/addons/custom_settings.txt | cut -f2 -d' ')" ]
+					if [ "$2" != "$(grep "^connmon_version_local" /jffs/addons/custom_settings.txt | cut -f2 -d' ')" ]
 					then
-						sed -i "s/connmon_version_local.*/connmon_version_local $2/" "$SETTINGSFILE"
+						sed -i "s/^connmon_version_local.*/connmon_version_local $2/" "$SETTINGSFILE"
 					fi
 				else
 					echo "connmon_version_local $2" >> "$SETTINGSFILE"
@@ -185,11 +186,11 @@ Set_Version_Custom_Settings()
 		server)
 			if [ -f "$SETTINGSFILE" ]
 			then
-				if [ "$(grep -c "connmon_version_server" $SETTINGSFILE)" -gt 0 ]
+				if [ "$(grep -c "^connmon_version_server" $SETTINGSFILE)" -gt 0 ]
 				then
-					if [ "$2" != "$(grep "connmon_version_server" /jffs/addons/custom_settings.txt | cut -f2 -d' ')" ]
+					if [ "$2" != "$(grep "^connmon_version_server" /jffs/addons/custom_settings.txt | cut -f2 -d' ')" ]
 					then
-						sed -i "s/connmon_version_server.*/connmon_version_server $2/" "$SETTINGSFILE"
+						sed -i "s/^connmon_version_server.*/connmon_version_server $2/" "$SETTINGSFILE"
 					fi
 				else
 					echo "connmon_version_server $2" >> "$SETTINGSFILE"
@@ -414,7 +415,7 @@ Validate_Domain()
 }
 
 ##----------------------------------------##
-## Modified by Martinski W. [2024-Dec-21] ##
+## Modified by Martinski W. [2025-Jan-18] ##
 ##----------------------------------------##
 Conf_FromSettings()
 {
@@ -423,11 +424,11 @@ Conf_FromSettings()
 
 	if [ -f "$SETTINGSFILE" ]
 	then
-		if [ "$(grep "connmon_" $SETTINGSFILE | grep -v "version" -c)" -gt 0 ]
+		if [ "$(grep "^connmon_" $SETTINGSFILE | grep -v "version" -c)" -gt 0 ]
 		then
 			Print_Output true "Updated settings from WebUI found, merging into $SCRIPT_CONF" "$PASS"
 			cp -a "$SCRIPT_CONF" "${SCRIPT_CONF}.bak"
-			grep "connmon_" "$SETTINGSFILE" | grep -v "version" > "$TMPFILE"
+			grep "^connmon_" "$SETTINGSFILE" | grep -v "version" > "$TMPFILE"
 			sed -i "s/connmon_//g;s/ /=/g" "$TMPFILE"
 			while IFS='' read -r line || [ -n "$line" ]
 			do
@@ -441,7 +442,8 @@ Conf_FromSettings()
 				fi
 				sed -i "s~$SETTINGNAME=.*~$SETTINGNAME=$SETTINGVALUE~" "$SCRIPT_CONF"
 			done < "$TMPFILE"
-			grep 'connmon_version' "$SETTINGSFILE" > "$TMPFILE"
+
+			grep '^connmon_version' "$SETTINGSFILE" > "$TMPFILE"
 			sed -i "\\~connmon_~d" "$SETTINGSFILE"
 			mv -f "$SETTINGSFILE" "${SETTINGSFILE}.bak"
 			cat "${SETTINGSFILE}.bak" "$TMPFILE" > "$SETTINGSFILE"
@@ -491,7 +493,8 @@ EmailConf_FromSettings()
 		cp -a "$EMAIL_CONF" "$EMAIL_CONF.bak"
 		grep "email_" "$SETTINGSFILE" > "$TMPFILE"
 		sed -i "s/email_//g;s/ /=/g" "$TMPFILE"
-		while IFS='' read -r line || [ -n "$line" ]; do
+		while IFS='' read -r line || [ -n "$line" ]
+		do
 			SETTINGNAME="$(echo "$line" | cut -f1 -d'=' | awk '{print toupper($1)}')"
 			SETTINGVALUE="$(echo "$line" | cut -f2- -d'=' | sed 's/=/ /g')"
 			if [ "$SETTINGNAME" = "PASSWORD" ]; then
@@ -916,16 +919,18 @@ LastXResults()
 }
 
 ##----------------------------------------##
-## Modified by Martinski W. [2024-Dec-21] ##
+## Modified by Martinski W. [2025-Jan-18] ##
 ##----------------------------------------##
 Auto_ServiceEvent()
 {
+	local theScriptFilePath="/jffs/scripts/$SCRIPT_NAME"
+
 	case $1 in
 		create)
 			if [ -f /jffs/scripts/service-event ]
 			then
 				STARTUPLINECOUNT="$(grep -c '# '"$SCRIPT_NAME" /jffs/scripts/service-event)"
-				STARTUPLINECOUNTEX="$(grep -cx 'if echo "$2" | /bin/grep -q "'"$SCRIPT_NAME"'"; then { /jffs/scripts/'"$SCRIPT_NAME"' service_event "$@" & }; fi # '"$SCRIPT_NAME" /jffs/scripts/service-event)"
+				STARTUPLINECOUNTEX="$(grep -cx 'if echo "$2" | /bin/grep -q "'"$SCRIPT_NAME"'"; then { '"$theScriptFilePath"' service_event "$@" & }; fi # '"$SCRIPT_NAME" /jffs/scripts/service-event)"
 
 				if [ "$STARTUPLINECOUNT" -gt 1 ] || { [ "$STARTUPLINECOUNTEX" -eq 0 ] && [ "$STARTUPLINECOUNT" -gt 0 ]; }
 				then
@@ -935,15 +940,15 @@ Auto_ServiceEvent()
 				if [ "$STARTUPLINECOUNTEX" -eq 0 ]
 				then
 					{
-					  echo 'if echo "$2" | /bin/grep -q "'"$SCRIPT_NAME"'"; then { /jffs/scripts/'"$SCRIPT_NAME"' service_event "$@" & }; fi # '"$SCRIPT_NAME"
+					  echo 'if echo "$2" | /bin/grep -q "'"$SCRIPT_NAME"'"; then { '"$theScriptFilePath"' service_event "$@" & }; fi # '"$SCRIPT_NAME"
 					} >> /jffs/scripts/service-event
 				fi
 			else
 				{
 				  echo "#!/bin/sh" ; echo
-				  echo 'if echo "$2" | /bin/grep -q "'"$SCRIPT_NAME"'"; then { /jffs/scripts/'"$SCRIPT_NAME"' service_event "$@" & }; fi # '"$SCRIPT_NAME"
+				  echo 'if echo "$2" | /bin/grep -q "'"$SCRIPT_NAME"'"; then { '"$theScriptFilePath"' service_event "$@" & }; fi # '"$SCRIPT_NAME"
 				  echo
-				} >> /jffs/scripts/service-event
+				} > /jffs/scripts/service-event
 				chmod 0755 /jffs/scripts/service-event
 			fi
 		;;
@@ -951,7 +956,6 @@ Auto_ServiceEvent()
 			if [ -f /jffs/scripts/service-event ]
 			then
 				STARTUPLINECOUNT="$(grep -c '# '"$SCRIPT_NAME" /jffs/scripts/service-event)"
-
 				if [ "$STARTUPLINECOUNT" -gt 0 ]; then
 					sed -i -e '/# '"$SCRIPT_NAME"'/d' /jffs/scripts/service-event
 				fi
@@ -961,10 +965,12 @@ Auto_ServiceEvent()
 }
 
 ##----------------------------------------##
-## Modified by Martinski W. [2024-Dec-21] ##
+## Modified by Martinski W. [2025-Jan-18] ##
 ##----------------------------------------##
 Auto_Startup()
 {
+	local theScriptFilePath="/jffs/scripts/$SCRIPT_NAME"
+
 	case $1 in
 		create)
 			if [ -f /jffs/scripts/services-start ]
@@ -978,7 +984,7 @@ Auto_Startup()
 			if [ -f /jffs/scripts/post-mount ]
 			then
 				STARTUPLINECOUNT="$(grep -c '# '"$SCRIPT_NAME" /jffs/scripts/post-mount)"
-				STARTUPLINECOUNTEX="$(grep -cx '\[ -x "${1}/entware/bin/opkg" \] && \[ -x /jffs/scripts/'"$SCRIPT_NAME"' \] && /jffs/scripts/'"$SCRIPT_NAME"' startup "$@" & # '"$SCRIPT_NAME" /jffs/scripts/post-mount)"
+				STARTUPLINECOUNTEX="$(grep -cx '\[ -x "${1}/entware/bin/opkg" \] && \[ -x '"$theScriptFilePath"' \] && '"$theScriptFilePath"' startup "$@" & # '"$SCRIPT_NAME" /jffs/scripts/post-mount)"
 
 				if [ "$STARTUPLINECOUNT" -gt 1 ] || { [ "$STARTUPLINECOUNTEX" -eq 0 ] && [ "$STARTUPLINECOUNT" -gt 0 ]; }
 				then
@@ -989,13 +995,13 @@ Auto_Startup()
 				if [ "$STARTUPLINECOUNTEX" -eq 0 ]
 				then
 					{
-					  echo '[ -x "${1}/entware/bin/opkg" ] && [ -x /jffs/scripts/'"$SCRIPT_NAME"' ] && /jffs/scripts/'"$SCRIPT_NAME"' startup "$@" & # '"$SCRIPT_NAME"
+					  echo '[ -x "${1}/entware/bin/opkg" ] && [ -x '"$theScriptFilePath"' ] && '"$theScriptFilePath"' startup "$@" & # '"$SCRIPT_NAME"
 					} >> /jffs/scripts/post-mount
 				fi
 			else
 				{
 				  echo "#!/bin/sh" ; echo
-				  echo '[ -x "${1}/entware/bin/opkg" ] && [ -x /jffs/scripts/'"$SCRIPT_NAME"' ] && /jffs/scripts/'"$SCRIPT_NAME"' startup "$@" & # '"$SCRIPT_NAME"
+				  echo '[ -x "${1}/entware/bin/opkg" ] && [ -x '"$theScriptFilePath"' ] && '"$theScriptFilePath"' startup "$@" & # '"$SCRIPT_NAME"
 				  echo
 				} > /jffs/scripts/post-mount
 				chmod 0755 /jffs/scripts/post-mount
@@ -1005,7 +1011,6 @@ Auto_Startup()
 			if [ -f /jffs/scripts/services-start ]
 			then
 				STARTUPLINECOUNT="$(grep -c '# '"$SCRIPT_NAME" /jffs/scripts/services-start)"
-
 				if [ "$STARTUPLINECOUNT" -gt 0 ]; then
 					sed -i -e '/# '"$SCRIPT_NAME"'/d' /jffs/scripts/services-start
 				fi
@@ -1013,7 +1018,6 @@ Auto_Startup()
 			if [ -f /jffs/scripts/post-mount ]
 			then
 				STARTUPLINECOUNT="$(grep -c '# '"$SCRIPT_NAME" /jffs/scripts/post-mount)"
-
 				if [ "$STARTUPLINECOUNT" -gt 0 ]; then
 					sed -i -e '/# '"$SCRIPT_NAME"'/d' /jffs/scripts/post-mount
 				fi
@@ -1023,10 +1027,12 @@ Auto_Startup()
 }
 
 ##----------------------------------------##
-## Modified by Martinski W. [2024-Nov-23] ##
+## Modified by Martinski W. [2025-Jan-18] ##
 ##----------------------------------------##
 Auto_Cron()
 {
+	local theScriptFilePath="/jffs/scripts/$SCRIPT_NAME"
+
 	case $1 in
 		create)
 			STARTUPLINECOUNTGEN="$(cru l | grep -c "#${SCRIPT_NAME}#")"
@@ -1045,7 +1051,7 @@ Auto_Cron()
 			if [ "$STARTUPLINECOUNTGEN" -eq 0 ]
 			then
 				CRU_SCHDAYS="$(Conf_Parameters check SCHDAYS | sed 's/Sun/0/;s/Mon/1/;s/Tues/2/;s/Wed/3/;s/Thurs/4/;s/Fri/5/;s/Sat/6/;')"
-				cru a "${SCRIPT_NAME}_generate" "$CRU_SCHMINS $CRU_SCHHOUR * * $CRU_SCHDAYS /jffs/scripts/$SCRIPT_NAME generate"
+				cru a "${SCRIPT_NAME}_generate" "$CRU_SCHMINS $CRU_SCHHOUR * * $CRU_SCHDAYS $theScriptFilePath generate"
 				echo "$CRU_SCHMINS $CRU_SCHHOUR * * $CRU_SCHDAYS" > "$SCRIPT_STORAGE_DIR/.cron"
 			fi
 
@@ -1057,7 +1063,7 @@ Auto_Cron()
 				STARTUPLINECOUNTTRIM="$(cru l | grep -c "${SCRIPT_NAME}_trimDB")"
 			fi
 			if [ "$STARTUPLINECOUNTTRIM" -eq 0 ]; then
-				cru a "${SCRIPT_NAME}_trimDB" "$defTrimDB_Mins $defTrimDB_Hour * * * /jffs/scripts/$SCRIPT_NAME trimdb"
+				cru a "${SCRIPT_NAME}_trimDB" "$defTrimDB_Mins $defTrimDB_Hour * * * $theScriptFilePath trimdb"
 			fi
 		;;
 		delete)
@@ -1655,13 +1661,18 @@ _UpdateDatabaseFileSizeInfo_()
 }
 
 ##----------------------------------------##
-## Modified by Martinski W. [2024-Dec-23] ##
+## Modified by Martinski W. [2025-Jan-28] ##
 ##----------------------------------------##
 _ApplyDatabaseSQLCmds_()
 {
-    local errorCount=0  maxErrorCount=5
+    local errorCount=0  maxErrorCount=5  callFlag
     local triesCount=0  maxTriesCount=25  sqlErrorMsg
     local tempLogFilePath="/tmp/connMonStats_TMP_$$.LOG"
+
+    if [ $# -gt 1 ] && [ -n "$2" ]
+    then callFlag="$2"
+    else callFlag="err"
+    fi
 
     resultStr=""
     foundError=false ; foundLocked=false
@@ -1673,15 +1684,18 @@ _ApplyDatabaseSQLCmds_()
         if "$SQLITE3_PATH" "$CONNSTATS_DB" < "$1" >> "$tempLogFilePath" 2>&1
         then foundError=false ; foundLocked=false ; break
         fi
-        sqlErrorMsg="$(tail -n1 "$tempLogFilePath")"
-        if echo "$sqlErrorMsg" | grep -qE "^(Error:|Parse error|Runtime error)"
+        sqlErrorMsg="$(cat "$tempLogFilePath")"
+        if echo "$sqlErrorMsg" | grep -qE "^(Parse error|Runtime error|Error:)"
         then
             if echo "$sqlErrorMsg" | grep -qE "^(Parse|Runtime) error .*: database is locked"
-            then foundLocked=true ; sleep 2 ; continue
+            then
+                echo -n > "$tempLogFilePath"  ##Clear if new error found##
+                foundLocked=true ; sleep 2 ; continue
             fi
             errorCount="$((errorCount + 1))"
             foundError=true ; foundLocked=false
-            Print_Output true "SQLite3 failure: $sqlErrorMsg" "$ERR"
+            Print_Output true "SQLite3 failure[$callFlag]: $sqlErrorMsg" "$ERR"
+            echo -n > "$tempLogFilePath"  ##Clear if new error found##
         fi
         [ "$triesCount" -ge "$maxTriesCount" ] && break
         [ "$errorCount" -ge "$maxErrorCount" ] && break
@@ -1717,7 +1731,7 @@ _Optimize_Database_()
       echo "ANALYZE connstats;"
       echo "VACUUM;"
    } > /tmp/connmon-trim.sql
-   _ApplyDatabaseSQLCmds_ /tmp/connmon-trim.sql
+   _ApplyDatabaseSQLCmds_ /tmp/connmon-trim.sql opt1
 
    rm -f /tmp/connmon-trim.sql
    if "$foundError" || "$foundLocked"
@@ -1745,7 +1759,7 @@ _Trim_Database_()
       echo "PRAGMA cache_size=-20000;"
       echo "DELETE FROM [connstats] WHERE [Timestamp] < strftime('%s',datetime($timeNow,'unixepoch','-$(DaysToKeep check) day'));"
    } > /tmp/connmon-trim.sql
-   _ApplyDatabaseSQLCmds_ /tmp/connmon-trim.sql
+   _ApplyDatabaseSQLCmds_ /tmp/connmon-trim.sql trm1
 
    rm -f /tmp/connmon-trim.sql
    if "$foundError" || "$foundLocked"
@@ -1892,7 +1906,7 @@ Run_PingTest()
 	    echo "CREATE TABLE IF NOT EXISTS [connstats] ([StatID] INTEGER PRIMARY KEY NOT NULL,[Timestamp] NUMERIC NOT NULL,[Ping] REAL NOT NULL,[Jitter] REAL NOT NULL,[LineQuality] REAL NOT NULL,[PingTarget] TEXT NOT NULL,[PingDuration] NUMERIC);"
 	    echo "INSERT INTO connstats ([Timestamp],[Ping],[Jitter],[LineQuality],[PingTarget],[PingDuration]) values($timenow,$ping,$jitter,$linequal,'$completepingtarget',$pingduration);"
 	} > /tmp/connmon-stats.sql
-	_ApplyDatabaseSQLCmds_ /tmp/connmon-stats.sql
+	_ApplyDatabaseSQLCmds_ /tmp/connmon-stats.sql png1
 
 	echo 'var connmonstatus = "GenerateCSV";' > "$SCRIPT_WEB_DIR/detect_connmon.js"
 	Generate_CSVs
@@ -1952,7 +1966,7 @@ Generate_CSVs()
 			echo "PRAGMA temp_store=1;"
 			echo "SELECT '$metric' Metric,[Timestamp] Time,[$metric] Value FROM connstats WHERE ([Timestamp] >= strftime('%s',datetime($timenow,'unixepoch','-1 day'))) ORDER BY [Timestamp] DESC;"
 		} > /tmp/connmon-stats.sql
-		_ApplyDatabaseSQLCmds_ /tmp/connmon-stats.sql
+		_ApplyDatabaseSQLCmds_ /tmp/connmon-stats.sql gnr1
 
 		{
 			echo ".mode csv"
@@ -1961,7 +1975,7 @@ Generate_CSVs()
 			echo "PRAGMA temp_store=1;"
 			echo "SELECT '$metric' Metric,[Timestamp] Time,[$metric] Value FROM connstats WHERE ([Timestamp] >= strftime('%s',datetime($timenow,'unixepoch','-7 day'))) ORDER BY [Timestamp] DESC;"
 		} > /tmp/connmon-stats.sql
-		_ApplyDatabaseSQLCmds_ /tmp/connmon-stats.sql
+		_ApplyDatabaseSQLCmds_ /tmp/connmon-stats.sql gnr2
 
 		{
 			echo ".mode csv"
@@ -1970,25 +1984,25 @@ Generate_CSVs()
 			echo "PRAGMA temp_store=1;"
 			echo "SELECT '$metric' Metric,[Timestamp] Time,[$metric] Value FROM connstats WHERE ([Timestamp] >= strftime('%s',datetime($timenow,'unixepoch','-30 day'))) ORDER BY [Timestamp] DESC;"
 		} > /tmp/connmon-stats.sql
-		_ApplyDatabaseSQLCmds_ /tmp/connmon-stats.sql
+		_ApplyDatabaseSQLCmds_ /tmp/connmon-stats.sql gnr3
 
 		WriteSql_ToFile "$metric" connstats 1 1 "$CSV_OUTPUT_DIR/${metric}_hour" daily /tmp/connmon-stats.sql "$timenow"
-		_ApplyDatabaseSQLCmds_ /tmp/connmon-stats.sql
+		_ApplyDatabaseSQLCmds_ /tmp/connmon-stats.sql gnr4
 
 		WriteSql_ToFile "$metric" connstats 1 7 "$CSV_OUTPUT_DIR/${metric}_hour" weekly /tmp/connmon-stats.sql "$timenow"
-		_ApplyDatabaseSQLCmds_ /tmp/connmon-stats.sql
+		_ApplyDatabaseSQLCmds_ /tmp/connmon-stats.sql gnr5
 
 		WriteSql_ToFile "$metric" connstats 1 30 "$CSV_OUTPUT_DIR/${metric}_hour" monthly /tmp/connmon-stats.sql "$timenow"
-		_ApplyDatabaseSQLCmds_ /tmp/connmon-stats.sql
+		_ApplyDatabaseSQLCmds_ /tmp/connmon-stats.sql gnr6
 
 		WriteSql_ToFile "$metric" connstats 24 1 "$CSV_OUTPUT_DIR/${metric}_day" daily /tmp/connmon-stats.sql "$timenow"
-		_ApplyDatabaseSQLCmds_ /tmp/connmon-stats.sql
+		_ApplyDatabaseSQLCmds_ /tmp/connmon-stats.sql gnr7
 
 		WriteSql_ToFile "$metric" connstats 24 7 "$CSV_OUTPUT_DIR/${metric}_day" weekly /tmp/connmon-stats.sql "$timenow"
-		_ApplyDatabaseSQLCmds_ /tmp/connmon-stats.sql
+		_ApplyDatabaseSQLCmds_ /tmp/connmon-stats.sql gnr8
 
 		WriteSql_ToFile "$metric" connstats 24 30 "$CSV_OUTPUT_DIR/${metric}_day" monthly /tmp/connmon-stats.sql "$timenow"
-		_ApplyDatabaseSQLCmds_ /tmp/connmon-stats.sql
+		_ApplyDatabaseSQLCmds_ /tmp/connmon-stats.sql gnr9
 
 		rm -f "$CSV_OUTPUT_DIR/${metric}daily.htm"
 		rm -f "$CSV_OUTPUT_DIR/${metric}weekly.htm"
@@ -2005,7 +2019,7 @@ Generate_CSVs()
 	   echo "PRAGMA temp_store=1;"
 	   echo "SELECT [Timestamp],[Ping],[Jitter],[LineQuality],[PingTarget],[PingDuration] FROM connstats WHERE ([Timestamp] >= strftime('%s',datetime($timenow,'unixepoch','-$(DaysToKeep check) day'))) ORDER BY [Timestamp] DESC;"
     } > /tmp/connmon-complete.sql
-	_ApplyDatabaseSQLCmds_ /tmp/connmon-complete.sql
+	_ApplyDatabaseSQLCmds_ /tmp/connmon-complete.sql gnr10
 
 	rm -f /tmp/connmon-complete.sql
 	sed -i 's/"//g' "$CSV_OUTPUT_DIR/CompleteResults.htm"
@@ -2049,7 +2063,7 @@ Generate_LastXResults()
 		echo "PRAGMA temp_store=1;"
 		echo "SELECT [Timestamp],[Ping],[Jitter],[LineQuality],[PingTarget],[PingDuration] FROM connstats ORDER BY [Timestamp] DESC LIMIT $(LastXResults check);"
 	} > /tmp/conn-lastx.sql
-	_ApplyDatabaseSQLCmds_ /tmp/conn-lastx.sql
+	_ApplyDatabaseSQLCmds_ /tmp/conn-lastx.sql gls1
 
 	rm -f /tmp/conn-lastx.sql
 	sed -i 's/"//g' /tmp/conn-lastx.csv
@@ -2080,7 +2094,7 @@ Reset_DB()
 		   echo "PRAGMA temp_store=1;"
 		   echo "DELETE FROM [connstats];" 
         } > /tmp/connmon-stats.sql
-		_ApplyDatabaseSQLCmds_ /tmp/connmon-stats.sql
+		_ApplyDatabaseSQLCmds_ /tmp/connmon-stats.sql rst1
 		rm -f /tmp/connmon-stats.sql
 
 		## Clear/Reset all CSV files ##
@@ -2123,21 +2137,21 @@ Process_Upgrade()
 		  echo "PRAGMA cache_size=-20000;"
 		  echo "CREATE INDEX IF NOT EXISTS idx_time_ping ON connstats (Timestamp,Ping);" 
 		} > /tmp/connmon-upgrade.sql
-		_ApplyDatabaseSQLCmds_ /tmp/connmon-upgrade.sql
+		_ApplyDatabaseSQLCmds_ /tmp/connmon-upgrade.sql prc1
  
 		{
 		  echo "PRAGMA temp_store=1;"
 		  echo "PRAGMA cache_size=-20000;"
 		  echo "CREATE INDEX IF NOT EXISTS idx_time_jitter ON connstats (Timestamp,Jitter);" 
 		} > /tmp/connmon-upgrade.sql
-		_ApplyDatabaseSQLCmds_ /tmp/connmon-upgrade.sql
+		_ApplyDatabaseSQLCmds_ /tmp/connmon-upgrade.sql prc2
 
 		{
 		  echo "PRAGMA temp_store=1;"
 		  echo "PRAGMA cache_size=-20000;"
 		  echo "CREATE INDEX IF NOT EXISTS idx_time_linequality ON connstats (Timestamp,LineQuality);"
 		} > /tmp/connmon-upgrade.sql
-		_ApplyDatabaseSQLCmds_ /tmp/connmon-upgrade.sql
+		_ApplyDatabaseSQLCmds_ /tmp/connmon-upgrade.sql prc3
 
 		rm -f /tmp/connmon-upgrade.sql
 		touch "$SCRIPT_STORAGE_DIR/.indexcreated"
@@ -2151,14 +2165,14 @@ Process_Upgrade()
 		  echo "PRAGMA cache_size=-20000;"
 		  echo "ALTER TABLE connstats ADD COLUMN PingTarget [TEXT] NOT NULL DEFAULT '';"
 		} > /tmp/connmon-upgrade.sql
-		_ApplyDatabaseSQLCmds_ /tmp/connmon-upgrade.sql
+		_ApplyDatabaseSQLCmds_ /tmp/connmon-upgrade.sql prc4
 
 		{
 		  echo "PRAGMA temp_store=1;"
 		  echo "PRAGMA cache_size=-20000;"
 		  echo "ALTER TABLE connstats ADD COLUMN PingDuration [NUMERIC];"
 		} > /tmp/connmon-upgrade.sql
-		_ApplyDatabaseSQLCmds_ /tmp/connmon-upgrade.sql
+		_ApplyDatabaseSQLCmds_ /tmp/connmon-upgrade.sql prc5
 
 		rm -f /tmp/connmon-upgrade.sql
 		touch "$SCRIPT_STORAGE_DIR/.newcolumns"
@@ -4194,7 +4208,7 @@ Menu_Install()
 	    echo "PRAGMA temp_store=1;"
 	    echo "CREATE TABLE IF NOT EXISTS [connstats] ([StatID] INTEGER PRIMARY KEY NOT NULL,[Timestamp] NUMERIC NOT NULL,[Ping] REAL NOT NULL,[Jitter] REAL NOT NULL,[LineQuality] REAL NOT NULL,[PingTarget] TEXT NOT NULL,[PingDuration] NUMERIC);" 
 	} > /tmp/connmon-stats.sql
-	_ApplyDatabaseSQLCmds_ /tmp/connmon-stats.sql
+	_ApplyDatabaseSQLCmds_ /tmp/connmon-stats.sql ins1
 	rm -f /tmp/connmon-stats.sql
 
 	touch "$SCRIPT_STORAGE_DIR/.newcolumns"
