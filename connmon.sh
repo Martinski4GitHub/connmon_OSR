@@ -10,7 +10,7 @@
 ##            https://github.com/jackyaz/connmon            ##
 ##                                                          ##
 ##############################################################
-# Last Modified: 2025-Jan-28
+# Last Modified: 2025-Jan-29
 #-------------------------------------------------------------
 
 ##############        Shellcheck directives      #############
@@ -1334,6 +1334,7 @@ ScriptStorageLocation()
 			then
 				SCRIPT_STORAGE_DIR="/jffs/addons/${SCRIPT_NAME}.d"
 			fi
+            chmod 777 "$SCRIPT_STORAGE_DIR"
 			CONNSTATS_DB="$SCRIPT_STORAGE_DIR/connstats.db"
 			CSV_OUTPUT_DIR="$SCRIPT_STORAGE_DIR/csv"
 			USER_SCRIPT_DIR="$SCRIPT_STORAGE_DIR/userscripts.d"
@@ -1715,9 +1716,9 @@ _ApplyDatabaseSQLCmds_()
     fi
 }
 
-##-------------------------------------##
-## Added by Martinski W. [2024-Dec-21] ##
-##-------------------------------------##
+##----------------------------------------##
+## Modified by Martinski W. [2025-Jan-29] ##
+##----------------------------------------##
 _Optimize_Database_()
 {
    renice 15 $$
@@ -1726,6 +1727,7 @@ _Optimize_Database_()
    Print_Output true "Running database analysis and optimization..." "$PASS"
    {
       echo "PRAGMA temp_store=1;"
+      echo "PRAGMA journal_mode=TRUNCATE;"
       echo "PRAGMA analysis_limit=0;"
       echo "PRAGMA cache_size=-20000;"
       echo "ANALYZE connstats;"
@@ -1741,9 +1743,9 @@ _Optimize_Database_()
    renice 0 $$
 }
 
-##-------------------------------------##
-## Added by Martinski W. [2024-Dec-21] ##
-##-------------------------------------##
+##----------------------------------------##
+## Modified by Martinski W. [2025-Jan-29] ##
+##----------------------------------------##
 _Trim_Database_()
 {
    renice 15 $$
@@ -1756,6 +1758,7 @@ _Trim_Database_()
    Print_Output true "Trimming records entries from database..." "$PASS"
    {
       echo "PRAGMA temp_store=1;"
+      echo "PRAGMA journal_mode=TRUNCATE;"
       echo "PRAGMA cache_size=-20000;"
       echo "DELETE FROM [connstats] WHERE [Timestamp] < strftime('%s',datetime($timeNow,'unixepoch','-$(DaysToKeep check) day'));"
    } > /tmp/connmon-trim.sql
@@ -1770,7 +1773,7 @@ _Trim_Database_()
 }
 
 ##----------------------------------------##
-## Modified by Martinski W. [2024-Dec-21] ##
+## Modified by Martinski W. [2025-Jan-29] ##
 ##----------------------------------------##
 Run_PingTest()
 {
@@ -1901,10 +1904,10 @@ Run_PingTest()
 	Process_Upgrade
 
 	{
-	    echo "PRAGMA journal_mode=WAL;"
-	    echo "PRAGMA temp_store=1;"
-	    echo "CREATE TABLE IF NOT EXISTS [connstats] ([StatID] INTEGER PRIMARY KEY NOT NULL,[Timestamp] NUMERIC NOT NULL,[Ping] REAL NOT NULL,[Jitter] REAL NOT NULL,[LineQuality] REAL NOT NULL,[PingTarget] TEXT NOT NULL,[PingDuration] NUMERIC);"
-	    echo "INSERT INTO connstats ([Timestamp],[Ping],[Jitter],[LineQuality],[PingTarget],[PingDuration]) values($timenow,$ping,$jitter,$linequal,'$completepingtarget',$pingduration);"
+	   echo "PRAGMA temp_store=1;"
+	   echo "PRAGMA journal_mode=TRUNCATE;"
+	   echo "CREATE TABLE IF NOT EXISTS [connstats] ([StatID] INTEGER PRIMARY KEY NOT NULL,[Timestamp] NUMERIC NOT NULL,[Ping] REAL NOT NULL,[Jitter] REAL NOT NULL,[LineQuality] REAL NOT NULL,[PingTarget] TEXT NOT NULL,[PingDuration] NUMERIC);"
+	   echo "INSERT INTO connstats ([Timestamp],[Ping],[Jitter],[LineQuality],[PingTarget],[PingDuration]) values($timenow,$ping,$jitter,$linequal,'$completepingtarget',$pingduration);"
 	} > /tmp/connmon-stats.sql
 	_ApplyDatabaseSQLCmds_ /tmp/connmon-stats.sql png1
 
@@ -4166,7 +4169,7 @@ Check_Requirements()
 }
 
 ##----------------------------------------##
-## Modified by Martinski W. [2024-Dec-21] ##
+## Modified by Martinski W. [2025-Jan-29] ##
 ##----------------------------------------##
 Menu_Install()
 {
@@ -4204,9 +4207,9 @@ Menu_Install()
 	Shortcut_Script create
 
 	{
-	    echo "PRAGMA journal_mode=WAL;"
-	    echo "PRAGMA temp_store=1;"
-	    echo "CREATE TABLE IF NOT EXISTS [connstats] ([StatID] INTEGER PRIMARY KEY NOT NULL,[Timestamp] NUMERIC NOT NULL,[Ping] REAL NOT NULL,[Jitter] REAL NOT NULL,[LineQuality] REAL NOT NULL,[PingTarget] TEXT NOT NULL,[PingDuration] NUMERIC);" 
+	   echo "PRAGMA temp_store=1;"
+	   echo "PRAGMA journal_mode=TRUNCATE;"
+	   echo "CREATE TABLE IF NOT EXISTS [connstats] ([StatID] INTEGER PRIMARY KEY NOT NULL,[Timestamp] NUMERIC NOT NULL,[Ping] REAL NOT NULL,[Jitter] REAL NOT NULL,[LineQuality] REAL NOT NULL,[PingTarget] TEXT NOT NULL,[PingDuration] NUMERIC);" 
 	} > /tmp/connmon-stats.sql
 	_ApplyDatabaseSQLCmds_ /tmp/connmon-stats.sql ins1
 	rm -f /tmp/connmon-stats.sql
