@@ -10,7 +10,7 @@
 ##            https://github.com/jackyaz/connmon            ##
 ##                                                          ##
 ##############################################################
-# Last Modified: 2025-Feb-02
+# Last Modified: 2025-Feb-03
 #-------------------------------------------------------------
 
 ##############        Shellcheck directives      #############
@@ -587,8 +587,8 @@ Conf_Exists()
 		sed -i -e 's/"//g' "$SCRIPT_CONF"
 		if grep -q "^AUTOMATED=.*" "$SCRIPT_CONF"
 		then
-            AUTOMATEDopt="$(Conf_Parameters check AUTOMATED)"
-            sed -i 's/^AUTOMATED=.*$/AUTOMATICMODE='"$AUTOMATEDopt"'/' "$SCRIPT_CONF"
+			AUTOMATEDopt="$(Conf_Parameters check AUTOMATED)"
+			sed -i 's/^AUTOMATED=.*$/AUTOMATICMODE='"$AUTOMATEDopt"'/' "$SCRIPT_CONF"
 		fi
 		if ! grep -q "^AUTOMATICMODE=" "$SCRIPT_CONF"; then
 			echo "AUTOMATICMODE=true" >> "$SCRIPT_CONF"
@@ -774,15 +774,15 @@ PingDuration()
 					exitLoop=true
 					break
 				elif [ "$pingdur_choice" = "e" ]
-                then
+				then
 					exitLoop=true
 					break
 				elif ! Validate_Number "$pingdur_choice"
-                then
+				then
 					printf "\n${ERR}Please enter a valid number [10-60].${CLEARFORMAT}\n"
 					PressEnter
 				elif [ "$pingdur_choice" -lt 10 ] || [ "$pingdur_choice" -gt 60 ]
-                then
+				then
 					printf "\n${ERR}Please enter a number between 10 and 60.${CLEARFORMAT}\n"
 					PressEnter
 				else
@@ -819,8 +819,8 @@ DaysToKeep()
 			while true
 			do
 				ScriptHeader
-				printf "${BOLD}Current number of days to keep data: ${GRNct}${daysToKeep}${CLEARct}\n"
-				printf "\n${BOLD}Please enter the maximum number of days\nto keep the data for [5-365] (e=Exit):${CLEARFORMAT}  "
+				printf "${BOLD}Current number of days to keep data: ${GRNct}${daysToKeep}${CLEARct}\n\n"
+				printf "${BOLD}Please enter the maximum number of days\nto keep the data for [5-365] (e=Exit):${CLEARFORMAT}  "
 				read -r daystokeep_choice
 				if [ -z "$daystokeep_choice" ] && \
 				   echo "$daysToKeep" | grep -qE "^([1-9][0-9]{0,2})$" && \
@@ -874,8 +874,8 @@ LastXResults()
 			while true
 			do
 				ScriptHeader
-				printf "${BOLD}Current number of results to display: ${GRNct}${lastXResults}${CLEARct}\n"
-				printf "\n${BOLD}Please enter the maximum number of results\nto display in the WebUI [5-100] (e=Exit):${CLEARFORMAT}  "
+				printf "${BOLD}Current number of results to display: ${GRNct}${lastXResults}${CLEARct}\n\n"
+				printf "${BOLD}Please enter the maximum number of results\nto display in the WebUI [5-100] (e=Exit):${CLEARFORMAT}  "
 				read -r lastx_choice
 				if [ -z "$lastx_choice" ] && \
 				   echo "$lastXResults" | grep -qE "^([1-9][0-9]{0,2})$" && \
@@ -905,7 +905,7 @@ LastXResults()
 			then
 				echo ; return 1
 			else
-                LASTXRESULTS="$lastXResults"
+				LASTXRESULTS="$lastXResults"
 				sed -i 's/^LASTXRESULTS=.*$/LASTXRESULTS='"$LASTXRESULTS"'/' "$SCRIPT_CONF"
 				Generate_LastXResults
 				echo ; return 0
@@ -1032,8 +1032,8 @@ Auto_Cron()
 	local theScriptFilePath="/jffs/scripts/$SCRIPT_NAME"
 	case $1 in
 		create)
-			STARTUPLINECOUNTGEN="$(cru l | grep -c "#${SCRIPT_NAME}#")"
-			if [ "$STARTUPLINECOUNTGEN" -gt 0 ]; then
+			STARTUPLINECOUNT="$(cru l | grep -c "#${SCRIPT_NAME}#")"
+			if [ "$STARTUPLINECOUNT" -gt 0 ]; then
 				cru d "${SCRIPT_NAME}"
 			fi
 			STARTUPLINECOUNTGEN="$(cru l | grep -c "${SCRIPT_NAME}_generate")"
@@ -1064,9 +1064,9 @@ Auto_Cron()
 			fi
 		;;
 		delete)
-			STARTUPLINECOUNTGEN="$(cru l | grep -c "#${SCRIPT_NAME}#")"
-			if [ "$STARTUPLINECOUNTGEN" -gt 0 ]; then
-				cru d "${SCRIPT_NAME}"
+			STARTUPLINECOUNT="$(cru l | grep -c "#${SCRIPT_NAME}#")"
+			if [ "$STARTUPLINECOUNT" -gt 0 ]; then
+				cru d "$SCRIPT_NAME"
 			fi
 			STARTUPLINECOUNTGEN="$(cru l | grep -c "#${SCRIPT_NAME}_generate#")"
 			if [ "$STARTUPLINECOUNTGEN" -gt 0 ]; then
@@ -1566,7 +1566,7 @@ _Check_JFFS_SpaceAvailable_()
    local requiredSpace  jffsAllxSpace  jffsFreeSpace  jffsMinxSpace
    if [ $# -eq 0 ] || [ -z "$1" ] || [ ! -d "$1" ] ; then return 0 ; fi
 
-   [ "$1" = "/jffs/addons/$SCRIPT_NAME.d" ] && return 0
+   [ "$1" = "/jffs/addons/${SCRIPT_NAME}.d" ] && return 0
 
    if ! jffsAllxSpace="$(_Get_JFFS_Space_ ALL KB)" ; then return 1 ; fi
    if ! jffsFreeSpace="$(_Get_JFFS_Space_ FREE KB)" ; then return 1 ; fi
@@ -4579,12 +4579,12 @@ Menu_EditSchedule()
 		elif [ -z "$day_choice" ]
 		then
 			if _ValidateCronDAYSofWEEK_ "$cruDays"
-            then echo ; break ; fi
+			then echo ; break ; fi
 			PressEnter
 		else
 			if _ValidateCronDAYSofWEEK_ "$day_choice"
 			then cruDays="$day_choice" ; echo ; break ; fi
-            PressEnter
+			PressEnter
 		fi
 	done
 
@@ -4597,7 +4597,7 @@ Menu_EditSchedule()
 			printf "${BOLD}Please choose the method to specify the hour/minute(s)\nto run the ping tests:${CLEARFORMAT}\n\n"
 			printf "    1. Every X hours/minutes\n"
 			printf "    2. Custom\n"
-            printf "    e. Exit to Main Menu\n\n"
+			printf "    e. Exit to Main Menu\n\n"
 			printf "Choose an option:  "
 			read -r formatChoice
 
@@ -4621,7 +4621,7 @@ Menu_EditSchedule()
 				printf "${BOLD}Please choose whether to specify every X hours or every X minutes\nto run the ping tests:${CLEARFORMAT}\n\n"
 				printf "    1. Hours\n"
 				printf "    2. Minutes\n"
-                printf "    e. Exit to Main Menu\n\n"
+				printf "    e. Exit to Main Menu\n\n"
 				printf "Choose an option:  "
 				read -r formatChoice
 
@@ -4652,11 +4652,11 @@ Menu_EditSchedule()
 				if [ "$hour_choice" = "e" ]
 				then
 					exitMenu=true ; break
-                elif [ -z "$hour_choice" ]
-                then
+				elif [ -z "$hour_choice" ]
+				then
 					if _ValidateCronHOURS_ "$cruHour" -quiet || \
-                       _ValidateCronFreqHOURS_ "$cruHour" -quiet
-                    then echo ; break ; fi
+					   _ValidateCronFreqHOURS_ "$cruHour" -quiet
+					then echo ; break ; fi
 					printf "\n${ERR}Please enter a number between 1 and 24${CLEARFORMAT}\n"
 					PressEnter
 				elif ! _ValidateCronFreqHOURS_ "$hour_choice"
@@ -4693,11 +4693,11 @@ Menu_EditSchedule()
 				if [ "$mins_choice" = "e" ]
 				then
 					exitMenu=true ; break
-                elif [ -z "$mins_choice" ]
-                then
+				elif [ -z "$mins_choice" ]
+				then
 					if _ValidateCronMINS_ "$cruMins" -quiet || \
 					   _ValidateCronFreqMINS_ "$cruMins" -quiet
-                    then echo ; break ; fi
+					then echo ; break ; fi
 					printf "\n${ERR}Please enter a number between 1 and 30${CLEARFORMAT}\n"
 					PressEnter
 				elif ! _ValidateCronFreqMINS_ "$mins_choice"
@@ -4733,11 +4733,11 @@ Menu_EditSchedule()
 				if [ "$hour_choice" = "e" ]
 				then
 					exitMenu=true ; break
-                elif [ -z "$hour_choice" ]
-                then
+				elif [ -z "$hour_choice" ]
+				then
 					if _ValidateCronHOURS_ "$cruHour" -quiet || \
 					   _ValidateCronFreqHOURS_ "$cruHour" -quiet
-                    then echo ; break ; fi
+					then echo ; break ; fi
 					printf "\n${ERR}Please enter a number between 0 and 23${CLEARFORMAT}\n"
 					PressEnter
 				else
@@ -4747,26 +4747,26 @@ Menu_EditSchedule()
 						then
 							if echo "$hour_choice" | grep -q ","
 							then
-							    cruHour=""
-							    cruHoursStr="$(echo "$hour_choice" | sed 's/,/ /g')"
-							    for tmpHours in $cruHoursStr 
-							    do
-							        if echo "$tmpHours" | grep -q "-"
-							        then
-							            cruHoursTmp="$(_ValidateHoursRange_ "$tmpHours")"
-							            if [ -z "$cruHour" ]
-							            then cruHour="$cruHoursTmp"
-							            else cruHour="${cruHour},${cruHoursTmp}"
-							            fi
-							        else
-							            if [ -z "$cruHour" ]
-							            then cruHour="$tmpHours"
-							            else cruHour="${cruHour},${tmpHours}"
-							            fi
-							        fi
-							    done
+								cruHour=""
+								cruHoursStr="$(echo "$hour_choice" | sed 's/,/ /g')"
+								for tmpHours in $cruHoursStr 
+								do
+								    if echo "$tmpHours" | grep -q "-"
+								    then
+								        cruHoursTmp="$(_ValidateHoursRange_ "$tmpHours")"
+								        if [ -z "$cruHour" ]
+								        then cruHour="$cruHoursTmp"
+								        else cruHour="${cruHour},${cruHoursTmp}"
+								        fi
+								    else
+								        if [ -z "$cruHour" ]
+								        then cruHour="$tmpHours"
+								        else cruHour="${cruHour},${tmpHours}"
+								        fi
+								    fi
+								done
 							else
-							    cruHour="$(_ValidateHoursRange_ "$hour_choice")"
+								cruHour="$(_ValidateHoursRange_ "$hour_choice")"
 							fi
 						elif [ "$hour_choice" = "*/1" ]
 						then
@@ -4798,11 +4798,11 @@ Menu_EditSchedule()
 				if [ "$mins_choice" = "e" ]
 				then
 					exitMenu=true ; break
-                elif [ -z "$mins_choice" ]
-                then
+				elif [ -z "$mins_choice" ]
+				then
 					if _ValidateCronMINS_ "$cruMins" -quiet || \
 					   _ValidateCronFreqMINS_ "$cruMins" -quiet
-                    then echo ; break ; fi
+					then echo ; break ; fi
 					printf "\n${ERR}Please enter a number between 0 and 59${CLEARFORMAT}\n"
 					PressEnter
 				else
@@ -4812,26 +4812,26 @@ Menu_EditSchedule()
 						then
 							if echo "$mins_choice" | grep -q ","
 							then
-							    cruMins=""
-							    cruMinsStr="$(echo "$mins_choice" | sed 's/,/ /g')"
-							    for tmpMins in $cruMinsStr 
-							    do
-							        if echo "$tmpMins" | grep -q "-"
-							        then
-							            cruMinsTmp="$(_ValidateMinsRange_ "$tmpMins")"
-							            if [ -z "$cruMins" ]
-							            then cruMins="$cruMinsTmp"
-							            else cruMins="${cruMins},${cruMinsTmp}"
-							            fi
-							        else
-							            if [ -z "$cruMins" ]
-							            then cruMins="$tmpMins"
-							            else cruMins="${cruMins},${tmpMins}"
-							            fi
-							        fi
-							    done
+								cruMins=""
+								cruMinsStr="$(echo "$mins_choice" | sed 's/,/ /g')"
+								for tmpMins in $cruMinsStr 
+								do
+								    if echo "$tmpMins" | grep -q "-"
+								    then
+								        cruMinsTmp="$(_ValidateMinsRange_ "$tmpMins")"
+								        if [ -z "$cruMins" ]
+								        then cruMins="$cruMinsTmp"
+								        else cruMins="${cruMins},${cruMinsTmp}"
+								        fi
+								    else
+								        if [ -z "$cruMins" ]
+								        then cruMins="$tmpMins"
+								        else cruMins="${cruMins},${tmpMins}"
+								        fi
+								    fi
+								done
 							else
-							    cruMins="$(_ValidateMinsRange_ "$mins_choice")"
+								cruMins="$(_ValidateMinsRange_ "$mins_choice")"
 							fi
 						elif [ "$mins_choice" = "*/1" ]
 						then
@@ -5020,19 +5020,19 @@ Show_Help()
 {
 	cat <<EOF
 Available commands:
-  $SCRIPT_NAME about              explains functionality
-  $SCRIPT_NAME update             checks for updates
-  $SCRIPT_NAME forceupdate        updates to latest version (force update)
-  $SCRIPT_NAME startup force      runs startup actions such as mount WebUI tab
-  $SCRIPT_NAME install            installs script
-  $SCRIPT_NAME uninstall          uninstalls script
-  $SCRIPT_NAME generate           run ping test and save to database. also runs outputcsv
-  $SCRIPT_NAME outputcsv          create CSVs from database, used by WebUI and export
-  $SCRIPT_NAME trimdb             run maintenance on database (this runs automatically every night)
-  $SCRIPT_NAME enable             enable automatic ping tests
-  $SCRIPT_NAME disable            disable automatic ping tests
-  $SCRIPT_NAME develop            switch to development branch
-  $SCRIPT_NAME stable             switch to stable branch
+  $SCRIPT_NAME about            explains functionality
+  $SCRIPT_NAME update           checks for updates
+  $SCRIPT_NAME forceupdate      updates to latest version (force update)
+  $SCRIPT_NAME startup force    runs startup actions such as mount WebUI tab
+  $SCRIPT_NAME install          installs script
+  $SCRIPT_NAME uninstall        uninstalls script
+  $SCRIPT_NAME generate         run ping test and save to database. also runs outputcsv
+  $SCRIPT_NAME outputcsv        create CSVs from database, used by WebUI and export
+  $SCRIPT_NAME trimdb           run maintenance on database (this runs automatically every night)
+  $SCRIPT_NAME enable           enable automatic ping tests
+  $SCRIPT_NAME disable          disable automatic ping tests
+  $SCRIPT_NAME develop          switch to development branch
+  $SCRIPT_NAME stable           switch to stable branch
 EOF
 	printf "\n"
 }
