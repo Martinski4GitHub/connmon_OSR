@@ -10,7 +10,7 @@
 ##            https://github.com/jackyaz/connmon            ##
 ##                                                          ##
 ##############################################################
-# Last Modified: 2025-Jan-30
+# Last Modified: 2025-Feb-02
 #-------------------------------------------------------------
 
 ##############        Shellcheck directives      #############
@@ -161,7 +161,7 @@ Clear_Lock()
 }
 
 ##----------------------------------------##
-## Modified by Martinski W. [2025-Jan-28] ##
+## Modified by Martinski W. [2025-Feb-02] ##
 ##----------------------------------------##
 Set_Version_Custom_Settings()
 {
@@ -170,9 +170,9 @@ Set_Version_Custom_Settings()
 		local)
 			if [ -f "$SETTINGSFILE" ]
 			then
-				if [ "$(grep -c "^connmon_version_local" $SETTINGSFILE)" -gt 0 ]
+				if [ "$(grep -c "^connmon_version_local" "$SETTINGSFILE")" -gt 0 ]
 				then
-					if [ "$2" != "$(grep "^connmon_version_local" /jffs/addons/custom_settings.txt | cut -f2 -d' ')" ]
+					if [ "$2" != "$(grep "^connmon_version_local" "$SETTINGSFILE" | cut -f2 -d' ')" ]
 					then
 						sed -i "s/^connmon_version_local.*/connmon_version_local $2/" "$SETTINGSFILE"
 					fi
@@ -186,9 +186,9 @@ Set_Version_Custom_Settings()
 		server)
 			if [ -f "$SETTINGSFILE" ]
 			then
-				if [ "$(grep -c "^connmon_version_server" $SETTINGSFILE)" -gt 0 ]
+				if [ "$(grep -c "^connmon_version_server" "$SETTINGSFILE")" -gt 0 ]
 				then
-					if [ "$2" != "$(grep "^connmon_version_server" /jffs/addons/custom_settings.txt | cut -f2 -d' ')" ]
+					if [ "$2" != "$(grep "^connmon_version_server" "$SETTINGSFILE" | cut -f2 -d' ')" ]
 					then
 						sed -i "s/^connmon_version_server.*/connmon_version_server $2/" "$SETTINGSFILE"
 					fi
@@ -429,7 +429,7 @@ Conf_FromSettings()
 			Print_Output true "Updated settings from WebUI found, merging into $SCRIPT_CONF" "$PASS"
 			cp -a "$SCRIPT_CONF" "${SCRIPT_CONF}.bak"
 			grep "^connmon_" "$SETTINGSFILE" | grep -v "version" > "$TMPFILE"
-			sed -i "s/connmon_//g;s/ /=/g" "$TMPFILE"
+			sed -i "s/^connmon_//g;s/ /=/g" "$TMPFILE"
 			while IFS='' read -r line || [ -n "$line" ]
 			do
 				SETTINGNAME="$(echo "$line" | cut -f1 -d'=' | awk '{print toupper($1)}')"
@@ -924,7 +924,6 @@ LastXResults()
 Auto_ServiceEvent()
 {
 	local theScriptFilePath="/jffs/scripts/$SCRIPT_NAME"
-
 	case $1 in
 		create)
 			if [ -f /jffs/scripts/service-event ]
@@ -970,7 +969,6 @@ Auto_ServiceEvent()
 Auto_Startup()
 {
 	local theScriptFilePath="/jffs/scripts/$SCRIPT_NAME"
-
 	case $1 in
 		create)
 			if [ -f /jffs/scripts/services-start ]
@@ -1032,7 +1030,6 @@ Auto_Startup()
 Auto_Cron()
 {
 	local theScriptFilePath="/jffs/scripts/$SCRIPT_NAME"
-
 	case $1 in
 		create)
 			STARTUPLINECOUNTGEN="$(cru l | grep -c "#${SCRIPT_NAME}#")"
@@ -1295,8 +1292,8 @@ ScriptStorageLocation()
 			mv -f "/jffs/addons/$SCRIPT_NAME.d/.emailinfo" "/opt/share/$SCRIPT_NAME.d/" 2>/dev/null
 			mv -f "/jffs/addons/$SCRIPT_NAME.d/userscripts.d" "/opt/share/$SCRIPT_NAME.d/" 2>/dev/null
 			SCRIPT_CONF="/opt/share/${SCRIPT_NAME}.d/config"
-            CONNSTATS_DB="/opt/share/${SCRIPT_NAME}.d/connstats.db"
-            CSV_OUTPUT_DIR="/opt/share/${SCRIPT_NAME}.d/csv"
+			CONNSTATS_DB="/opt/share/${SCRIPT_NAME}.d/connstats.db"
+			CSV_OUTPUT_DIR="/opt/share/${SCRIPT_NAME}.d/csv"
 			ScriptStorageLocation load true
 			sleep 2
 			;;
@@ -1318,8 +1315,8 @@ ScriptStorageLocation()
 			mv -f "/opt/share/$SCRIPT_NAME.d/.emailinfo" "/jffs/addons/$SCRIPT_NAME.d/" 2>/dev/null
 			mv -f "/opt/share/$SCRIPT_NAME.d/userscripts.d" "/jffs/addons/$SCRIPT_NAME.d/" 2>/dev/null
 			SCRIPT_CONF="/jffs/addons/${SCRIPT_NAME}.d/config"
-            CONNSTATS_DB="/jffs/addons/${SCRIPT_NAME}.d/connstats.db"
-            CSV_OUTPUT_DIR="/jffs/addons/${SCRIPT_NAME}.d/csv"
+			CONNSTATS_DB="/jffs/addons/${SCRIPT_NAME}.d/connstats.db"
+			CSV_OUTPUT_DIR="/jffs/addons/${SCRIPT_NAME}.d/csv"
 			ScriptStorageLocation load true
 			sleep 2
 			;;
@@ -1336,7 +1333,7 @@ ScriptStorageLocation()
 			then
 				SCRIPT_STORAGE_DIR="/jffs/addons/${SCRIPT_NAME}.d"
 			fi
-            chmod 777 "$SCRIPT_STORAGE_DIR"
+			chmod 777 "$SCRIPT_STORAGE_DIR"
 			CONNSTATS_DB="$SCRIPT_STORAGE_DIR/connstats.db"
 			CSV_OUTPUT_DIR="$SCRIPT_STORAGE_DIR/csv"
 			USER_SCRIPT_DIR="$SCRIPT_STORAGE_DIR/userscripts.d"
@@ -1692,13 +1689,13 @@ _ApplyDatabaseSQLCmds_()
         then
             if echo "$sqlErrorMsg" | grep -qE "^(Parse|Runtime) error .*: database is locked"
             then
-                echo -n > "$tempLogFilePath"  ##Clear if new error found##
+                echo -n > "$tempLogFilePath"  ##Clear for next error found##
                 foundLocked=true ; sleep 2 ; continue
             fi
             errorCount="$((errorCount + 1))"
             foundError=true ; foundLocked=false
             Print_Output true "SQLite3 failure[$callFlag]: $sqlErrorMsg" "$ERR"
-            echo -n > "$tempLogFilePath"  ##Clear if new error found##
+            echo -n > "$tempLogFilePath"  ##Clear for next error found##
         fi
         [ "$triesCount" -ge "$maxTriesCount" ] && break
         [ "$errorCount" -ge "$maxErrorCount" ] && break
@@ -1757,7 +1754,7 @@ _Trim_Database_()
 
    local foundError  foundLocked  resultStr
 
-   Print_Output true "Trimming records entries from database..." "$PASS"
+   Print_Output true "Trimming records from database..." "$PASS"
    {
       echo "PRAGMA temp_store=1;"
       echo "PRAGMA journal_mode=TRUNCATE;"
