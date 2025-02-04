@@ -1556,9 +1556,10 @@ _Get_JFFS_Space_()
    return 0
 }
 
-##-------------------------------------##
-## Added by Martinski W. [2024-Dec-21] ##
-##-------------------------------------##
+##----------------------------------------##
+## Modified by Martinski W. [2025-Feb-03] ##
+##----------------------------------------##
+##------------------------------------------------------##
 ## Check JFFS free space *before* moving files from USB ##
 ##------------------------------------------------------##
 _Check_JFFS_SpaceAvailable_()
@@ -1570,17 +1571,18 @@ _Check_JFFS_SpaceAvailable_()
 
    if ! jffsAllxSpace="$(_Get_JFFS_Space_ ALL KB)" ; then return 1 ; fi
    if ! jffsFreeSpace="$(_Get_JFFS_Space_ FREE KB)" ; then return 1 ; fi
-
-   jffsAllxSpace="$(echo "$jffsAllxSpace" | awk '{printf("%d", $1 * 1024);}')"
-   jffsFreeSpace="$(echo "$jffsFreeSpace" | awk '{printf("%d", $1 * 1024);}')"
-
    requiredSpace="$(du -kc "$1" | grep -w 'total$' | awk -F ' ' '{print $1}')"
-   requiredSpace="$(echo "$requiredSpace" | awk '{printf("%d", $1 * 1024);}')"
 
-   ## Make sure remaining free space is greater than 20% of total space ##
+   jffsAllxSpace="$(echo "$jffsAllxSpace" | awk '{printf("%s", $1 * 1024);}')"
+   jffsFreeSpace="$(echo "$jffsFreeSpace" | awk '{printf("%s", $1 * 1024);}')"
+   requiredSpace="$(echo "$requiredSpace" | awk '{printf("%s", $1 * 1024);}')"
+
+   ## Make sure remaining JFFS free space is at least 20% of total space ##
    jffsMinxSpace="$(echo "$jffsAllxSpace" | awk '{printf("%d", $1 * 20 / 100);}')"
-   requiredSpace="$((requiredSpace + jffsMinxSpace))"
-   [ "$requiredSpace" -lt "$jffsFreeSpace" ] && return 0
+   requiredSpace="$(echo "$requiredSpace $jffsMinxSpace" | awk -F ' ' '{printf("%s", $1 + $2);}')"
+
+   if [ "$(echo "$requiredSpace $jffsFreeSpace" | awk -F ' ' '{print ($1 < $2)}')" -eq 1 ]
+   then return 0 ; fi
 
    requiredSpace="$(du -hc "$1" | grep -w 'total$' | awk -F ' ' '{print $1}')"
    errorMsg1="Not enough free space [$(_Get_JFFS_Space_ FREE HR)] available in JFFS."
