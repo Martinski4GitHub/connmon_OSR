@@ -3,7 +3,7 @@
 ![Shellcheck](https://github.com/jackyaz/connmon/actions/workflows/shellcheck.yml/badge.svg)
 
 ## v3.0.3
-### Updated on 2025-Jan-04
+### Updated on 2025-Feb-03
 ## About
 connmon is an internet connection monitoring tool for AsusWRT Merlin with charts for daily, weekly and monthly summaries.
 
