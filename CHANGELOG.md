@@ -13,7 +13,7 @@ Updated on 2025-Feb-09
 *   IMPROVED: Added code to show the current database file size information on the CLI menu and the webGUI page.
 *   IMPROVED: Added code to show the "JFFS Available" space information for the "Data Storage Location" option on the CLI menu and the webGUI page.
 *   IMPROVED: Added code to check if sufficient JFFS storage space is available before moving database files/folders from USB location to JFFS partition. An error message is reported if not enough space is available, and the move request is aborted.
-*   IMPROVED: Added code to check if the available JFFS storage space falls below 20% of total space or 10MB (whichever is lower) and report an error when it does. A warning message is also shown on the SSH CLI menu and WebGUI page.
+*   IMPROVED: Added code to check if the available JFFS storage space falls below 20% of total space or 10MB (whichever is lower) and report a warning when it does. A warning message is also shown on the SSH CLI menu and WebGUI page.
 *   IMPROVED: Added "export PATH" statement to make the built-in binaries have higher priority than the equivalent Entware binaries.
 *   CHANGED: Modified code related to "var $j = jQuery.noConflict();" which is now considered obsolete. 
 *   IMPROVED: Various code improvements & fine-tuning.
