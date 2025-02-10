@@ -53,7 +53,7 @@ const InvRED2ct = '<span style="margin-left:2px; background-color:#C81927; color
 const InvRED8ct = '<span style="margin-left:8px; background-color:#C81927; color:#f2f2f2;">&nbsp;';
 const InvGRN2ct = '<span style="margin-left:2px; background-color:#229652; color:#f2f2f2;">&nbsp;';
 const InvYLW2ct = '<span style="margin-left:2px; background-color:yellow; color:black;">&nbsp;';
-const InvCLEAR = '&nbsp;</span>'
+const InvCLEAR = '&nbsp;</span>';
 const WarningTag = `${InvRED8ct} <<< WARNING! ${InvCLEAR}`;
 
 var daysofweek = ['Mon', 'Tues', 'Wed', 'Thurs', 'Fri', 'Sat', 'Sun'];
@@ -1452,8 +1452,7 @@ function getConfigFile()
 
 			for (var indx = 0; indx < configdata.length; indx++)
 			{
-				if (configdata[indx].length === 0 ||
-				    configdata[indx].match('^[ ]*#') !== null)
+				if (configdata[indx].length === 0 || configdata[indx].match('^[ ]*#') !== null)
 				{ continue; }  //Skip comments & empty lines//
 
 				settingname = configdata[indx].split('=')[0];
@@ -1517,9 +1516,7 @@ function getConfigFile()
 					for (var i2 = 0; i2 < linequalitythresholdtypearray.length; i2++)
 					{ $('#connmon_linequalitythreshold_' + linequalitythresholdtypearray[i2].toLowerCase()).prop('checked', true); }
 				}
-				else if (settingname.indexOf('notifications_email_list') !== -1 ||
-				         settingname.indexOf('notifications_pushover_list') !== -1 ||
-				         settingname.indexOf('notifications_webhook_list') !== -1)
+				else if (settingname.indexOf('notifications_email_list') !== -1 || settingname.indexOf('notifications_pushover_list') !== -1 || settingname.indexOf('notifications_webhook_list') !== -1)
 				{
 					eval('document.form.connmon_' + settingname).value = settingvalue.replace(/,/g, '\n');
 				}
