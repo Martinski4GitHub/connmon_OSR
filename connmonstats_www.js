@@ -1566,15 +1566,14 @@ function getStatsTitleFile()
 
 			if (jffsAvailableSpaceLow !== 'WARNING')
 			{
-				document.getElementById('jffsFreeSpace_text').textContent =
-					'JFFS Available: ' + jffsAvailableSpaceStr;
+				showhide('jffsFreeSpace_LOW',false); showhide('jffsFreeSpace_WARN',false);
+				document.getElementById('jffsFreeSpace_text').textContent = 'JFFS Available: ' + jffsAvailableSpaceStr;
 			}
 			else
 			{
-				document.getElementById('jffsFreeSpace_text').innerHTML =
-					'JFFS Available: <span style="margin-left:2px; background-color:yellow; color:black;">&nbsp;' +
-					jffsAvailableSpaceStr + '&nbsp;</span>' +
-					'<span style="margin-left:8px; background-color:#C81927; color:#f2f2f2;">&nbsp;<<< WARNING!&nbsp;</span>';
+				document.getElementById('jffsFreeSpace_text').textContent = 'JFFS Available: ';
+				document.getElementById('jffsFreeSpace_LOW').textContent = jffsAvailableSpaceStr;
+				showhide('jffsFreeSpace_LOW',true); showhide('jffsFreeSpace_WARN',true);
 			}
 			if (automaticModeState === 'ENABLED')
 			{
@@ -1702,7 +1701,7 @@ function scriptUpdateLayout() {
 }
 
 /**----------------------------------------**/
-/** Modified by Martinski W. [2024-Dec-15] **/
+/** Modified by Martinski W. [2025-Feb-09] **/
 /**----------------------------------------**/
 function initial()
 {
@@ -1728,6 +1727,8 @@ function initial()
 	scriptUpdateLayout();
 	showhide('databaseSize_text',true);
 	showhide('jffsFreeSpace_text',true);
+	showhide('jffsFreeSpace_LOW',false);
+	showhide('jffsFreeSpace_WARN',false);
 	showhide('autoModeState_text',true);
 	var starttab = getCookie('StartTab', 'number');
 	if (starttab === 0) { starttab = 1; }
@@ -1847,7 +1848,7 @@ function saveStatus(section)
 /**----------------------------------------**/
 /** Modified by Martinski W. [2025-Feb-08] **/
 /**----------------------------------------**/
-function SaveConfig(section)
+function saveConfig(section)
 {
 	switch (section)
 	{
