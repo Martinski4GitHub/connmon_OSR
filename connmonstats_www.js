@@ -46,16 +46,6 @@ var sqlDatabaseFileSize = '0 Bytes';
 var jffsAvailableSpaceStr = '0 Bytes';
 var jffsAvailableSpaceLow = 'OK';
 
-/**-------------------------------------**/
-/** Added by Martinski W. [2025-Feb-05] **/
-/**-------------------------------------**/
-const InvRED2ct = '<span style="margin-left:2px; background-color:#C81927; color:#f2f2f2;">&nbsp;';
-const InvRED8ct = '<span style="margin-left:8px; background-color:#C81927; color:#f2f2f2;">&nbsp;';
-const InvGRN2ct = '<span style="margin-left:2px; background-color:#229652; color:#f2f2f2;">&nbsp;';
-const InvYLW2ct = '<span style="margin-left:2px; background-color:yellow; color:black;">&nbsp;';
-const InvCLEAR = '&nbsp;</span>';
-const WarningTag = `${InvRED8ct} <<< WARNING! ${InvCLEAR}`;
-
 var daysofweek = ['Mon', 'Tues', 'Wed', 'Thurs', 'Fri', 'Sat', 'Sun'];
 var pingtestdur = 60;
 
@@ -1559,7 +1549,7 @@ function getConfigFile()
 }
 
 /**----------------------------------------**/
-/** Modified by Martinski W. [2025-Feb-05] **/
+/** Modified by Martinski W. [2025-Feb-09] **/
 /**----------------------------------------**/
 function getStatsTitleFile()
 {
@@ -1582,7 +1572,9 @@ function getStatsTitleFile()
 			else
 			{
 				document.getElementById('jffsFreeSpace_text').innerHTML =
-					'JFFS Available: ' + `${InvYLW2ct}${jffsAvailableSpaceStr}${InvCLEAR}` + WarningTag;
+					'JFFS Available: <span style="margin-left:2px; background-color:yellow; color:black;">&nbsp;' +
+					jffsAvailableSpaceStr + '&nbsp;</span>' +
+					'<span style="margin-left:8px; background-color:#C81927; color:#f2f2f2;">&nbsp;<<< WARNING!&nbsp;</span>';
 			}
 			if (automaticModeState === 'ENABLED')
 			{
