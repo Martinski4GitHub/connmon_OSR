@@ -38,7 +38,7 @@ function setCookie(cookiename, cookievalue)
 { cookie.set('conn_' + cookiename, cookievalue, 10 * 365); }
 
 /**----------------------------------------**/
-/** Modified by Martinski W. [2025-Feb-08] **/
+/** Modified by Martinski W. [2025-Feb-09] **/
 /**----------------------------------------**/
 let databaseResetDone = 0;
 var automaticModeState = 'ENABLED';
@@ -49,10 +49,10 @@ var jffsAvailableSpaceLow = 'OK';
 /**-------------------------------------**/
 /** Added by Martinski W. [2025-Feb-05] **/
 /**-------------------------------------**/
-const InvRED2ct = '<span style="margin-left:2px; background-color:#C81927; color:#f2f2f2;">&nbsp;'
-const InvRED8ct = '<span style="margin-left:8px; background-color:#C81927; color:#f2f2f2;">&nbsp;'
-const InvGRN2ct = '<span style="margin-left:2px; background-color:#229652; color:#f2f2f2;">&nbsp;'
-const InvYLW2ct = '<span style="margin-left:2px; background-color:yellow; color:black;">&nbsp;'
+const InvRED2ct = '<span style="margin-left:2px; background-color:#C81927; color:#f2f2f2;">&nbsp;';
+const InvRED8ct = '<span style="margin-left:8px; background-color:#C81927; color:#f2f2f2;">&nbsp;';
+const InvGRN2ct = '<span style="margin-left:2px; background-color:#229652; color:#f2f2f2;">&nbsp;';
+const InvYLW2ct = '<span style="margin-left:2px; background-color:yellow; color:black;">&nbsp;';
 const InvCLEAR = '&nbsp;</span>'
 const WarningTag = `${InvRED8ct} <<< WARNING! ${InvCLEAR}`;
 
@@ -234,7 +234,7 @@ function validateDomain(forminput)
 	}
 }
 
-function ValidateNumberSetting (forminput, upperlimit, lowerlimit)
+function validateNumberSetting (forminput, upperlimit, lowerlimit)
 {
 	var inputname = forminput.name;
 	var inputvalue = forminput.value * 1;
@@ -281,7 +281,7 @@ function formatNumberSetting3DP(forminput)
 	}
 }
 
-function ValidateSchedule (forminput, hoursmins)
+function validateSchedule (forminput, hoursmins)
 {
 	var inputname = forminput.name;
 	var inputvalues = forminput.value.split(',');
@@ -371,7 +371,7 @@ function ValidateSchedule (forminput, hoursmins)
 	}
 }
 
-function ValidateScheduleValue (forminput)
+function validateScheduleValue (forminput)
 {
 	var inputname = forminput.name;
 	var inputvalue = forminput.value * 1;
@@ -418,32 +418,32 @@ const thePingDurationDEF = 30;
 const thePingDurationMAX = 60;
 const thePingDurationTXT = `(between ${thePingDurationMIN} and ${thePingDurationMAX}, default: ${thePingDurationDEF})`;
 
-function ValidateAll()
+function validateAll()
 {
 	var validationfailed = false;
 	if (!validateIP(document.form.connmon_ipaddr))
 	{ validationfailed = true; }
 	if (!validateDomain(document.form.connmon_domain))
 	{ validationfailed = true; }
-	if (!ValidateNumberSetting(document.form.connmon_pingduration, thePingDurationMAX, thePingDurationMIN))
+	if (!validateNumberSetting(document.form.connmon_pingduration, thePingDurationMAX, thePingDurationMIN))
 	{ validationfailed = true; }
-	if (!ValidateNumberSetting(document.form.connmon_lastxresults, theLastXResultsMAX, theLastXResultsMIN))
+	if (!validateNumberSetting(document.form.connmon_lastxresults, theLastXResultsMAX, theLastXResultsMIN))
 	{ validationfailed = true; }
-	if (!ValidateNumberSetting(document.form.connmon_daystokeep, theDaysToKeepMAX, theDaysToKeepMIN))
+	if (!validateNumberSetting(document.form.connmon_daystokeep, theDaysToKeepMAX, theDaysToKeepMIN))
 	{ validationfailed = true; }
 	if (document.form.connmon_automaticmode.value === 'true')
 	{
 		if (document.form.schedulemode.value === 'EveryX')
 		{
-		    if (!ValidateScheduleValue (document.form.everyxvalue))
-		    { validationfailed = true; }
+			if (!validateScheduleValue (document.form.everyxvalue))
+			{ validationfailed = true; }
 		}
 		else if (document.form.schedulemode.value === 'Custom')
 		{
-		    if (!ValidateSchedule (document.form.connmon_schhours, 'hours')) 
-		    { validationfailed = true; }
-		    if (!ValidateSchedule (document.form.connmon_schmins, 'mins')) 
-		    { validationfailed = true; }
+			if (!validateSchedule (document.form.connmon_schhours, 'hours')) 
+			{ validationfailed = true; }
+			if (!validateSchedule (document.form.connmon_schmins, 'mins')) 
+			{ validationfailed = true; }
 		}
 	}
 	if (validationfailed)
@@ -461,13 +461,13 @@ function fixCron(hoursmins)
 	{
 		var origvalue = document.form.connmon_schhours.value;
 		document.form.connmon_schhours.value = origvalue.split('-')[0] + '-23,0-' + origvalue.split('-')[1];
-		ValidateSchedule (document.form.connmon_schhours, 'hours');
+		validateSchedule (document.form.connmon_schhours, 'hours');
 	}
 	else if (hoursmins === 'mins')
 	{
 		var origvalue = document.form.connmon_schmins.value;
 		document.form.connmon_schmins.value = origvalue.split('-')[0] + '-59,0-' + origvalue.split('-')[1];
-		ValidateSchedule (document.form.connmon_schmins, 'mins');
+		validateSchedule (document.form.connmon_schmins, 'mins');
 	}
 }
 
@@ -1435,14 +1435,14 @@ function getEmailpwFile()
 /**----------------------------------------**/
 /** Modified by Martinski W. [2025-Feb-05] **/
 /**----------------------------------------**/
-function GetConfigFile()
+function getConfigFile()
 {
 	$.ajax({
 		url: '/ext/connmon/config.htm',
 		dataType: 'text',
 		cache: false,
 		error: function (xhr) {
-			setTimeout(GetConfigFile, 1000);
+			setTimeout(getConfigFile, 1000);
 		},
 		success: function (data)
 		{
@@ -1564,13 +1564,13 @@ function GetConfigFile()
 /**----------------------------------------**/
 /** Modified by Martinski W. [2025-Feb-05] **/
 /**----------------------------------------**/
-function GetStatsTitleFile()
+function getStatsTitleFile()
 {
 	$.ajax({
 		url: '/ext/connmon/connstatstext.js',
 		dataType: 'script',
 		error: function (xhr) {
-			setTimeout(GetStatsTitleFile, 2000);
+			setTimeout(getStatsTitleFile, 2000);
 		},
 		success: function()
 		{
@@ -1579,23 +1579,23 @@ function GetStatsTitleFile()
 
 			if (jffsAvailableSpaceLow !== 'WARNING')
 			{
-			    document.getElementById('jffsFreeSpace_text').textContent =
-			        'JFFS Available: ' + jffsAvailableSpaceStr;
+				document.getElementById('jffsFreeSpace_text').textContent =
+					'JFFS Available: ' + jffsAvailableSpaceStr;
 			}
 			else
 			{
-			    document.getElementById('jffsFreeSpace_text').innerHTML =
-			        'JFFS Available: ' + `${InvYLW2ct}${jffsAvailableSpaceStr}${InvCLEAR}` + WarningTag;
+				document.getElementById('jffsFreeSpace_text').innerHTML =
+					'JFFS Available: ' + `${InvYLW2ct}${jffsAvailableSpaceStr}${InvCLEAR}` + WarningTag;
 			}
 			if (automaticModeState === 'ENABLED')
 			{
-			    document.getElementById('autoModeState_text').innerHTML =
-			        'Currently: <span style="margin-left:2px; background-color: #229652; color:#f2f2f2;">&nbsp;ENABLED&nbsp;</span>';
+				document.getElementById('autoModeState_text').innerHTML =
+					'Currently: <span style="margin-left:2px; background-color: #229652; color:#f2f2f2;">&nbsp;ENABLED&nbsp;</span>';
             }
 			else
 			{
-			    document.getElementById('autoModeState_text').innerHTML =
-			        'Currently: <span style="margin-left:2px; background-color: #C81927; color:#f2f2f2;">&nbsp;DISABLED&nbsp;</span>'; 
+				document.getElementById('autoModeState_text').innerHTML =
+					'Currently: <span style="margin-left:2px; background-color: #C81927; color:#f2f2f2;">&nbsp;DISABLED&nbsp;</span>'; 
             }
 			if (databaseResetDone === 1)
 			{
@@ -1604,7 +1604,7 @@ function GetStatsTitleFile()
 				redrawAllCharts();
 				databaseResetDone += 1;
 			}
-			setTimeout(GetStatsTitleFile, 4000);
+			setTimeout(getStatsTitleFile, 4000);
 		}
 	});
 }
@@ -1724,9 +1724,9 @@ function initial()
 	document.formScriptActions.submit();
 	setTimeout(getCustomactionList, 10000);
 	setTimeout(getEmailpwFile, 10000);
-	GetConfigFile();
+	getConfigFile();
 	getEmailConfFile();
-	GetStatsTitleFile();
+	getStatsTitleFile();
 	getEmailInfo();
 	getCronFile();
 	getChangelogFile();
@@ -1824,7 +1824,7 @@ function postConnTest()
 {
 	currentNoCharts = 0;
 	$('#Time_Format').val(getCookie('Time_Format', 'number'));
-	setTimeout(GetStatsTitleFile, 3000);
+	setTimeout(getStatsTitleFile, 3000);
 	setTimeout(redrawAllCharts, 3000);
 }
 
@@ -1863,7 +1863,7 @@ function SaveConfig(section)
 	switch (section)
 	{
 		case 'Navigate3':
-			if (ValidateAll())
+			if (validateAll())
 			{
 				var disabledfields = $('#' + section).find('[disabled]');
 				disabledfields.prop('disabled', false);
@@ -2022,7 +2022,7 @@ function everyXToggle (forminput)
 		showhide('spanxhours', false);
 		showhide('spanxminutes', true);
 	}
-	ValidateScheduleValue($('[name=everyxvalue]')[0]);
+	validateScheduleValue($('[name=everyxvalue]')[0]);
 }
 
 var pingcount = 2;
