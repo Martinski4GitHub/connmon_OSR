@@ -10,7 +10,7 @@
 ##            https://github.com/jackyaz/connmon            ##
 ##                                                          ##
 ##############################################################
-# Last Modified: 2025-Feb-09
+# Last Modified: 2025-Feb-10
 #-------------------------------------------------------------
 
 ##############        Shellcheck directives      #############
@@ -84,7 +84,7 @@ readonly UNDERLINE="\\e[4m"
 readonly CLEARFORMAT="\\e[0m"
 
 ##----------------------------------------##
-## Modified by Martinski W. [2025-Feb-05] ##
+## Modified by Martinski W. [2025-Feb-10] ##
 ##----------------------------------------##
 readonly CLRct="\e[0m"
 readonly REDct="\e[1;31m"
@@ -93,6 +93,8 @@ readonly CritIREDct="\e[41m"
 readonly CritBREDct="\e[30;101m"
 readonly PassBGRNct="\e[30;102m"
 readonly WarnBYLWct="\e[30;103m"
+readonly WarnIMGNct="\e[45m"
+readonly WarnBMGNct="\e[30;105m"
 
 ### End of output format variables ###
 
@@ -1734,11 +1736,11 @@ _JFFS_WarnLowFreeSpace_()
    if [ "$storageLocStr" = "JFFS" ]
    then
        logPriNum=3
-       logTagStr="**ALERT**"
+       logTagStr="**WARNING**"
        jffsWarningLogFreq="$_12Hours"
    else
        logPriNum=4
-       logTagStr="**WARNING**"
+       logTagStr="**NOTICE**"
        jffsWarningLogFreq="$_24Hours"
    fi
    jffsWarningLogTime="$(JFFS_WarningLogTime check)"
@@ -2275,7 +2277,7 @@ Reset_DB()
 ##----------------------------------------##
 Process_Upgrade()
 {
-    local foundError  foundLocked  resultStr  doUpdateDB=false
+	local foundError  foundLocked  resultStr  doUpdateDB=false
 
 	rm -f "$SCRIPT_STORAGE_DIR/.tableupgraded"
 	if [ ! -f "$SCRIPT_STORAGE_DIR/.indexcreated" ]
@@ -2329,8 +2331,10 @@ Process_Upgrade()
 		touch "$SCRIPT_STORAGE_DIR/.newcolumns"
 		doUpdateDB=true
 	fi
-	if [ ! -f "$SCRIPT_STORAGE_DIR/lastx.csv" ]; then
+	if [ ! -f "$SCRIPT_STORAGE_DIR/lastx.csv" ]
+	then
 		Generate_LastXResults
+		doUpdateDB=true
 	fi
 	if [ ! -f /opt/bin/dig ] && [ -x /opt/bin/opkg ]
 	then
@@ -4055,12 +4059,12 @@ _CronScheduleHourMinsInfo_()
 }
 
 ##----------------------------------------##
-## Modified by Martinski W. [2025-Feb-05] ##
+## Modified by Martinski W. [2025-Feb-10] ##
 ##----------------------------------------##
 MainMenu()
 {
-	local menuOption  STORAGE_MenuStr  automaticModeStatus
-	local jffsFreeSpace  jffsFreeSpaceStr
+	local menuOption  storageLocStr  automaticModeStatus
+	local jffsFreeSpace  jffsFreeSpaceStr  jffsSpaceMsgTag
 
 	if [ "$(ExcludeFromQoS check)" = "true" ]
 	then EXCLUDEFROMQOS_MENU="excluded from"
@@ -4069,7 +4073,7 @@ MainMenu()
 
 	if AutomaticMode check
 	then automaticModeStatus="${PassBGRNct} ENABLED ${CLRct}"
-	else automaticModeStatus="${CritIREDct} DISABLED ${CLRct}"
+	else automaticModeStatus="${CritBREDct} DISABLED ${CLRct}"
 	fi
 
 	TEST_SCHEDULE="$(CronTestSchedule check)"
@@ -4082,14 +4086,18 @@ MainMenu()
 	fi
 	TEST_SCHEDULE_MENU="$(_CronScheduleHourMinsInfo_ "$CRON_SCHED_HOUR" "$CRON_SCHED_MINS")"
 
-	STORAGE_MenuStr="$(ScriptStorageLocation check | tr 'a-z' 'A-Z')"
+	storageLocStr="$(ScriptStorageLocation check | tr 'a-z' 'A-Z')"
 
 	jffsFreeSpace="$(echo "$(_Get_JFFS_Space_ FREE HRx)" | sed 's/%/%%/')"
 	if [ "$JFFS_LowSpaceWarnMsg" != "WARNING" ]
 	then
 		jffsFreeSpaceStr="${SETTING}$jffsFreeSpace"
 	else
-		jffsFreeSpaceStr="${WarnBYLWct} $jffsFreeSpace ${CLRct}  ${CritIREDct} <<< WARNING! ${CLRct}"
+		if [ "$storageLocStr" = "JFFS" ]
+		then jffsSpaceMsgTag="${CritBREDct} <<< WARNING! "
+		else jffsSpaceMsgTag="${WarnBMGNct} <<< NOTICE! "
+		fi
+		jffsFreeSpaceStr="${WarnBYLWct} $jffsFreeSpace ${CLRct}  ${jffsSpaceMsgTag}${CLRct}"
 	fi
 
 	printf "WebUI for %s is available at:\n${SETTING}%s${CLEARFORMAT}\n\n" "$SCRIPT_NAME" "$(Get_WebUI_URL)"
@@ -4110,7 +4118,7 @@ MainMenu()
 	printf "8.    Set number of days data to keep in database\n"
 	printf "      Currently: ${SETTING}%s days data will be kept${CLEARFORMAT}\n\n" "$(DaysToKeep check)"
 	printf "s.    Toggle storage location for stats and config\n"
-	printf "      Current location: ${SETTING}%s${CLEARFORMAT}\n" "$STORAGE_MenuStr"
+	printf "      Current location: ${SETTING}%s${CLEARFORMAT}\n" "$storageLocStr"
     printf "      JFFS Available: ${jffsFreeSpaceStr}${CLEARFORMAT}\n\n"
 	printf "q.    Toggle exclusion of %s ping tests from QoS\n" "$SCRIPT_NAME"
 	printf "      Currently: %s ping tests are ${SETTING}%s${CLEARFORMAT} QoS\n\n" "$SCRIPT_NAME" "$EXCLUDEFROMQOS_MENU"
