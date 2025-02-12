@@ -10,7 +10,7 @@
 ##            https://github.com/jackyaz/connmon            ##
 ##                                                          ##
 ##############################################################
-# Last Modified: 2025-Feb-10
+# Last Modified: 2025-Feb-11
 #-------------------------------------------------------------
 
 ##############        Shellcheck directives      #############
@@ -1112,35 +1112,47 @@ Auto_Cron()
 Download_File()
 { /usr/sbin/curl -LSs --retry 4 --retry-delay 5 --retry-connrefused "$1" -o "$2" ; }
 
+##-------------------------------------##
+## Added by Martinski W. [2025-Feb-11] ##
+##-------------------------------------##
+_Check_WebGUI_Page_Exists_()
+{
+   local webPageStr  webPageFile  theWebPage
+
+   if [ ! -f "$TEMP_MENU_TREE" ]
+   then echo "NONE" ; return 1 ; fi
+
+   theWebPage="NONE"
+   webPageStr="$(grep -E -m1 "$webPageLineRegExp" "$TEMP_MENU_TREE")"
+   if [ -n "$webPageStr" ]
+   then
+       webPageFile="$(echo "$webPageStr" | grep -owE "$webPageFileRegExp" | head -n1)"
+       if [ -n "$webPageFile" ] && [ -s "${SCRIPT_WEBPAGE_DIR}/$webPageFile" ]
+       then theWebPage="$webPageFile" ; fi
+   fi
+   echo "$theWebPage"
+}
+
 ##----------------------------------------##
-## Modified by Martinski W. [2025-Feb-09] ##
+## Modified by Martinski W. [2025-Feb-11] ##
 ##----------------------------------------##
 Get_WebUI_Page()
 {
-	local webPageEntry  webPagePath  webPageFile
-	MyWebPage="NONE"
+	local webPageFile  webPagePath
 
-	if [ -f "$TEMP_MENU_TREE" ]
-	then
-		webPageEntry="$(grep -E "$webPageLineRegExp" "$TEMP_MENU_TREE")"
-		if [ -n "$webPageEntry" ]
-		then
-			webPageFile="$(echo "$webPageEntry" | grep -owE "$webPageFileRegExp")"
-			[ -n "$webPageFile" ] && MyWebPage="$webPageFile"
-		fi
-	fi
+	MyWebPage="$(_Check_WebGUI_Page_Exists_)"
 
-	for index in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20
+	for indx in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20
 	do
-		webPageFile="user${index}.asp"
+		webPageFile="user${indx}.asp"
 		webPagePath="${SCRIPT_WEBPAGE_DIR}/$webPageFile"
 
-		if [ -f "$webPagePath" ] && \
+		if [ -s "$webPagePath" ] && \
 		   [ "$(md5sum < "$1")" = "$(md5sum < "$webPagePath")" ]
 		then
 			MyWebPage="$webPageFile"
 			break
-		elif [ "$MyWebPage" = "NONE" ] && [ ! -f "$webPagePath" ]
+		elif [ "$MyWebPage" = "NONE" ] && [ ! -s "$webPagePath" ]
 		then
 			MyWebPage="$webPageFile"
 		fi
@@ -1148,34 +1160,45 @@ Get_WebUI_Page()
 }
 
 ### function based on @dave14305's FlexQoS webconfigpage function ###
+##----------------------------------------##
+## Modified by Martinski W. [2025-Feb-11] ##
+##----------------------------------------##
 Get_WebUI_URL()
 {
-	urlpage=""
-	urlproto=""
-	urldomain=""
-	urlport=""
+	local urlPage=""  urlProto=""  urlDomain=""  urlPort=""
 
-	urlpage="$(sed -nE "/$SCRIPT_NAME/ s/.*url\: \"(user[0-9]+\.asp)\".*/\1/p" "$TEMP_MENU_TREE")"
+	if [ ! -f "$TEMP_MENU_TREE" ]
+	then
+		echo "**ERROR**: WebUI page NOT mounted"
+		return 1
+	fi
+
+	urlPage="$(sed -nE "/$SCRIPT_NAME/ s/.*url\: \"(user[0-9]+\.asp)\".*/\1/p" "$TEMP_MENU_TREE")"
+
 	if [ "$(nvram get http_enable)" -eq 1 ]; then
-		urlproto="https"
+		urlProto="https"
 	else
-		urlproto="http"
+		urlProto="http"
 	fi
 	if [ -n "$(nvram get lan_domain)" ]; then
-		urldomain="$(nvram get lan_hostname).$(nvram get lan_domain)"
+		urlDomain="$(nvram get lan_hostname).$(nvram get lan_domain)"
 	else
-		urldomain="$(nvram get lan_ipaddr)"
+		urlDomain="$(nvram get lan_ipaddr)"
 	fi
-	if [ "$(nvram get ${urlproto}_lanport)" -eq 80 ] || [ "$(nvram get ${urlproto}_lanport)" -eq 443 ]; then
-		urlport=""
+	if [ "$(nvram get ${urlProto}_lanport)" -eq 80 ] || \
+	   [ "$(nvram get ${urlProto}_lanport)" -eq 443 ]
+	then
+		urlPort=""
 	else
-		urlport=":$(nvram get ${urlproto}_lanport)"
+		urlPort=":$(nvram get ${urlProto}_lanport)"
 	fi
 
-	if echo "$urlpage" | grep -qE "user[0-9]+\.asp"; then
-		echo "${urlproto}://${urldomain}${urlport}/${urlpage}" | tr "A-Z" "a-z"
+	if echo "$urlPage" | grep -qE "^${webPageFileRegExp}$" && \
+	   [ -s "${SCRIPT_WEBPAGE_DIR}/$urlPage" ]
+	then
+		echo "${urlProto}://${urlDomain}${urlPort}/${urlPage}" | tr "A-Z" "a-z"
 	else
-		echo "WebUI page not found"
+		echo "**ERROR**: WebUI page NOT found"
 	fi
 }
 
@@ -1242,6 +1265,15 @@ Mount_WebUI()
 	fi
 	flock -u "$FD"
 	Print_Output true "Mounted $SCRIPT_NAME WebUI page as $MyWebPage" "$PASS"
+}
+
+##-------------------------------------##
+## Added by Martinski W. [2025-Feb-11] ##
+##-------------------------------------##
+_CheckFor_WebGUI_Page_()
+{
+   if [ "$(_Check_WebGUI_Page_Exists_)" = "NONE" ]
+   then Mount_WebUI ; fi
 }
 
 ExcludeFromQoS()
@@ -4101,6 +4133,7 @@ MainMenu()
 	fi
 
 	printf "WebUI for %s is available at:\n${SETTING}%s${CLEARFORMAT}\n\n" "$SCRIPT_NAME" "$(Get_WebUI_URL)"
+
 	printf "1.    Check connection now\n"
     printf "      Database size: ${SETTING}%s${CLEARFORMAT}\n\n" "$(_GetFileSize_ "$CONNSTATS_DB" HRx)"
 	printf "2.    Set preferred ping server\n"
@@ -5228,6 +5261,9 @@ CSV_OUTPUT_DIR="$SCRIPT_STORAGE_DIR/csv"
 USER_SCRIPT_DIR="$SCRIPT_STORAGE_DIR/userscripts.d"
 JFFS_LowSpaceWarnMsg=""
 
+##----------------------------------------##
+## Modified by Martinski W. [2025-Feb-11] ##
+##----------------------------------------##
 if [ $# -eq 0 ] || [ -z "$1" ]
 then
 	NTP_Ready
@@ -5249,6 +5285,7 @@ then
 	fi
 	Auto_ServiceEvent create 2>/dev/null
 	Shortcut_Script create
+	_CheckFor_WebGUI_Page_
 	Process_Upgrade
 	ScriptHeader
 	MainMenu
