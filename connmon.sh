@@ -10,7 +10,7 @@
 ##            https://github.com/jackyaz/connmon            ##
 ##                                                          ##
 ##############################################################
-# Last Modified: 2025-Feb-16
+# Last Modified: 2025-Feb-18
 #-------------------------------------------------------------
 
 ##############        Shellcheck directives      #############
@@ -4006,7 +4006,7 @@ ScriptHeader()
 	printf "${BOLD}##   | (__ | (_) || | | || | | || | | | | || (_) || | | |   ##${CLEARFORMAT}\\n"
 	printf "${BOLD}##    \___| \___/ |_| |_||_| |_||_| |_| |_| \___/ |_| |_|   ##${CLEARFORMAT}\\n"
 	printf "${BOLD}##                                                          ##${CLEARFORMAT}\\n"
-	printf "${BOLD}##                   %s on %-18s           ##${CLEARFORMAT}\n" "$SCRIPT_VERSION" "$ROUTER_MODEL"
+	printf "${BOLD}##                  %9s on %-18s         ##${CLEARFORMAT}\n" "$SCRIPT_VERSION" "$ROUTER_MODEL"
 	printf "${BOLD}##                                                          ##${CLEARFORMAT}\\n"
 	printf "${BOLD}##            https://github.com/jackyaz/connmon            ##${CLEARFORMAT}\\n"
 	printf "${BOLD}##                                                          ##${CLEARFORMAT}\\n"
