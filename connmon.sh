@@ -10,7 +10,7 @@
 ##            https://github.com/jackyaz/connmon            ##
 ##                                                          ##
 ##############################################################
-# Last Modified: 2025-Feb-11
+# Last Modified: 2025-Feb-16
 #-------------------------------------------------------------
 
 ##############        Shellcheck directives      #############
@@ -52,16 +52,22 @@ readonly EMAIL_REGEX="^(([A-Za-z0-9]+((\.|\-|\_|\+)?[A-Za-z0-9]?)*[A-Za-z0-9]+)|
 [ -f /opt/bin/sqlite3 ] && SQLITE3_PATH=/opt/bin/sqlite3 || SQLITE3_PATH=/usr/sbin/sqlite3
 
 ##----------------------------------------##
-## Modified by Martinski W. [2025-Feb-09] ##
+## Modified by Martinski W. [2025-Feb-16] ##
 ##----------------------------------------##
 readonly scriptVersRegExp="v[0-9]{1,2}([.][0-9]{1,2})([.][0-9]{1,2})"
+readonly webPageMenuAddons="menuName: \"Addons\","
+readonly webPageHelpSupprt="tabName: \"Help & Support\"},"
 readonly webPageFileRegExp="user([1-9]|[1-2][0-9])[.]asp"
-readonly webPageLineRegExp="\{url: \"$webPageFileRegExp\", tabName: \"$SCRIPT_NAME\"\}"
+readonly webPageLineTabExp="\{url: \"$webPageFileRegExp\", tabName: "
+readonly webPageLineRegExp="${webPageLineTabExp}\"$SCRIPT_NAME\"\},"
+readonly BEGIN_MenuAddOnsTag="/\*\*BEGIN:_AddOns_\*\*/"
+readonly ENDIN_MenuAddOnsTag="/\*\*ENDIN:_AddOns_\*\*/"
 
 # For daily CRON job to trim database #
 readonly defTrimDB_Hour=3
-readonly defTrimDB_Mins=1
+readonly defTrimDB_Mins=3
 
+readonly oneHrSec=3600
 readonly _12Hours=43200
 readonly _24Hours=86400
 readonly oneKByte=1024
@@ -1123,7 +1129,7 @@ _Check_WebGUI_Page_Exists_()
    then echo "NONE" ; return 1 ; fi
 
    theWebPage="NONE"
-   webPageStr="$(grep -E -m1 "$webPageLineRegExp" "$TEMP_MENU_TREE")"
+   webPageStr="$(grep -E -m1 "^$webPageLineRegExp" "$TEMP_MENU_TREE")"
    if [ -n "$webPageStr" ]
    then
        webPageFile="$(echo "$webPageStr" | grep -owE "$webPageFileRegExp" | head -n1)"
@@ -1202,9 +1208,32 @@ Get_WebUI_URL()
 	fi
 }
 
+##-------------------------------------##
+## Added by Martinski W. [2025-Feb-16] ##
+##-------------------------------------##
+_CreateMenuAddOnsSection_()
+{
+   if grep -qE "^${webPageMenuAddons}$" "$TEMP_MENU_TREE" && \
+      grep -qE "${webPageHelpSupprt}$" "$TEMP_MENU_TREE"
+   then return 0 ; fi
+
+   lineinsBefore="$(($(grep -n "^exclude:" "$TEMP_MENU_TREE" | cut -f1 -d':') - 1))"
+
+   sed -i "$lineinsBefore""i\
+${BEGIN_MenuAddOnsTag}\n\
+,\n{\n\
+${webPageMenuAddons}\n\
+index: \"menu_Addons\",\n\
+tab: [\n\
+{url: \"javascript:var helpwindow=window.open('\/ext\/shared-jy\/redirect.htm')\", ${webPageHelpSupprt}\n\
+{url: \"NULL\", tabName: \"__INHERIT__\"}\n\
+]\n}\n\
+${ENDIN_MenuAddOnsTag}" "$TEMP_MENU_TREE"
+}
+
 ### locking mechanism code credit to Martineau (@MartineauUK) ###
 ##----------------------------------------##
-## Modified by Martinski W. [2025-Feb-09] ##
+## Modified by Martinski W. [2025-Feb-16] ##
 ##----------------------------------------##
 Mount_WebUI()
 {
@@ -1242,11 +1271,7 @@ Mount_WebUI()
 		fi
 		sed -i "\\~$MyWebPage~d" "$TEMP_MENU_TREE"
 
-		if ! grep -q 'menuName: "Addons"' "$TEMP_MENU_TREE"
-		then
-			lineinsbefore="$(( $(grep -n "exclude:" "$TEMP_MENU_TREE" | cut -f1 -d':') - 1))"
-			sed -i "$lineinsbefore"'i,\n{\nmenuName: "Addons",\nindex: "menu_Addons",\ntab: [\n{url: "javascript:var helpwindow=window.open('"'"'/ext/shared-jy/redirect.htm'"'"')", tabName: "Help & Support"},\n{url: "NULL", tabName: "__INHERIT__"}\n]\n}' "$TEMP_MENU_TREE"
-		fi
+		_CreateMenuAddOnsSection_
 
 		sed -i "/url: \"javascript:var helpwindow=window.open('\/ext\/shared-jy\/redirect.htm'/i {url: \"$MyWebPage\", tabName: \"$SCRIPT_NAME\"}," "$TEMP_MENU_TREE"
 
@@ -5074,8 +5099,61 @@ Menu_ResetDB()
 	esac
 }
 
+##-------------------------------------##
+## Added by Martinski W. [2025-Feb-16] ##
+##-------------------------------------##
+_RemoveMenuAddOnsSection_()
+{
+   if [ $# -lt 2 ] || [ -z "$1" ] || [ -z "$2" ] || \
+      ! echo "$1" | grep -qE "^[1-9][0-9]*$" || \
+      ! echo "$2" | grep -qE "^[1-9][0-9]*$" || \
+      [ "$1" -ge "$2" ]
+   then return 1 ; fi
+   local BEGINnum="$1"  ENDINnum="$2"
+
+   if [ -n "$(sed -E "${BEGINnum},${ENDINnum}!d;/${webPageLineTabExp}/!d" "$TEMP_MENU_TREE")" ]
+   then return 0
+   fi
+   sed -i "${BEGINnum},${ENDINnum}d" "$TEMP_MENU_TREE"
+}
+
+##-------------------------------------##
+## Added by Martinski W. [2025-Feb-16] ##
+##-------------------------------------##
+_FindandRemoveMenuAddOnsSection_()
+{
+   local BEGINnum  ENDINnum
+
+   if grep -qE "^${BEGIN_MenuAddOnsTag}$" "$TEMP_MENU_TREE" && \
+      grep -qE "^${ENDIN_MenuAddOnsTag}$" "$TEMP_MENU_TREE"
+   then
+       doWebGUIreset=true
+       BEGINnum="$(grep -nE "^${BEGIN_MenuAddOnsTag}$" "$TEMP_MENU_TREE" | awk -F ':' '{print $1}')"
+       ENDINnum="$(grep -nE "^${ENDIN_MenuAddOnsTag}$" "$TEMP_MENU_TREE" | awk -F ':' '{print $1}')"
+       _RemoveMenuAddOnsSection_ "$BEGINnum" "$ENDINnum"
+   fi
+
+   if grep -qE "^${webPageMenuAddons}$" "$TEMP_MENU_TREE" && \
+      grep -qE "${webPageHelpSupprt}$" "$TEMP_MENU_TREE"
+   then
+       doWebGUIreset=true
+       BEGINnum="$(grep -nE "^${webPageMenuAddons}$" "$TEMP_MENU_TREE" | awk -F ':' '{print $1}')"
+       ENDINnum="$(grep -nE "${webPageHelpSupprt}$" "$TEMP_MENU_TREE" | awk -F ':' '{print $1}')"
+       if [ -n "$BEGINnum" ] && [ -n "$ENDINnum" ] && [ "$BEGINnum" -lt "$ENDINnum" ]
+       then
+           BEGINnum="$((BEGINnum - 2))" ; ENDINnum="$((ENDINnum + 3))"
+           if [ "$(sed -n "${BEGINnum}p" "$TEMP_MENU_TREE")" = "," ] && \
+              [ "$(sed -n "${ENDINnum}p" "$TEMP_MENU_TREE")" = "}" ]
+           then
+               _RemoveMenuAddOnsSection_ "$BEGINnum" "$ENDINnum"
+           fi
+       fi
+   fi
+   return 0
+}
+
 ##----------------------------------------##
-## Modified by Martinski W. [2024-Nov-23] ##
+## Modified by Martinski W. [2025-Feb-16] ##
 ##----------------------------------------##
 Menu_Uninstall()
 {
@@ -5101,17 +5179,20 @@ Menu_Uninstall()
 	FD=386
 	eval exec "$FD>$LOCKFILE"
 	flock -x "$FD"
+
 	Get_WebUI_Page "$SCRIPT_DIR/connmonstats_www.asp"
 	if [ -n "$MyWebPage" ] && \
 	   [ "$MyWebPage" != "NONE" ] && \
 	   [ -f "$TEMP_MENU_TREE" ]
 	then
 		sed -i "\\~$MyWebPage~d" "$TEMP_MENU_TREE"
-		umount /www/require/modules/menuTree.js
-		mount -o bind "$TEMP_MENU_TREE" /www/require/modules/menuTree.js
 		rm -f "$SCRIPT_WEBPAGE_DIR/$MyWebPage"
 		rm -f "$SCRIPT_WEBPAGE_DIR/$(echo "$MyWebPage" | cut -f1 -d'.').title"
+		_FindandRemoveMenuAddOnsSection_
+		umount /www/require/modules/menuTree.js
+		mount -o bind "$TEMP_MENU_TREE" /www/require/modules/menuTree.js
 	fi
+
 	flock -u "$FD"
 	rm -f "$SCRIPT_DIR/connmonstats_www.asp" 2>/dev/null
 
