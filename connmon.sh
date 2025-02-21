@@ -10,7 +10,7 @@
 ##            https://github.com/jackyaz/connmon            ##
 ##                                                          ##
 ##############################################################
-# Last Modified: 2025-Feb-18
+# Last Modified: 2025-Feb-20
 #-------------------------------------------------------------
 
 ##############        Shellcheck directives      #############
@@ -70,8 +70,10 @@ readonly defTrimDB_Mins=3
 readonly oneHrSec=3600
 readonly _12Hours=43200
 readonly _24Hours=86400
+readonly _36Hours=129600
 readonly oneKByte=1024
 readonly oneMByte=1048576
+readonly ei8MByte=8388608
 readonly ni9MByte=9437184
 readonly tenMByte=10485760
 readonly oneGByte=1073741824
@@ -1781,7 +1783,7 @@ JFFS_WarningLogTime()
 }
 
 ##----------------------------------------##
-## Modified by Martinski W. [2025-Feb-05] ##
+## Modified by Martinski W. [2025-Feb-20] ##
 ##----------------------------------------##
 _JFFS_WarnLowFreeSpace_()
 {
@@ -1792,13 +1794,27 @@ _JFFS_WarnLowFreeSpace_()
    storageLocStr="$(ScriptStorageLocation check | tr 'a-z' 'A-Z')"
    if [ "$storageLocStr" = "JFFS" ]
    then
-       logPriNum=3
-       logTagStr="**WARNING**"
-       jffsWarningLogFreq="$_12Hours"
+       if [ "$JFFS_LowFreeSpaceStatus" = "WARNING2" ]
+       then
+           logPriNum=2
+           logTagStr="**ALERT**"
+           jffsWarningLogFreq="$_12Hours"
+       else
+           logPriNum=3
+           logTagStr="**WARNING**"
+           jffsWarningLogFreq="$_24Hours"
+       fi
    else
-       logPriNum=4
-       logTagStr="**NOTICE**"
-       jffsWarningLogFreq="$_24Hours"
+       if [ "$JFFS_LowFreeSpaceStatus" = "WARNING2" ]
+       then
+           logPriNum=3
+           logTagStr="**WARNING**"
+           jffsWarningLogFreq="$_24Hours"
+       else
+           logPriNum=4
+           logTagStr="**NOTICE**"
+           jffsWarningLogFreq="$_36Hours"
+       fi
    fi
    jffsWarningLogTime="$(JFFS_WarningLogTime check)"
 
@@ -1813,7 +1829,7 @@ _JFFS_WarnLowFreeSpace_()
 }
 
 ##----------------------------------------##
-## Modified by Martinski W. [2025-Feb-05] ##
+## Modified by Martinski W. [2025-Feb-20] ##
 ##----------------------------------------##
 _UpdateJFFS_FreeSpaceInfo_()
 {
@@ -1828,14 +1844,19 @@ _UpdateJFFS_FreeSpaceInfo_()
    if ! jffsMinxSpace="$(_JFFS_MinReservedFreeSpace_)" ; then return 1 ; fi
    jffsFreeSpace="$(echo "$jffsFreeSpace" | awk '{printf("%s", $1 * 1024);}')"
 
-   JFFS_LowSpaceWarnMsg="OK"
-   ## Warning if JFFS Available Free Space is LESS than Minimum Reserved ##
+   JFFS_LowFreeSpaceStatus="OK"
+   ## Warning Level 1 if JFFS Available Free Space is LESS than Minimum Reserved ##
    if [ "$(echo "$jffsFreeSpace $jffsMinxSpace" | awk -F ' ' '{print ($1 < $2)}')" -eq 1 ]
    then
-       JFFS_LowSpaceWarnMsg="WARNING"
+       JFFS_LowFreeSpaceStatus="WARNING1"
+       ## Warning Level 2 if JFFS Available Free Space is LESS than 8.0MB ##
+       if [ "$(echo "$jffsFreeSpace $ei8MByte" | awk -F ' ' '{print ($1 < $2)}')" -eq 1 ]
+       then
+           JFFS_LowFreeSpaceStatus="WARNING2"
+       fi
        _JFFS_WarnLowFreeSpace_ "$jffsFreeSpaceHR"
    fi
-   _WriteVarDefToJSFile_ "jffsAvailableSpaceLow" "$JFFS_LowSpaceWarnMsg"
+   _WriteVarDefToJSFile_ "jffsAvailableSpaceLow" "$JFFS_LowFreeSpaceStatus"
 }
 
 ##----------------------------------------##
@@ -2260,27 +2281,27 @@ Generate_CSVs()
 }
 
 ##----------------------------------------##
-## Modified by Martinski W. [2024-Dec-21] ##
+## Modified by Martinski W. [2025-Feb-18] ##
 ##----------------------------------------##
 Generate_LastXResults()
 {
 	rm -f "$SCRIPT_STORAGE_DIR/connjs.js"
 	rm -f "$SCRIPT_STORAGE_DIR/lastx.htm"
 	{
-		echo ".mode csv"
-		echo ".output /tmp/conn-lastx.csv"
-		echo "PRAGMA temp_store=1;"
-		echo "SELECT [Timestamp],[Ping],[Jitter],[LineQuality],[PingTarget],[PingDuration] FROM connstats ORDER BY [Timestamp] DESC LIMIT $(LastXResults check);"
-	} > /tmp/conn-lastx.sql
-	_ApplyDatabaseSQLCmds_ /tmp/conn-lastx.sql gls1
+	   echo ".mode csv"
+	   echo ".output /tmp/connmon-lastx.csv"
+	   echo "PRAGMA temp_store=1;"
+	   echo "SELECT [Timestamp],[Ping],[Jitter],[LineQuality],[PingTarget],[PingDuration] FROM connstats ORDER BY [Timestamp] DESC LIMIT $(LastXResults check);"
+	} > /tmp/connmon-lastx.sql
+	_ApplyDatabaseSQLCmds_ /tmp/connmon-lastx.sql gls1
 
-	rm -f /tmp/conn-lastx.sql
-	sed -i 's/"//g' /tmp/conn-lastx.csv
-	mv /tmp/conn-lastx.csv "$SCRIPT_STORAGE_DIR/lastx.csv"
+	rm -f /tmp/connmon-lastx.sql
+	sed -i 's/"//g' /tmp/connmon-lastx.csv
+	mv -f /tmp/connmon-lastx.csv "$SCRIPT_STORAGE_DIR/lastx.csv"
 }
 
 ##----------------------------------------##
-## Modified by Martinski W. [2024-Dec-21] ##
+## Modified by Martinski W. [2025-Feb-18] ##
 ##----------------------------------------##
 Reset_DB()
 {
@@ -2302,9 +2323,9 @@ Reset_DB()
         {
 		   echo "PRAGMA temp_store=1;"
 		   echo "DELETE FROM [connstats];" 
-        } > /tmp/connmon-stats.sql
-		_ApplyDatabaseSQLCmds_ /tmp/connmon-stats.sql rst1
-		rm -f /tmp/connmon-stats.sql
+        } > /tmp/connmon-reset.sql
+		_ApplyDatabaseSQLCmds_ /tmp/connmon-reset.sql rst1
+		rm -f /tmp/connmon-reset.sql
 
 		## Clear/Reset all CSV files ##
 		Generate_CSVs
@@ -2347,7 +2368,7 @@ Process_Upgrade()
 		  echo "CREATE INDEX IF NOT EXISTS idx_time_ping ON connstats (Timestamp,Ping);" 
 		} > /tmp/connmon-upgrade.sql
 		_ApplyDatabaseSQLCmds_ /tmp/connmon-upgrade.sql prc1
- 
+
 		{
 		  echo "PRAGMA temp_store=1;"
 		  echo "PRAGMA cache_size=-20000;"
@@ -4116,7 +4137,7 @@ _CronScheduleHourMinsInfo_()
 }
 
 ##----------------------------------------##
-## Modified by Martinski W. [2025-Feb-10] ##
+## Modified by Martinski W. [2025-Feb-20] ##
 ##----------------------------------------##
 MainMenu()
 {
@@ -4130,7 +4151,7 @@ MainMenu()
 
 	if AutomaticMode check
 	then automaticModeStatus="${PassBGRNct} ENABLED ${CLRct}"
-	else automaticModeStatus="${CritBREDct} DISABLED ${CLRct}"
+	else automaticModeStatus="${CritIREDct} DISABLED ${CLRct}"
 	fi
 
 	TEST_SCHEDULE="$(CronTestSchedule check)"
@@ -4146,7 +4167,7 @@ MainMenu()
 	storageLocStr="$(ScriptStorageLocation check | tr 'a-z' 'A-Z')"
 
 	jffsFreeSpace="$(echo "$(_Get_JFFS_Space_ FREE HRx)" | sed 's/%/%%/')"
-	if [ "$JFFS_LowSpaceWarnMsg" != "WARNING" ]
+	if ! echo "$JFFS_LowFreeSpaceStatus" | grep -E "^WARNING[0-9]$"
 	then
 		jffsFreeSpaceStr="${SETTING}$jffsFreeSpace"
 	else
@@ -5084,17 +5105,17 @@ Menu_EditSchedule()
 
 Menu_ResetDB()
 {
-	printf "${BOLD}\\e[33mWARNING: This will reset the %s database by deleting all database records.\\n" "$SCRIPT_NAME"
-	printf "A backup of the database will be created if you change your mind.${CLEARFORMAT}\\n"
-	printf "\\n${BOLD}Do you want to continue? (y/n)${CLEARFORMAT}  "
+	printf "${BOLD}${WARN}WARNING: This will reset the %s database by deleting all database records.\n" "$SCRIPT_NAME"
+	printf "A backup of the database will be created if you change your mind.${CLEARFORMAT}\n"
+	printf "\n${BOLD}Do you want to continue? (y/n)${CLEARFORMAT}  "
 	read -r confirm
 	case "$confirm" in
 		y|Y)
-			printf "\\n"
+			printf "\n"
 			Reset_DB
 		;;
 		*)
-			printf "\\n${BOLD}\\e[33mDatabase reset cancelled${CLEARFORMAT}\\n\\n"
+			printf "\n${BOLD}${WARN}Database reset cancelled${CLEARFORMAT}\n\n"
 		;;
 	esac
 }
@@ -5340,7 +5361,7 @@ SCRIPT_CONF="$SCRIPT_STORAGE_DIR/config"
 CONNSTATS_DB="$SCRIPT_STORAGE_DIR/connstats.db"
 CSV_OUTPUT_DIR="$SCRIPT_STORAGE_DIR/csv"
 USER_SCRIPT_DIR="$SCRIPT_STORAGE_DIR/userscripts.d"
-JFFS_LowSpaceWarnMsg=""
+JFFS_LowFreeSpaceStatus="OK"
 
 ##----------------------------------------##
 ## Modified by Martinski W. [2025-Feb-11] ##

@@ -38,7 +38,7 @@ function setCookie(cookiename, cookievalue)
 { cookie.set('conn_' + cookiename, cookievalue, 10 * 365); }
 
 /**----------------------------------------**/
-/** Modified by Martinski W. [2025-Feb-09] **/
+/** Modified by Martinski W. [2025-Feb-20] **/
 /**----------------------------------------**/
 let databaseResetDone = 0;
 var automaticModeState = 'ENABLED';
@@ -241,7 +241,7 @@ function validateNumberSetting (forminput, upperlimit, lowerlimit)
 	}
 }
 
-function FormatNumberSetting (forminput)
+function formatNumberSetting (forminput)
 {
 	var inputname = forminput.name;
 	var inputvalue = forminput.value * 1;
@@ -1449,7 +1449,7 @@ function getConfigFile()
 				settingvalue = configdata[indx].split('=')[1].replace(/(\r\n|\n|\r)/gm,'');
 
 				if (settingname.match(/^JFFS_MSGLOGTIME/) != null)
-				{ continue; }  //Skip this setting// 
+				{ continue; }  //Skip this config setting// 
 
 				settingname = settingname.toLowerCase();
 				if (settingname.indexOf('pingserver') !== -1)
@@ -1549,7 +1549,7 @@ function getConfigFile()
 }
 
 /**----------------------------------------**/
-/** Modified by Martinski W. [2025-Feb-09] **/
+/** Modified by Martinski W. [2025-Feb-20] **/
 /**----------------------------------------**/
 function getStatsTitleFile()
 {
@@ -1564,16 +1564,22 @@ function getStatsTitleFile()
 			setConnmonStatsTitle();
 			document.getElementById('databaseSize_text').textContent = 'Database Size: '+sqlDatabaseFileSize;
 
-			if (jffsAvailableSpaceLow !== 'WARNING')
+			if (jffsAvailableSpaceLow.match(/^WARNING[0-9]/) === null)
 			{
-				showhide('jffsFreeSpace_LOW',false); showhide('jffsFreeSpace_WARN',false);
+				showhide('jffsFreeSpace_LOW',false);
+				showhide('jffsFreeSpace_NOTE',false);
+				showhide('jffsFreeSpace_WARN',false);
 				document.getElementById('jffsFreeSpace_text').textContent = 'JFFS Available: ' + jffsAvailableSpaceStr;
 			}
 			else
 			{
 				document.getElementById('jffsFreeSpace_text').textContent = 'JFFS Available: ';
 				document.getElementById('jffsFreeSpace_LOW').textContent = jffsAvailableSpaceStr;
-				showhide('jffsFreeSpace_LOW',true); showhide('jffsFreeSpace_WARN',true);
+				showhide('jffsFreeSpace_LOW',true);
+                if (document.form.connmon_storagelocation.value === 'jffs')
+				{ showhide('jffsFreeSpace_NOTE',false); showhide('jffsFreeSpace_WARN',true); }
+				else
+				{ showhide('jffsFreeSpace_WARN',false); showhide('jffsFreeSpace_NOTE',true); }
 			}
 			if (automaticModeState === 'ENABLED')
 			{
@@ -1701,7 +1707,7 @@ function scriptUpdateLayout() {
 }
 
 /**----------------------------------------**/
-/** Modified by Martinski W. [2025-Feb-09] **/
+/** Modified by Martinski W. [2025-Feb-19] **/
 /**----------------------------------------**/
 function initial()
 {
@@ -1729,6 +1735,7 @@ function initial()
 	showhide('jffsFreeSpace_text',true);
 	showhide('jffsFreeSpace_LOW',false);
 	showhide('jffsFreeSpace_WARN',false);
+	showhide('jffsFreeSpace_NOTE',false);
 	showhide('autoModeState_text',true);
 	var starttab = getCookie('StartTab', 'number');
 	if (starttab === 0) { starttab = 1; }
