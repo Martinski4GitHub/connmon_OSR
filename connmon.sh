@@ -10,7 +10,7 @@
 ##            https://github.com/jackyaz/connmon            ##
 ##                                                          ##
 ##############################################################
-# Last Modified: 2025-Feb-20
+# Last Modified: 2025-Feb-28
 #-------------------------------------------------------------
 
 ##############        Shellcheck directives      #############
@@ -1173,7 +1173,7 @@ Get_WebUI_Page()
 ##----------------------------------------##
 Get_WebUI_URL()
 {
-	local urlPage=""  urlProto=""  urlDomain=""  urlPort=""
+	local urlPage  urlProto  urlDomain  urlPort  lanPort
 
 	if [ ! -f "$TEMP_MENU_TREE" ]
 	then
@@ -1193,12 +1193,13 @@ Get_WebUI_URL()
 	else
 		urlDomain="$(nvram get lan_ipaddr)"
 	fi
-	if [ "$(nvram get ${urlProto}_lanport)" -eq 80 ] || \
-	   [ "$(nvram get ${urlProto}_lanport)" -eq 443 ]
+
+	lanPort="$(nvram get ${urlProto}_lanport)"
+	if [ "$lanPort" -eq 80 ] || [ "$lanPort" -eq 443 ]
 	then
 		urlPort=""
 	else
-		urlPort=":$(nvram get ${urlProto}_lanport)"
+		urlPort=":$lanPort"
 	fi
 
 	if echo "$urlPage" | grep -qE "^${webPageFileRegExp}$" && \
@@ -1514,19 +1515,19 @@ WriteSql_ToFile()
 	if ! echo "$5" | grep -q "day"
 	then
 		{
-			echo ".mode csv"
-			echo ".headers on"
-			echo ".output ${5}_${6}.htm"
-			echo "PRAGMA temp_store=1;"
-			echo "SELECT '$1' Metric,Min(strftime('%s',datetime(strftime('%Y-%m-%d %H:00:00',datetime([Timestamp],'unixepoch'))))) Time,IFNULL(Avg([$1]),'NaN') Value FROM $2 WHERE ([Timestamp] >= strftime('%s',datetime($timenow,'unixepoch','-$maxcount hour'))) GROUP BY strftime('%m',datetime([Timestamp],'unixepoch')),strftime('%d',datetime([Timestamp],'unixepoch')),strftime('%H',datetime([Timestamp],'unixepoch')) ORDER BY [Timestamp] DESC;"
+		   echo ".mode csv"
+		   echo ".headers on"
+		   echo ".output ${5}_${6}.htm"
+		   echo "PRAGMA temp_store=1;"
+		   echo "SELECT '$1' Metric,Min(strftime('%s',datetime(strftime('%Y-%m-%d %H:00:00',datetime([Timestamp],'unixepoch'))))) Time,IFNULL(Avg([$1]),'NaN') Value FROM $2 WHERE ([Timestamp] >= strftime('%s',datetime($timenow,'unixepoch','-$maxcount hour'))) GROUP BY strftime('%m',datetime([Timestamp],'unixepoch')),strftime('%d',datetime([Timestamp],'unixepoch')),strftime('%H',datetime([Timestamp],'unixepoch')) ORDER BY [Timestamp] DESC;"
 		} > "$7"
 	else
 		{
-			echo ".mode csv"
-			echo ".headers on"
-			echo ".output ${5}_${6}.htm"
-			echo "PRAGMA temp_store=1;"
-			echo "SELECT '$1' Metric,Max(strftime('%s',datetime([Timestamp],'unixepoch','start of day'))) Time,IFNULL(Avg([$1]),'NaN') Value FROM $2 WHERE ([Timestamp] > strftime('%s',datetime($timenow,'unixepoch','start of day','+1 day','-$maxcount day'))) GROUP BY strftime('%m',datetime([Timestamp],'unixepoch')),strftime('%d',datetime([Timestamp],'unixepoch')) ORDER BY [Timestamp] DESC;"
+		   echo ".mode csv"
+		   echo ".headers on"
+		   echo ".output ${5}_${6}.htm"
+		   echo "PRAGMA temp_store=1;"
+		   echo "SELECT '$1' Metric,Max(strftime('%s',datetime([Timestamp],'unixepoch','start of day'))) Time,IFNULL(Avg([$1]),'NaN') Value FROM $2 WHERE ([Timestamp] > strftime('%s',datetime($timenow,'unixepoch','start of day','+1 day','-$maxcount day'))) GROUP BY strftime('%m',datetime([Timestamp],'unixepoch')),strftime('%d',datetime([Timestamp],'unixepoch')) ORDER BY [Timestamp] DESC;"
 		} > "$7"
 	fi
 }
@@ -1818,7 +1819,7 @@ _JFFS_WarnLowFreeSpace_()
    fi
    jffsWarningLogTime="$(JFFS_WarningLogTime check)"
 
-   currTimeSecs="$(date '+%s')"
+   currTimeSecs="$(date +'%s')"
    currTimeDiff="$(echo "$currTimeSecs $jffsWarningLogTime" | awk -F ' ' '{printf("%s", $1 - $2);}')"
    if [ "$currTimeDiff" -ge "$jffsWarningLogFreq" ]
    then
@@ -2293,7 +2294,7 @@ Generate_LastXResults()
 	   echo "PRAGMA temp_store=1;"
 	   echo "SELECT [Timestamp],[Ping],[Jitter],[LineQuality],[PingTarget],[PingDuration] FROM connstats ORDER BY [Timestamp] DESC LIMIT $(LastXResults check);"
 	} > /tmp/connmon-lastx.sql
-	_ApplyDatabaseSQLCmds_ /tmp/connmon-lastx.sql gls1
+	_ApplyDatabaseSQLCmds_ /tmp/connmon-lastx.sql glx1
 
 	rm -f /tmp/connmon-lastx.sql
 	sed -i 's/"//g' /tmp/connmon-lastx.csv
@@ -5239,19 +5240,29 @@ Menu_Uninstall()
 	Print_Output true "Uninstall completed" "$PASS"
 }
 
+##----------------------------------------##
+## Modified by Martinski W. [2025-Feb-28] ##
+##----------------------------------------##
 NTP_Ready()
 {
+	local theSleepDelay=15  ntpMaxWaitSecs=600  ntpWaitSecs
+
 	if [ "$(nvram get ntp_ready)" -eq 0 ]
 	then
 		Check_Lock
-		ntpwaitcount=0
-		while [ "$(nvram get ntp_ready)" -eq 0 ] && [ "$ntpwaitcount" -lt 600 ]
+		ntpWaitSecs=0
+		Print_Output true "Waiting for NTP to sync..." "$WARN"
+
+		while [ "$(nvram get ntp_ready)" -eq 0 ] && [ "$ntpWaitSecs" -lt "$ntpMaxWaitSecs" ]
 		do
-			ntpwaitcount="$((ntpwaitcount + 30))"
-			Print_Output true "Waiting for NTP to sync..." "$WARN"
-			sleep 30
+			if [ "$ntpWaitSecs" -gt 0 ] && [ "$((ntpWaitSecs % 30))" -eq 0 ]
+			then
+			    Print_Output true "Waiting for NTP to sync [$ntpWaitSecs secs]..." "$WARN"
+			fi
+			sleep "$theSleepDelay"
+			ntpWaitSecs="$((ntpWaitSecs + theSleepDelay))"
 		done
-		if [ "$ntpwaitcount" -ge 600 ]
+		if [ "$ntpWaitSecs" -ge "$ntpMaxWaitSecs" ]
 		then
 			Print_Output true "NTP failed to sync after 10 minutes. Please resolve!" "$CRIT"
 			Clear_Lock
@@ -5265,11 +5276,11 @@ NTP_Ready()
 
 ### function based on @Adamm00's Skynet USB wait function ###
 ##----------------------------------------##
-## Modified by Martinski W. [2024-Dec-21] ##
+## Modified by Martinski W. [2025-Feb-28] ##
 ##----------------------------------------##
 Entware_Ready()
 {
-	local theSleepDelay=5  maxSleepTimer=100  sleepTimerSecs
+	local theSleepDelay=5  maxSleepTimer=120  sleepTimerSecs
 
 	if [ ! -f /opt/bin/opkg ]
 	then
@@ -5280,23 +5291,22 @@ Entware_Ready()
 		do
 			if [ "$((sleepTimerSecs % 10))" -eq 0 ]
 			then
-			    Print_Output true "Entware NOT found, sleeping for $theSleepDelay secs [$sleepTimerSecs secs]..." "$WARN"
+			    Print_Output true "Entware NOT found. Wait for Entware to be ready [$sleepTimerSecs secs]..." "$WARN"
 			fi
 			sleep "$theSleepDelay"
 			sleepTimerSecs="$((sleepTimerSecs + theSleepDelay))"
 		done
 		if [ ! -f /opt/bin/opkg ]
 		then
-			Print_Output true "Entware NOT found and is required for $SCRIPT_NAME to run, please resolve." "$CRIT"
+			Print_Output true "Entware NOT found and is required for $SCRIPT_NAME to run, please resolve!" "$CRIT"
 			Clear_Lock
 			exit 1
 		else
-			Print_Output true "Entware found, $SCRIPT_NAME will now continue" "$PASS"
+			Print_Output true "Entware found. $SCRIPT_NAME will now continue" "$PASS"
 			Clear_Lock
 		fi
 	fi
 }
-### ###
 
 ### function based on @dave14305's FlexQoS about function ###
 Show_About()
@@ -5317,9 +5327,8 @@ Help & Support
 Source code
   https://github.com/jackyaz/$SCRIPT_NAME
 EOF
-	printf "\\n"
+	printf "\n"
 }
-### ###
 
 ### function based on @dave14305's FlexQoS show_help function ###
 Show_Help()
@@ -5342,8 +5351,6 @@ Available commands:
 EOF
 	printf "\n"
 }
-
-### ###
 
 ##-------------------------------------##
 ## Added by Martinski W. [2024-Dec-21] ##
