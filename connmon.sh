@@ -10,7 +10,7 @@
 ##            https://github.com/jackyaz/connmon            ##
 ##                                                          ##
 ##############################################################
-# Last Modified: 2025-Mar-01
+# Last Modified: 2025-Mar-03
 #-------------------------------------------------------------
 
 ##############        Shellcheck directives      #############
@@ -28,6 +28,7 @@
 # shellcheck disable=SC2181
 # shellcheck disable=SC3003
 # shellcheck disable=SC3018
+# shellcheck disable=SC3037
 # shellcheck disable=SC3043
 # shellcheck disable=SC3045
 ##############################################################
@@ -4167,7 +4168,7 @@ MainMenu()
 
 	storageLocStr="$(ScriptStorageLocation check | tr 'a-z' 'A-Z')"
 
-	jffsFreeSpace="$(echo "$(_Get_JFFS_Space_ FREE HRx)" | sed 's/%/%%/')"
+	jffsFreeSpace="$(_Get_JFFS_Space_ FREE HRx | sed 's/%/%%/')"
 	if ! echo "$JFFS_LowFreeSpaceStatus" | grep -E "^WARNING[0-9]$"
 	then
 		jffsFreeSpaceStr="${SETTING}$jffsFreeSpace"
