@@ -10,7 +10,7 @@
 ##            https://github.com/jackyaz/connmon            ##
 ##                                                          ##
 ##############################################################
-# Last Modified: 2025-Mar-03
+# Last Modified: 2025-May-13
 #-------------------------------------------------------------
 
 ##############        Shellcheck directives      #############
@@ -4477,7 +4477,7 @@ Menu_Install()
 }
 
 ##----------------------------------------##
-## Modified by Martinski W. [2024-Dec-21] ##
+## Modified by Martinski W. [2025-May-13] ##
 ##----------------------------------------##
 Menu_Startup()
 {
@@ -4492,7 +4492,7 @@ Menu_Startup()
 			Print_Output true "$1 does NOT contain Entware, not starting $SCRIPT_NAME" "$CRIT"
 			exit 1
 		else
-			Print_Output true "$1 contains Entware, starting $SCRIPT_NAME" "$PASS"
+			Print_Output true "$1 contains Entware, $SCRIPT_NAME $SCRIPT_VERSION starting up" "$PASS"
 		fi
 	fi
 
