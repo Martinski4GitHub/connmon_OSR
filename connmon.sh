@@ -36,6 +36,7 @@
 ### Start of script variables ###
 readonly SCRIPT_NAME="connmon"
 readonly SCRIPT_VERSION="v3.0.3"
+readonly SCRIPT_VERSTAG="25051312"
 SCRIPT_BRANCH="develop"
 SCRIPT_REPO="https://jackyaz.io/$SCRIPT_NAME/$SCRIPT_BRANCH"
 readonly SCRIPT_DIR="/jffs/addons/$SCRIPT_NAME.d"
@@ -63,6 +64,7 @@ readonly webPageLineTabExp="\{url: \"$webPageFileRegExp\", tabName: "
 readonly webPageLineRegExp="${webPageLineTabExp}\"$SCRIPT_NAME\"\},"
 readonly BEGIN_MenuAddOnsTag="/\*\*BEGIN:_AddOns_\*\*/"
 readonly ENDIN_MenuAddOnsTag="/\*\*ENDIN:_AddOns_\*\*/"
+readonly scriptVERINFO="[${SCRIPT_VERSION}_${SCRIPT_VERSTAG}, Branch: $SCRIPT_BRANCH]"
 
 # For daily CRON job to trim database #
 readonly defTrimDB_Hour=3
@@ -5309,10 +5311,13 @@ Entware_Ready()
 }
 
 ### function based on @dave14305's FlexQoS about function ###
+##----------------------------------------##
+## Modified by Martinski W. [2025-May-13] ##
+##----------------------------------------##
 Show_About()
 {
 	cat <<EOF
-About
+About $SCRIPT_VERS_INFO
   $SCRIPT_NAME is an internet connection monitoring tool for
   AsusWRT Merlin with charts for daily, weekly and monthly
   summaries.
@@ -5331,9 +5336,13 @@ EOF
 }
 
 ### function based on @dave14305's FlexQoS show_help function ###
+##----------------------------------------##
+## Modified by Martinski W. [2025-May-13] ##
+##----------------------------------------##
 Show_Help()
 {
 	cat <<EOF
+Help $SCRIPT_VERS_INFO
 Available commands:
   $SCRIPT_NAME about            explains functionality
   $SCRIPT_NAME update           checks for updates
@@ -5369,6 +5378,11 @@ CONNSTATS_DB="$SCRIPT_STORAGE_DIR/connstats.db"
 CSV_OUTPUT_DIR="$SCRIPT_STORAGE_DIR/csv"
 USER_SCRIPT_DIR="$SCRIPT_STORAGE_DIR/userscripts.d"
 JFFS_LowFreeSpaceStatus="OK"
+
+if [ "$SCRIPT_BRANCH" != "develop" ]
+then SCRIPT_VERS_INFO=""
+else SCRIPT_VERS_INFO="$scriptVERINFO"
+fi
 
 ##----------------------------------------##
 ## Modified by Martinski W. [2025-Feb-11] ##
