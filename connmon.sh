@@ -10,7 +10,7 @@
 ##            https://github.com/jackyaz/connmon            ##
 ##                                                          ##
 ##############################################################
-# Last Modified: 2025-May-13
+# Last Modified: 2025-May-14
 #-------------------------------------------------------------
 
 ##############        Shellcheck directives      #############
@@ -36,7 +36,7 @@
 ### Start of script variables ###
 readonly SCRIPT_NAME="connmon"
 readonly SCRIPT_VERSION="v3.0.3"
-readonly SCRIPT_VERSTAG="25051312"
+readonly SCRIPT_VERSTAG="25051412"
 SCRIPT_BRANCH="develop"
 SCRIPT_REPO="https://jackyaz.io/$SCRIPT_NAME/$SCRIPT_BRANCH"
 readonly SCRIPT_DIR="/jffs/addons/$SCRIPT_NAME.d"
@@ -5342,7 +5342,7 @@ EOF
 Show_Help()
 {
 	cat <<EOF
-Help $SCRIPT_VERS_INFO
+HELP $SCRIPT_VERS_INFO
 Available commands:
   $SCRIPT_NAME about            explains functionality
   $SCRIPT_NAME update           checks for updates
