@@ -36,12 +36,12 @@
 readonly SCRIPT_NAME="connmon"
 readonly SCRIPT_VERSION="v3.0.3"
 SCRIPT_BRANCH="develop"
-SCRIPT_REPO="https://jackyaz.io/$SCRIPT_NAME/$SCRIPT_BRANCH"
+SCRIPT_REPO="https://raw.githubusercontent.com/AMTM-OSR/$SCRIPT_NAME/$SCRIPT_BRANCH"
 readonly SCRIPT_DIR="/jffs/addons/$SCRIPT_NAME.d"
 readonly SCRIPT_WEBPAGE_DIR="$(readlink /www/user)"
 readonly SCRIPT_WEB_DIR="$SCRIPT_WEBPAGE_DIR/$SCRIPT_NAME"
 readonly SHARED_DIR="/jffs/addons/shared-jy"
-readonly SHARED_REPO="https://jackyaz.io/shared-jy/master"
+readonly SHARED_REPO="https://raw.githubusercontent.com/AMTM-OSR/shared-jy/master"
 readonly SHARED_WEB_DIR="$SCRIPT_WEBPAGE_DIR/shared-jy"
 readonly EMAIL_DIR="/jffs/addons/amtm/mail"
 readonly EMAIL_CONF="$EMAIL_DIR/email.conf"
@@ -5318,13 +5318,13 @@ case "$1" in
 	;;
 	develop)
 		SCRIPT_BRANCH="develop"
-		SCRIPT_REPO="https://jackyaz.io/$SCRIPT_NAME/$SCRIPT_BRANCH"
+		SCRIPT_REPO="https://raw.githubusercontent.com/AMTM-OSR/$SCRIPT_NAME/$SCRIPT_BRANCH"
 		Update_Version force
 		exit 0
 	;;
 	stable)
 		SCRIPT_BRANCH="master"
-		SCRIPT_REPO="https://jackyaz.io/$SCRIPT_NAME/$SCRIPT_BRANCH"
+		SCRIPT_REPO="hhttps://raw.githubusercontent.com/AMTM-OSR/$SCRIPT_NAME/$SCRIPT_BRANCH"
 		Update_Version force
 		exit 0
 	;;
