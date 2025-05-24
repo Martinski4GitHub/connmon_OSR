@@ -10,7 +10,7 @@
 ##            https://github.com/jackyaz/connmon            ##
 ##                                                          ##
 ##############################################################
-# Last Modified: 2025-Feb-03
+# Last Modified: 2025-May-14
 #-------------------------------------------------------------
 
 ##############        Shellcheck directives      #############
@@ -28,6 +28,7 @@
 # shellcheck disable=SC2181
 # shellcheck disable=SC3003
 # shellcheck disable=SC3018
+# shellcheck disable=SC3037
 # shellcheck disable=SC3043
 # shellcheck disable=SC3045
 ##############################################################
@@ -35,14 +36,16 @@
 ### Start of script variables ###
 readonly SCRIPT_NAME="connmon"
 readonly SCRIPT_VERSION="v3.0.3"
+readonly SCRIPT_VERSTAG="25051412"
 SCRIPT_BRANCH="develop"
 SCRIPT_REPO="https://raw.githubusercontent.com/AMTM-OSR/$SCRIPT_NAME/$SCRIPT_BRANCH"
 readonly SCRIPT_DIR="/jffs/addons/$SCRIPT_NAME.d"
-readonly SCRIPT_WEBPAGE_DIR="$(readlink /www/user)"
+readonly SCRIPT_WEBPAGE_DIR="$(readlink -f /www/user)"
 readonly SCRIPT_WEB_DIR="$SCRIPT_WEBPAGE_DIR/$SCRIPT_NAME"
 readonly SHARED_DIR="/jffs/addons/shared-jy"
 readonly SHARED_REPO="https://raw.githubusercontent.com/AMTM-OSR/shared-jy/master"
 readonly SHARED_WEB_DIR="$SCRIPT_WEBPAGE_DIR/shared-jy"
+readonly TEMP_MENU_TREE="/tmp/menuTree.js"
 readonly EMAIL_DIR="/jffs/addons/amtm/mail"
 readonly EMAIL_CONF="$EMAIL_DIR/email.conf"
 readonly EMAIL_REGEX="^(([A-Za-z0-9]+((\.|\-|\_|\+)?[A-Za-z0-9]?)*[A-Za-z0-9]+)|[A-Za-z0-9]+)@(([A-Za-z0-9]+)+((\.|\-|\_)?([A-Za-z0-9]+)+)*)+\.([A-Za-z]{2,})+$"
@@ -51,16 +54,31 @@ readonly EMAIL_REGEX="^(([A-Za-z0-9]+((\.|\-|\_|\+)?[A-Za-z0-9]?)*[A-Za-z0-9]+)|
 [ -f /opt/bin/sqlite3 ] && SQLITE3_PATH=/opt/bin/sqlite3 || SQLITE3_PATH=/usr/sbin/sqlite3
 
 ##----------------------------------------##
-## Modified by Martinski W. [2025-Jan-04] ##
+## Modified by Martinski W. [2025-Feb-16] ##
 ##----------------------------------------##
 readonly scriptVersRegExp="v[0-9]{1,2}([.][0-9]{1,2})([.][0-9]{1,2})"
+readonly webPageMenuAddons="menuName: \"Addons\","
+readonly webPageHelpSupprt="tabName: \"Help & Support\"},"
+readonly webPageFileRegExp="user([1-9]|[1-2][0-9])[.]asp"
+readonly webPageLineTabExp="\{url: \"$webPageFileRegExp\", tabName: "
+readonly webPageLineRegExp="${webPageLineTabExp}\"$SCRIPT_NAME\"\},"
+readonly BEGIN_MenuAddOnsTag="/\*\*BEGIN:_AddOns_\*\*/"
+readonly ENDIN_MenuAddOnsTag="/\*\*ENDIN:_AddOns_\*\*/"
+readonly scriptVERINFO="[${SCRIPT_VERSION}_${SCRIPT_VERSTAG}, Branch: $SCRIPT_BRANCH]"
 
 # For daily CRON job to trim database #
 readonly defTrimDB_Hour=3
-readonly defTrimDB_Mins=1
+readonly defTrimDB_Mins=3
 
+readonly oneHrSec=3600
+readonly _12Hours=43200
+readonly _24Hours=86400
+readonly _36Hours=129600
 readonly oneKByte=1024
 readonly oneMByte=1048576
+readonly ei8MByte=8388608
+readonly ni9MByte=9437184
+readonly tenMByte=10485760
 readonly oneGByte=1073741824
 readonly SHARE_TEMP_DIR="/opt/share/tmp"
 
@@ -76,12 +94,18 @@ readonly SETTING="${BOLD}\\e[36m"
 readonly UNDERLINE="\\e[4m"
 readonly CLEARFORMAT="\\e[0m"
 
-##-------------------------------------##
-## Added by Martinski W. [2024-Dec-21] ##
-##-------------------------------------##
-readonly REDct="\033[1;31m\033[1m"
-readonly GRNct="\033[1;32m\033[1m"
-readonly CLEARct="\033[0m"
+##----------------------------------------##
+## Modified by Martinski W. [2025-Feb-10] ##
+##----------------------------------------##
+readonly CLRct="\e[0m"
+readonly REDct="\e[1;31m"
+readonly GRNct="\e[1;32m"
+readonly CritIREDct="\e[41m"
+readonly CritBREDct="\e[30;101m"
+readonly PassBGRNct="\e[30;102m"
+readonly WarnBYLWct="\e[30;103m"
+readonly WarnIMGNct="\e[45m"
+readonly WarnBMGNct="\e[30;105m"
 
 ### End of output format variables ###
 
@@ -319,41 +343,48 @@ Update_Version()
 	fi
 }
 
+##----------------------------------------##
+## Modified by Martinski W. [2025-Feb-09] ##
+##----------------------------------------##
 Update_File()
 {
 	if [ "$1" = "connmonstats_www.asp" ]
 	then
 		tmpfile="/tmp/$1"
-		Download_File "$SCRIPT_REPO/files/$1" "$tmpfile"
-		if ! diff -q "$tmpfile" "$SCRIPT_DIR/$1" >/dev/null 2>&1
+		if [ -f "$SCRIPT_DIR/$1" ]
 		then
-			if [ -f "$SCRIPT_DIR/$1" ]
+			Download_File "$SCRIPT_REPO/files/$1" "$tmpfile"
+			if ! diff -q "$tmpfile" "$SCRIPT_DIR/$1" >/dev/null 2>&1
 			then
 				Get_WebUI_Page "$SCRIPT_DIR/$1"
-				sed -i "\\~$MyPage~d" /tmp/menuTree.js
-				rm -f "$SCRIPT_WEBPAGE_DIR/$MyPage" 2>/dev/null
+				sed -i "\\~$MyWebPage~d" "$TEMP_MENU_TREE"
+				rm -f "$SCRIPT_WEBPAGE_DIR/$MyWebPage" 2>/dev/null
+				Download_File "$SCRIPT_REPO/files/$1" "$SCRIPT_DIR/$1"
+				Print_Output true "New version of $1 downloaded" "$PASS"
+				Mount_WebUI
 			fi
+			rm -f "$tmpfile"
+		else
 			Download_File "$SCRIPT_REPO/files/$1" "$SCRIPT_DIR/$1"
 			Print_Output true "New version of $1 downloaded" "$PASS"
 			Mount_WebUI
 		fi
-		rm -f "$tmpfile"
 	elif [ "$1" = "shared-jy.tar.gz" ]
 	then
-		if [ ! -f "$SHARED_DIR/$1.md5" ]
+		if [ ! -f "$SHARED_DIR/${1}.md5" ]
 		then
 			Download_File "$SHARED_REPO/$1" "$SHARED_DIR/$1"
-			Download_File "$SHARED_REPO/$1.md5" "$SHARED_DIR/$1.md5"
+			Download_File "$SHARED_REPO/${1}.md5" "$SHARED_DIR/${1}.md5"
 			tar -xzf "$SHARED_DIR/$1" -C "$SHARED_DIR"
 			rm -f "$SHARED_DIR/$1"
 			Print_Output true "New version of $1 downloaded" "$PASS"
 		else
-			localmd5="$(cat "$SHARED_DIR/$1.md5")"
-			remotemd5="$(curl -fsL --retry 4 --retry-delay 5 "$SHARED_REPO/$1.md5")"
+			localmd5="$(cat "$SHARED_DIR/${1}.md5")"
+			remotemd5="$(curl -fsL --retry 4 --retry-delay 5 "$SHARED_REPO/${1}.md5")"
 			if [ "$localmd5" != "$remotemd5" ]
 			then
 				Download_File "$SHARED_REPO/$1" "$SHARED_DIR/$1"
-				Download_File "$SHARED_REPO/$1.md5" "$SHARED_DIR/$1.md5"
+				Download_File "$SHARED_REPO/${1}.md5" "$SHARED_DIR/${1}.md5"
 				tar -xzf "$SHARED_DIR/$1" -C "$SHARED_DIR"
 				rm -f "$SHARED_DIR/$1"
 				Print_Output true "New version of $1 downloaded" "$PASS"
@@ -574,7 +605,7 @@ Create_Symlinks()
 }
 
 ##----------------------------------------##
-## Modified by Martinski W. [2025-Jan-04] ##
+## Modified by Martinski W. [2025-Feb-05] ##
 ##----------------------------------------##
 Conf_Exists()
 {
@@ -625,6 +656,9 @@ Conf_Exists()
 		if ! grep -q "^STORAGELOCATION=" "$SCRIPT_CONF"; then
 			echo "STORAGELOCATION=jffs" >> "$SCRIPT_CONF"
 		fi
+		if ! grep -q "^JFFS_MSGLOGTIME=" "$SCRIPT_CONF"; then
+			echo "JFFS_MSGLOGTIME=0" >> "$SCRIPT_CONF"
+		fi
 		if ! grep -q "^NOTIFICATIONS" "$SCRIPT_CONF"
 		then
 			{
@@ -662,7 +696,7 @@ Conf_Exists()
 		{
 		  echo "PINGSERVER=8.8.8.8"; echo "OUTPUTTIMEMODE=unix"
 		  echo "STORAGELOCATION=jffs"; echo "PINGDURATION=30"; echo "AUTOMATICMODE=true"
-		  echo "SCHDAYS=*"; echo "SCHHOURS=*"; echo "SCHMINS=*/3"
+		  echo "SCHDAYS=*"; echo "SCHHOURS=*"; echo "SCHMINS=*/3"; echo "JFFS_MSGLOGTIME=0"
 		  echo "DAYSTOKEEP=30"; echo "LASTXRESULTS=10"; echo "EXCLUDEFROMQOS=true"
 		  echo "NOTIFICATIONS_EMAIL=false"; echo "NOTIFICATIONS_WEBHOOK=false"
 		  echo "NOTIFICATIONS_PUSHOVER=false"; echo "NOTIFICATIONS_CUSTOM=false"
@@ -753,10 +787,11 @@ PingServer()
 }
 
 ##----------------------------------------##
-## Modified by Martinski W. [2024-Dec-21] ##
+## Modified by Martinski W. [2025-Feb-04] ##
 ##----------------------------------------##
 PingDuration()
 {
+	local MINvalue=10  MAXvalue=60  #Seconds#
 	case "$1" in
 		update)
 			pingSecs="$(PingDuration check)"
@@ -764,12 +799,12 @@ PingDuration()
 			while true
 			do
 				ScriptHeader
-				printf "${BOLD}Current number of seconds for ping tests: ${GRNct}${pingSecs}${CLEARct}\n"
-				printf "\n${BOLD}Please enter the maximum number of seconds\nto run the ping tests [10-60] (e=Exit):${CLEARFORMAT}  "
+				printf "${BOLD}Current number of seconds for ping tests: ${GRNct}${pingSecs}${CLRct}\n"
+				printf "\n${BOLD}Please enter the maximum number of seconds\nto run the ping tests [${MINvalue}-${MAXvalue}] (e=Exit):${CLEARFORMAT}  "
 				read -r pingdur_choice
 				if [ -z "$pingdur_choice" ] && \
 				   echo "$pingSecs" | grep -qE "^([1-9][0-9])$" && \
-				   [ "$pingSecs" -ge 10 ] && [ "$pingSecs" -le 60 ]
+				   [ "$pingSecs" -ge "$MINvalue" ] && [ "$pingSecs" -le "$MAXvalue" ]
 				then
 					exitLoop=true
 					break
@@ -779,11 +814,11 @@ PingDuration()
 					break
 				elif ! Validate_Number "$pingdur_choice"
 				then
-					printf "\n${ERR}Please enter a valid number [10-60].${CLEARFORMAT}\n"
+					printf "\n${ERR}Please enter a valid number [${MINvalue}-${MAXvalue}].${CLEARFORMAT}\n"
 					PressEnter
-				elif [ "$pingdur_choice" -lt 10 ] || [ "$pingdur_choice" -gt 60 ]
+				elif [ "$pingdur_choice" -lt "$MINvalue" ] || [ "$pingdur_choice" -gt "$MAXvalue" ]
 				then
-					printf "\n${ERR}Please enter a number between 10 and 60.${CLEARFORMAT}\n"
+					printf "\n${ERR}Please enter a number between ${MINvalue} and ${MAXvalue}.${CLEARFORMAT}\n"
 					PressEnter
 				else
 					pingSecs="$pingdur_choice"
@@ -808,10 +843,11 @@ PingDuration()
 }
 
 ##----------------------------------------##
-## Modified by Martinski W. [2024-Dec-21] ##
+## Modified by Martinski W. [2025-Feb-04] ##
 ##----------------------------------------##
 DaysToKeep()
 {
+	local MINvalue=15  MAXvalue=365  #Days#
 	case "$1" in
 		update)
 			daysToKeep="$(DaysToKeep check)"
@@ -819,12 +855,12 @@ DaysToKeep()
 			while true
 			do
 				ScriptHeader
-				printf "${BOLD}Current number of days to keep data: ${GRNct}${daysToKeep}${CLEARct}\n\n"
-				printf "${BOLD}Please enter the maximum number of days\nto keep the data for [5-365] (e=Exit):${CLEARFORMAT}  "
+				printf "${BOLD}Current number of days to keep data: ${GRNct}${daysToKeep}${CLRct}\n\n"
+				printf "${BOLD}Please enter the maximum number of days\nto keep the data for [${MINvalue}-${MAXvalue}] (e=Exit):${CLEARFORMAT}  "
 				read -r daystokeep_choice
 				if [ -z "$daystokeep_choice" ] && \
-				   echo "$daysToKeep" | grep -qE "^([1-9][0-9]{0,2})$" && \
-				   [ "$daysToKeep" -ge 5 ] && [ "$daysToKeep" -le 365 ]
+				   echo "$daysToKeep" | grep -qE "^([1-9][0-9]{1,2})$" && \
+				   [ "$daysToKeep" -ge "$MINvalue" ] && [ "$daysToKeep" -le "$MAXvalue" ]
 				then
 					exitLoop=true
 					break
@@ -834,11 +870,11 @@ DaysToKeep()
 					break
 				elif ! Validate_Number "$daystokeep_choice"
 				then
-					printf "\n${ERR}Please enter a valid number [5-365].${CLEARFORMAT}\n"
+					printf "\n${ERR}Please enter a valid number [${MINvalue}-${MAXvalue}].${CLEARFORMAT}\n"
 					PressEnter
-				elif [ "$daystokeep_choice" -lt 5 ] || [ "$daystokeep_choice" -gt 365 ]
+				elif [ "$daystokeep_choice" -lt "$MINvalue" ] || [ "$daystokeep_choice" -gt "$MAXvalue" ]
 				then
-					printf "\n${ERR}Please enter a number between 5 and 365.${CLEARFORMAT}\n"
+					printf "\n${ERR}Please enter a number between ${MINvalue} and ${MAXvalue}.${CLEARFORMAT}\n"
 					PressEnter
 				else
 					daysToKeep="$daystokeep_choice"
@@ -863,10 +899,11 @@ DaysToKeep()
 }
 
 ##----------------------------------------##
-## Modified by Martinski W. [2024-Dec-21] ##
+## Modified by Martinski W. [2025-Feb-04] ##
 ##----------------------------------------##
 LastXResults()
 {
+	local MINvalue=5  MAXvalue=100  #Results#
 	case "$1" in
 		update)
 			lastXResults="$(LastXResults check)"
@@ -874,12 +911,12 @@ LastXResults()
 			while true
 			do
 				ScriptHeader
-				printf "${BOLD}Current number of results to display: ${GRNct}${lastXResults}${CLEARct}\n\n"
-				printf "${BOLD}Please enter the maximum number of results\nto display in the WebUI [5-100] (e=Exit):${CLEARFORMAT}  "
+				printf "${BOLD}Current number of results to display: ${GRNct}${lastXResults}${CLRct}\n\n"
+				printf "${BOLD}Please enter the maximum number of results\nto display in the WebUI [${MINvalue}-${MAXvalue}] (e=Exit):${CLEARFORMAT}  "
 				read -r lastx_choice
 				if [ -z "$lastx_choice" ] && \
 				   echo "$lastXResults" | grep -qE "^([1-9][0-9]{0,2})$" && \
-				   [ "$lastXResults" -ge 5 ] && [ "$lastXResults" -le 100 ]
+				   [ "$lastXResults" -ge "$MINvalue" ] && [ "$lastXResults" -le "$MAXvalue" ]
 				then
 					exitLoop=true
 					break
@@ -889,11 +926,11 @@ LastXResults()
 					break
 				elif ! Validate_Number "$lastx_choice"
 				then
-					printf "\n${ERR}Please enter a valid number [5-100].${CLEARFORMAT}\n"
+					printf "\n${ERR}Please enter a valid number [${MINvalue}-${MAXvalue}].${CLEARFORMAT}\n"
 					PressEnter
-				elif [ "$lastx_choice" -lt 5 ] || [ "$lastx_choice" -gt 100 ]
+				elif [ "$lastx_choice" -lt "$MINvalue" ] || [ "$lastx_choice" -gt "$MAXvalue" ]
 				then
-					printf "\n${ERR}Please enter a number between 5 and 100.${CLEARFORMAT}\n"
+					printf "\n${ERR}Please enter a number between ${MINvalue} and ${MAXvalue}.${CLEARFORMAT}\n"
 					PressEnter
 				else
 					lastXResults="$lastx_choice"
@@ -1086,54 +1123,124 @@ Auto_Cron()
 Download_File()
 { /usr/sbin/curl -LSs --retry 4 --retry-delay 5 --retry-connrefused "$1" -o "$2" ; }
 
+##-------------------------------------##
+## Added by Martinski W. [2025-Feb-11] ##
+##-------------------------------------##
+_Check_WebGUI_Page_Exists_()
+{
+   local webPageStr  webPageFile  theWebPage
+
+   if [ ! -f "$TEMP_MENU_TREE" ]
+   then echo "NONE" ; return 1 ; fi
+
+   theWebPage="NONE"
+   webPageStr="$(grep -E -m1 "^$webPageLineRegExp" "$TEMP_MENU_TREE")"
+   if [ -n "$webPageStr" ]
+   then
+       webPageFile="$(echo "$webPageStr" | grep -owE "$webPageFileRegExp" | head -n1)"
+       if [ -n "$webPageFile" ] && [ -s "${SCRIPT_WEBPAGE_DIR}/$webPageFile" ]
+       then theWebPage="$webPageFile" ; fi
+   fi
+   echo "$theWebPage"
+}
+
+##----------------------------------------##
+## Modified by Martinski W. [2025-Feb-11] ##
+##----------------------------------------##
 Get_WebUI_Page()
 {
-	MyPage="none"
-	for i in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20
+	local webPageFile  webPagePath
+
+	MyWebPage="$(_Check_WebGUI_Page_Exists_)"
+
+	for indx in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20
 	do
-		page="/www/user/user$i.asp"
-		if [ -f "$page" ] && [ "$(md5sum < "$1")" = "$(md5sum < "$page")" ]; then
-			MyPage="user$i.asp"
-			return
-		elif [ "$MyPage" = "none" ] && [ ! -f "$page" ]; then
-			MyPage="user$i.asp"
+		webPageFile="user${indx}.asp"
+		webPagePath="${SCRIPT_WEBPAGE_DIR}/$webPageFile"
+
+		if [ -s "$webPagePath" ] && \
+		   [ "$(md5sum < "$1")" = "$(md5sum < "$webPagePath")" ]
+		then
+			MyWebPage="$webPageFile"
+			break
+		elif [ "$MyWebPage" = "NONE" ] && [ ! -s "$webPagePath" ]
+		then
+			MyWebPage="$webPageFile"
 		fi
 	done
 }
 
 ### function based on @dave14305's FlexQoS webconfigpage function ###
-Get_WebUI_URL(){
-	urlpage=""
-	urlproto=""
-	urldomain=""
-	urlport=""
+##----------------------------------------##
+## Modified by Martinski W. [2025-Feb-11] ##
+##----------------------------------------##
+Get_WebUI_URL()
+{
+	local urlPage  urlProto  urlDomain  urlPort  lanPort
 
-	urlpage="$(sed -nE "/$SCRIPT_NAME/ s/.*url\: \"(user[0-9]+\.asp)\".*/\1/p" /tmp/menuTree.js)"
+	if [ ! -f "$TEMP_MENU_TREE" ]
+	then
+		echo "**ERROR**: WebUI page NOT mounted"
+		return 1
+	fi
+
+	urlPage="$(sed -nE "/$SCRIPT_NAME/ s/.*url\: \"(user[0-9]+\.asp)\".*/\1/p" "$TEMP_MENU_TREE")"
+
 	if [ "$(nvram get http_enable)" -eq 1 ]; then
-		urlproto="https"
+		urlProto="https"
 	else
-		urlproto="http"
+		urlProto="http"
 	fi
 	if [ -n "$(nvram get lan_domain)" ]; then
-		urldomain="$(nvram get lan_hostname).$(nvram get lan_domain)"
+		urlDomain="$(nvram get lan_hostname).$(nvram get lan_domain)"
 	else
-		urldomain="$(nvram get lan_ipaddr)"
-	fi
-	if [ "$(nvram get ${urlproto}_lanport)" -eq 80 ] || [ "$(nvram get ${urlproto}_lanport)" -eq 443 ]; then
-		urlport=""
-	else
-		urlport=":$(nvram get ${urlproto}_lanport)"
+		urlDomain="$(nvram get lan_ipaddr)"
 	fi
 
-	if echo "$urlpage" | grep -qE "user[0-9]+\.asp"; then
-		echo "${urlproto}://${urldomain}${urlport}/${urlpage}" | tr "A-Z" "a-z"
+	lanPort="$(nvram get ${urlProto}_lanport)"
+	if [ "$lanPort" -eq 80 ] || [ "$lanPort" -eq 443 ]
+	then
+		urlPort=""
 	else
-		echo "WebUI page not found"
+		urlPort=":$lanPort"
+	fi
+
+	if echo "$urlPage" | grep -qE "^${webPageFileRegExp}$" && \
+	   [ -s "${SCRIPT_WEBPAGE_DIR}/$urlPage" ]
+	then
+		echo "${urlProto}://${urlDomain}${urlPort}/${urlPage}" | tr "A-Z" "a-z"
+	else
+		echo "**ERROR**: WebUI page NOT found"
 	fi
 }
-### ###
+
+##-------------------------------------##
+## Added by Martinski W. [2025-Feb-16] ##
+##-------------------------------------##
+_CreateMenuAddOnsSection_()
+{
+   if grep -qE "^${webPageMenuAddons}$" "$TEMP_MENU_TREE" && \
+      grep -qE "${webPageHelpSupprt}$" "$TEMP_MENU_TREE"
+   then return 0 ; fi
+
+   lineinsBefore="$(($(grep -n "^exclude:" "$TEMP_MENU_TREE" | cut -f1 -d':') - 1))"
+
+   sed -i "$lineinsBefore""i\
+${BEGIN_MenuAddOnsTag}\n\
+,\n{\n\
+${webPageMenuAddons}\n\
+index: \"menu_Addons\",\n\
+tab: [\n\
+{url: \"javascript:var helpwindow=window.open('\/ext\/shared-jy\/redirect.htm')\", ${webPageHelpSupprt}\n\
+{url: \"NULL\", tabName: \"__INHERIT__\"}\n\
+]\n}\n\
+${ENDIN_MenuAddOnsTag}" "$TEMP_MENU_TREE"
+}
 
 ### locking mechanism code credit to Martineau (@MartineauUK) ###
+##----------------------------------------##
+## Modified by Martinski W. [2025-Feb-16] ##
+##----------------------------------------##
 Mount_WebUI()
 {
 	Print_Output true "Mounting WebUI tab for $SCRIPT_NAME" "$PASS"
@@ -1142,54 +1249,62 @@ Mount_WebUI()
 	eval exec "$FD>$LOCKFILE"
 	flock -x "$FD"
 	Get_WebUI_Page "$SCRIPT_DIR/connmonstats_www.asp"
-	if [ "$MyPage" = "none" ]; then
-		Print_Output true "Unable to mount $SCRIPT_NAME WebUI page, exiting" "$CRIT"
+	if [ "$MyWebPage" = "NONE" ]
+	then
+		Print_Output true "**ERROR** Unable to mount $SCRIPT_NAME WebUI page, exiting" "$CRIT"
 		flock -u "$FD"
 		return 1
 	fi
-	cp -f "$SCRIPT_DIR/connmonstats_www.asp" "$SCRIPT_WEBPAGE_DIR/$MyPage"
-	echo "$SCRIPT_NAME" > "$SCRIPT_WEBPAGE_DIR/$(echo $MyPage | cut -f1 -d'.').title"
+	cp -fp "$SCRIPT_DIR/connmonstats_www.asp" "$SCRIPT_WEBPAGE_DIR/$MyWebPage"
+	echo "$SCRIPT_NAME" > "$SCRIPT_WEBPAGE_DIR/$(echo "$MyWebPage" | cut -f1 -d'.').title"
 
 	if [ "$(/bin/uname -o)" = "ASUSWRT-Merlin" ]
 	then
 		if [ ! -f /tmp/index_style.css ]; then
-			cp -f /www/index_style.css /tmp/
+			cp -fp /www/index_style.css /tmp/
 		fi
 
-		if ! grep -q '.menu_Addons' /tmp/index_style.css ; then
+		if ! grep -q '.menu_Addons' /tmp/index_style.css
+		then
 			echo ".menu_Addons { background: url(ext/shared-jy/addons.png); }" >> /tmp/index_style.css
 		fi
 
 		umount /www/index_style.css 2>/dev/null
 		mount -o bind /tmp/index_style.css /www/index_style.css
 
-		if [ ! -f /tmp/menuTree.js ]; then
-			cp -f /www/require/modules/menuTree.js /tmp/
+		if [ ! -f "$TEMP_MENU_TREE" ]; then
+			cp -fp /www/require/modules/menuTree.js "$TEMP_MENU_TREE"
 		fi
+		sed -i "\\~$MyWebPage~d" "$TEMP_MENU_TREE"
 
-		sed -i "\\~$MyPage~d" /tmp/menuTree.js
+		_CreateMenuAddOnsSection_
 
-		if ! grep -q 'menuName: "Addons"' /tmp/menuTree.js ; then
-			lineinsbefore="$(( $(grep -n "exclude:" /tmp/menuTree.js | cut -f1 -d':') - 1))"
-			sed -i "$lineinsbefore"'i,\n{\nmenuName: "Addons",\nindex: "menu_Addons",\ntab: [\n{url: "javascript:var helpwindow=window.open('"'"'/ext/shared-jy/redirect.htm'"'"')", tabName: "Help & Support"},\n{url: "NULL", tabName: "__INHERIT__"}\n]\n}' /tmp/menuTree.js
-		fi
-
-		sed -i "/url: \"javascript:var helpwindow=window.open('\/ext\/shared-jy\/redirect.htm'/i {url: \"$MyPage\", tabName: \"$SCRIPT_NAME\"}," /tmp/menuTree.js
+		sed -i "/url: \"javascript:var helpwindow=window.open('\/ext\/shared-jy\/redirect.htm'/i {url: \"$MyWebPage\", tabName: \"$SCRIPT_NAME\"}," "$TEMP_MENU_TREE"
 
 		umount /www/require/modules/menuTree.js 2>/dev/null
-		mount -o bind /tmp/menuTree.js /www/require/modules/menuTree.js
+		mount -o bind "$TEMP_MENU_TREE" /www/require/modules/menuTree.js
 
 		if [ ! -f /tmp/start_apply.htm  ]; then
-			cp -f /www/start_apply.htm /tmp/
+			cp -fp /www/start_apply.htm /tmp/
 		fi
-		if ! grep -q 'addon_settings' /tmp/start_apply.htm ; then
+		if ! grep -q 'addon_settings' /tmp/start_apply.htm
+		then
 			sed -i "/}else if(action_script == \"start_sig_check\"){/i }else if(action_script.indexOf(\"addon_settings\") != -1){ \/\/ do nothing" /tmp/start_apply.htm
 		fi
 		umount /www/start_apply.htm 2>/dev/null
 		mount -o bind /tmp/start_apply.htm /www/start_apply.htm
 	fi
 	flock -u "$FD"
-	Print_Output true "Mounted $SCRIPT_NAME WebUI page as $MyPage" "$PASS"
+	Print_Output true "Mounted $SCRIPT_NAME WebUI page as $MyWebPage" "$PASS"
+}
+
+##-------------------------------------##
+## Added by Martinski W. [2025-Feb-11] ##
+##-------------------------------------##
+_CheckFor_WebGUI_Page_()
+{
+   if [ "$(_Check_WebGUI_Page_Exists_)" = "NONE" ]
+   then Mount_WebUI ; fi
 }
 
 ExcludeFromQoS()
@@ -1217,23 +1332,23 @@ AutomaticMode()
 		enable)
 			if AutomaticMode check
 			then
-			    printf "\nAutomatic ping tests are already ${GRNct}ENABLED${CLEARct}.\n\n"
+			    printf "\nAutomatic ping tests are already ${GRNct}ENABLED${CLRct}.\n\n"
 			    return 0
 			fi
 			sed -i 's/^AUTOMATICMODE=.*$/AUTOMATICMODE=true/' "$SCRIPT_CONF"
 			Auto_Cron create 2>/dev/null
-			printf "Automatic ping tests are now ${GRNct}ENABLED${CLEARct}.\n\n"
+			printf "Automatic ping tests are now ${GRNct}ENABLED${CLRct}.\n\n"
 			_UpdateAutomaticModeState_
 		;;
 		disable)
 			if ! AutomaticMode check
 			then
-			    printf "\nAutomatic ping tests are already ${REDct}DISABLED${CLEARct}.\n\n"
+			    printf "\nAutomatic ping tests are already ${REDct}DISABLED${CLRct}.\n\n"
 			    return 0
 			fi
 			sed -i 's/^AUTOMATICMODE=.*$/AUTOMATICMODE=false/' "$SCRIPT_CONF"
 			Auto_Cron delete 2>/dev/null
-			printf "Automatic ping tests are now ${REDct}DISABLED${CLEARct}.\n\n"
+			printf "Automatic ping tests are now ${REDct}DISABLED${CLRct}.\n\n"
 			_UpdateAutomaticModeState_
 		;;
 		check)
@@ -1403,19 +1518,19 @@ WriteSql_ToFile()
 	if ! echo "$5" | grep -q "day"
 	then
 		{
-			echo ".mode csv"
-			echo ".headers on"
-			echo ".output ${5}_${6}.htm"
-			echo "PRAGMA temp_store=1;"
-			echo "SELECT '$1' Metric,Min(strftime('%s',datetime(strftime('%Y-%m-%d %H:00:00',datetime([Timestamp],'unixepoch'))))) Time,IFNULL(Avg([$1]),'NaN') Value FROM $2 WHERE ([Timestamp] >= strftime('%s',datetime($timenow,'unixepoch','-$maxcount hour'))) GROUP BY strftime('%m',datetime([Timestamp],'unixepoch')),strftime('%d',datetime([Timestamp],'unixepoch')),strftime('%H',datetime([Timestamp],'unixepoch')) ORDER BY [Timestamp] DESC;"
+		   echo ".mode csv"
+		   echo ".headers on"
+		   echo ".output ${5}_${6}.htm"
+		   echo "PRAGMA temp_store=1;"
+		   echo "SELECT '$1' Metric,Min(strftime('%s',datetime(strftime('%Y-%m-%d %H:00:00',datetime([Timestamp],'unixepoch'))))) Time,IFNULL(Avg([$1]),'NaN') Value FROM $2 WHERE ([Timestamp] >= strftime('%s',datetime($timenow,'unixepoch','-$maxcount hour'))) GROUP BY strftime('%m',datetime([Timestamp],'unixepoch')),strftime('%d',datetime([Timestamp],'unixepoch')),strftime('%H',datetime([Timestamp],'unixepoch')) ORDER BY [Timestamp] DESC;"
 		} > "$7"
 	else
 		{
-			echo ".mode csv"
-			echo ".headers on"
-			echo ".output ${5}_${6}.htm"
-			echo "PRAGMA temp_store=1;"
-			echo "SELECT '$1' Metric,Max(strftime('%s',datetime([Timestamp],'unixepoch','start of day'))) Time,IFNULL(Avg([$1]),'NaN') Value FROM $2 WHERE ([Timestamp] > strftime('%s',datetime($timenow,'unixepoch','start of day','+1 day','-$maxcount day'))) GROUP BY strftime('%m',datetime([Timestamp],'unixepoch')),strftime('%d',datetime([Timestamp],'unixepoch')) ORDER BY [Timestamp] DESC;"
+		   echo ".mode csv"
+		   echo ".headers on"
+		   echo ".output ${5}_${6}.htm"
+		   echo "PRAGMA temp_store=1;"
+		   echo "SELECT '$1' Metric,Max(strftime('%s',datetime([Timestamp],'unixepoch','start of day'))) Time,IFNULL(Avg([$1]),'NaN') Value FROM $2 WHERE ([Timestamp] > strftime('%s',datetime($timenow,'unixepoch','start of day','+1 day','-$maxcount day'))) GROUP BY strftime('%m',datetime([Timestamp],'unixepoch')),strftime('%d',datetime([Timestamp],'unixepoch')) ORDER BY [Timestamp] DESC;"
 		} > "$7"
 	fi
 }
@@ -1557,33 +1672,53 @@ _Get_JFFS_Space_()
 }
 
 ##----------------------------------------##
-## Modified by Martinski W. [2025-Feb-03] ##
+## Modified by Martinski W. [2025-Feb-05] ##
 ##----------------------------------------##
-##------------------------------------------------------##
-## Check JFFS free space *before* moving files from USB ##
-##------------------------------------------------------##
+##--------------------------------------------------------##
+## Minimum Reserved JFFS Available Free Space is roughly
+## about 20% of total space or about 9MB to 10MB.
+##--------------------------------------------------------##
+_JFFS_MinReservedFreeSpace_()
+{
+   local jffsAllxSpace  jffsMinxSpace
+
+   if ! jffsAllxSpace="$(_Get_JFFS_Space_ ALL KB)"
+   then echo "$jffsAllxSpace" ; return 1 ; fi
+   jffsAllxSpace="$(echo "$jffsAllxSpace" | awk '{printf("%s", $1 * 1024);}')"
+
+   jffsMinxSpace="$(echo "$jffsAllxSpace" | awk '{printf("%d", $1 * 20 / 100);}')"
+   if [ "$(echo "$jffsMinxSpace $ni9MByte" | awk -F ' ' '{print ($1 < $2)}')" -eq 1 ]
+   then jffsMinxSpace="$ni9MByte"
+   elif [ "$(echo "$jffsMinxSpace $tenMByte" | awk -F ' ' '{print ($1 > $2)}')" -eq 1 ]
+   then jffsMinxSpace="$tenMByte"
+   fi
+   echo "$jffsMinxSpace" ; return 0
+}
+
+##----------------------------------------##
+## Modified by Martinski W. [2025-Feb-05] ##
+##----------------------------------------##
+##--------------------------------------------------------##
+## Check JFFS free space *BEFORE* moving files from USB.
+##--------------------------------------------------------##
 _Check_JFFS_SpaceAvailable_()
 {
-   local requiredSpace  jffsAllxSpace  jffsFreeSpace  jffsMinxSpace
+   local requiredSpace  jffsFreeSpace  jffsMinxSpace
    if [ $# -eq 0 ] || [ -z "$1" ] || [ ! -d "$1" ] ; then return 0 ; fi
 
    [ "$1" = "/jffs/addons/${SCRIPT_NAME}.d" ] && return 0
 
-   if ! jffsAllxSpace="$(_Get_JFFS_Space_ ALL KB)" ; then return 1 ; fi
    if ! jffsFreeSpace="$(_Get_JFFS_Space_ FREE KB)" ; then return 1 ; fi
-   requiredSpace="$(du -kc "$1" | grep -w 'total$' | awk -F ' ' '{print $1}')"
-
-   jffsAllxSpace="$(echo "$jffsAllxSpace" | awk '{printf("%s", $1 * 1024);}')"
+   if ! jffsMinxSpace="$(_JFFS_MinReservedFreeSpace_)" ; then return 1 ; fi
    jffsFreeSpace="$(echo "$jffsFreeSpace" | awk '{printf("%s", $1 * 1024);}')"
+
+   requiredSpace="$(du -kc "$1" | grep -w 'total$' | awk -F ' ' '{print $1}')"
    requiredSpace="$(echo "$requiredSpace" | awk '{printf("%s", $1 * 1024);}')"
-
-   ## Make sure remaining JFFS free space is at least 20% of total space ##
-   jffsMinxSpace="$(echo "$jffsAllxSpace" | awk '{printf("%d", $1 * 20 / 100);}')"
    requiredSpace="$(echo "$requiredSpace $jffsMinxSpace" | awk -F ' ' '{printf("%s", $1 + $2);}')"
-
    if [ "$(echo "$requiredSpace $jffsFreeSpace" | awk -F ' ' '{print ($1 < $2)}')" -eq 1 ]
    then return 0 ; fi
 
+   ## Current JFFS Available Free Space is NOT sufficient ##
    requiredSpace="$(du -hc "$1" | grep -w 'total$' | awk -F ' ' '{print $1}')"
    errorMsg1="Not enough free space [$(_Get_JFFS_Space_ FREE HR)] available in JFFS."
    errorMsg2="Minimum storage space required: $requiredSpace"
@@ -1591,74 +1726,169 @@ _Check_JFFS_SpaceAvailable_()
    return 1
 }
 
-##----------------------------------------##
-## Modified by Martinski W. [2024-Dec-23] ##
-##----------------------------------------##
-_UpdateJFFS_FreeSpaceInfo_()
+##-------------------------------------##
+## Added by Martinski W. [2025-Feb-05] ##
+##-------------------------------------##
+_WriteVarDefToJSFile_()
 {
-   local jffsFreeSpace
-   local outJSfile="$SCRIPT_STORAGE_DIR/connstatstext.js"
-   [ ! -d "$SCRIPT_STORAGE_DIR" ] && return 1
+   if [ $# -lt 2 ] || [ -z "$1" ] || [ -z "$2" ]
+   then return 1; fi
 
-   jffsFreeSpace="$(_Get_JFFS_Space_ FREE HRx)"
+   local varValue
+   if [ $# -eq 3 ] && [ "$3" = "true" ]
+   then varValue="$2"
+   else varValue="'${2}'"
+   fi
 
-   if [ ! -s "$outJSfile" ]
+   local targetJSfile="$SCRIPT_STORAGE_DIR/connstatstext.js"
+   if [ ! -s "$targetJSfile" ]
    then
-       echo "var jffsAvailableSpace = '${jffsFreeSpace}';" >> "$outJSfile"
-   elif ! grep -q "^var jffsAvailableSpace =.*" "$outJSfile"
+       echo "var $1 = ${varValue};" > "$targetJSfile"
+   elif
+      ! grep -q "^var $1 =.*" "$targetJSfile"
    then
-       sed -i "1 i var jffsAvailableSpace = '${jffsFreeSpace}';" "$outJSfile"
-   else
-       sed -i "s/^var jffsAvailableSpace =.*/var jffsAvailableSpace = '${jffsFreeSpace}';/" "$outJSfile"
+       sed -i "1 i var $1 = ${varValue};" "$targetJSfile"
+   elif
+      ! grep -q "^var $1 = ${varValue};" "$targetJSfile"
+   then
+       sed -i "s/^var $1 =.*/var $1 = ${varValue};/" "$targetJSfile"
+   fi
+}
+
+##-------------------------------------##
+## Added by Martinski W. [2025-Feb-05] ##
+##-------------------------------------##
+_DelVarDefFromJSFile_()
+{
+   if [ $# -eq 0 ] || [ -z "$1" ] ; then return 1; fi
+
+   local targetJSfile="$SCRIPT_STORAGE_DIR/connstatstext.js"
+   if [ -s "$targetJSfile" ] && \
+      grep -q "^var $1 =.*" "$targetJSfile"
+   then
+       sed -i "/^var $1 =.*/d" "$targetJSfile"
    fi
 }
 
 ##----------------------------------------##
-## Modified by Martinski W. [2024-Dec-23] ##
+## Modified by Martinski W. [2025-Feb-05] ##
+##----------------------------------------##
+JFFS_WarningLogTime()
+{
+   case "$1" in
+       update)
+           sed -i 's/^JFFS_MSGLOGTIME=.*$/JFFS_MSGLOGTIME='"$2"'/' "$SCRIPT_CONF"
+           ;;
+       check)
+           JFFS_MSGLOGTIME="$(Conf_Parameters check JFFS_MSGLOGTIME)"
+           echo "${JFFS_MSGLOGTIME:=0}"
+           ;;
+   esac
+}
+
+##----------------------------------------##
+## Modified by Martinski W. [2025-Feb-20] ##
+##----------------------------------------##
+_JFFS_WarnLowFreeSpace_()
+{
+   if [ $# -eq 0 ] || [ -z "$1" ] ; then return 0 ; fi
+   local jffsWarningLogFreq  jffsWarningLogTime  storageLocStr
+   local logPriNum  logTagStr  logMsgStr  currTimeSecs  currTimeDiff
+
+   storageLocStr="$(ScriptStorageLocation check | tr 'a-z' 'A-Z')"
+   if [ "$storageLocStr" = "JFFS" ]
+   then
+       if [ "$JFFS_LowFreeSpaceStatus" = "WARNING2" ]
+       then
+           logPriNum=2
+           logTagStr="**ALERT**"
+           jffsWarningLogFreq="$_12Hours"
+       else
+           logPriNum=3
+           logTagStr="**WARNING**"
+           jffsWarningLogFreq="$_24Hours"
+       fi
+   else
+       if [ "$JFFS_LowFreeSpaceStatus" = "WARNING2" ]
+       then
+           logPriNum=3
+           logTagStr="**WARNING**"
+           jffsWarningLogFreq="$_24Hours"
+       else
+           logPriNum=4
+           logTagStr="**NOTICE**"
+           jffsWarningLogFreq="$_36Hours"
+       fi
+   fi
+   jffsWarningLogTime="$(JFFS_WarningLogTime check)"
+
+   currTimeSecs="$(date +'%s')"
+   currTimeDiff="$(echo "$currTimeSecs $jffsWarningLogTime" | awk -F ' ' '{printf("%s", $1 - $2);}')"
+   if [ "$currTimeDiff" -ge "$jffsWarningLogFreq" ]
+   then
+       JFFS_WarningLogTime update "$currTimeSecs"
+       logMsgStr="${logTagStr} JFFS Available Free Space ($1) is getting LOW."
+       logger -t "$SCRIPT_NAME" -p $logPriNum "$logMsgStr"
+   fi
+}
+
+##----------------------------------------##
+## Modified by Martinski W. [2025-Feb-20] ##
+##----------------------------------------##
+_UpdateJFFS_FreeSpaceInfo_()
+{
+   local jffsFreeSpaceHR  jffsFreeSpace  jffsMinxSpace
+   [ ! -d "$SCRIPT_STORAGE_DIR" ] && return 1
+
+   jffsFreeSpaceHR="$(_Get_JFFS_Space_ FREE HRx)"
+   _DelVarDefFromJSFile_ "jffsAvailableSpace"
+   _WriteVarDefToJSFile_ "jffsAvailableSpaceStr" "$jffsFreeSpaceHR"
+
+   if ! jffsFreeSpace="$(_Get_JFFS_Space_ FREE KB)" ; then return 1 ; fi
+   if ! jffsMinxSpace="$(_JFFS_MinReservedFreeSpace_)" ; then return 1 ; fi
+   jffsFreeSpace="$(echo "$jffsFreeSpace" | awk '{printf("%s", $1 * 1024);}')"
+
+   JFFS_LowFreeSpaceStatus="OK"
+   ## Warning Level 1 if JFFS Available Free Space is LESS than Minimum Reserved ##
+   if [ "$(echo "$jffsFreeSpace $jffsMinxSpace" | awk -F ' ' '{print ($1 < $2)}')" -eq 1 ]
+   then
+       JFFS_LowFreeSpaceStatus="WARNING1"
+       ## Warning Level 2 if JFFS Available Free Space is LESS than 8.0MB ##
+       if [ "$(echo "$jffsFreeSpace $ei8MByte" | awk -F ' ' '{print ($1 < $2)}')" -eq 1 ]
+       then
+           JFFS_LowFreeSpaceStatus="WARNING2"
+       fi
+       _JFFS_WarnLowFreeSpace_ "$jffsFreeSpaceHR"
+   fi
+   _WriteVarDefToJSFile_ "jffsAvailableSpaceLow" "$JFFS_LowFreeSpaceStatus"
+}
+
+##----------------------------------------##
+## Modified by Martinski W. [2025-Feb-05] ##
 ##----------------------------------------##
 _UpdateAutomaticModeState_()
 {
    local automaticModeStatus
-   local outJSfile="$SCRIPT_STORAGE_DIR/connstatstext.js"
    [ ! -d "$SCRIPT_STORAGE_DIR" ] && return 1
 
    if AutomaticMode check
    then automaticModeStatus="ENABLED"
    else automaticModeStatus="DISABLED"
    fi
-
-   if [ ! -s "$outJSfile" ]
-   then
-       echo "var automaticModeState = '${automaticModeStatus}';" >> "$outJSfile"
-   elif ! grep -q "^var automaticModeState =.*" "$outJSfile"
-   then
-       sed -i "3 i var automaticModeState = '${automaticModeStatus}';" "$outJSfile"
-   else
-       sed -i "s/^var automaticModeState =.*/var automaticModeState = '${automaticModeStatus}';/" "$outJSfile"
-   fi
+   _WriteVarDefToJSFile_ "automaticModeState" "$automaticModeStatus"
 }
 
 ##----------------------------------------##
-## Modified by Martinski W. [2024-Dec-23] ##
+## Modified by Martinski W. [2025-Feb-05] ##
 ##----------------------------------------##
 _UpdateDatabaseFileSizeInfo_()
 {
    local databaseFileSize
-   local outJSfile="$SCRIPT_STORAGE_DIR/connstatstext.js"
    [ ! -d "$SCRIPT_STORAGE_DIR" ] && return 1
 
-   databaseFileSize="$(_GetFileSize_ "$CONNSTATS_DB" HRx)"
-
-   if [ ! -s "$outJSfile" ]
-   then
-       echo "var sqlDatabaseFileSize = '${databaseFileSize}';" >> "$outJSfile"
-   elif ! grep -q "^var sqlDatabaseFileSize =.*" "$outJSfile"
-   then
-       sed -i "1 i var sqlDatabaseFileSize = '${databaseFileSize}';" "$outJSfile"
-   else
-       sed -i "s/^var sqlDatabaseFileSize =.*/var sqlDatabaseFileSize = '${databaseFileSize}';/" "$outJSfile"
-   fi
    _UpdateJFFS_FreeSpaceInfo_
+   databaseFileSize="$(_GetFileSize_ "$CONNSTATS_DB" HRx)"
+   _WriteVarDefToJSFile_ "sqlDatabaseFileSize" "$databaseFileSize"
    _UpdateAutomaticModeState_
 }
 
@@ -2055,27 +2285,27 @@ Generate_CSVs()
 }
 
 ##----------------------------------------##
-## Modified by Martinski W. [2024-Dec-21] ##
+## Modified by Martinski W. [2025-Feb-18] ##
 ##----------------------------------------##
 Generate_LastXResults()
 {
 	rm -f "$SCRIPT_STORAGE_DIR/connjs.js"
 	rm -f "$SCRIPT_STORAGE_DIR/lastx.htm"
 	{
-		echo ".mode csv"
-		echo ".output /tmp/conn-lastx.csv"
-		echo "PRAGMA temp_store=1;"
-		echo "SELECT [Timestamp],[Ping],[Jitter],[LineQuality],[PingTarget],[PingDuration] FROM connstats ORDER BY [Timestamp] DESC LIMIT $(LastXResults check);"
-	} > /tmp/conn-lastx.sql
-	_ApplyDatabaseSQLCmds_ /tmp/conn-lastx.sql gls1
+	   echo ".mode csv"
+	   echo ".output /tmp/connmon-lastx.csv"
+	   echo "PRAGMA temp_store=1;"
+	   echo "SELECT [Timestamp],[Ping],[Jitter],[LineQuality],[PingTarget],[PingDuration] FROM connstats ORDER BY [Timestamp] DESC LIMIT $(LastXResults check);"
+	} > /tmp/connmon-lastx.sql
+	_ApplyDatabaseSQLCmds_ /tmp/connmon-lastx.sql glx1
 
-	rm -f /tmp/conn-lastx.sql
-	sed -i 's/"//g' /tmp/conn-lastx.csv
-	mv /tmp/conn-lastx.csv "$SCRIPT_STORAGE_DIR/lastx.csv"
+	rm -f /tmp/connmon-lastx.sql
+	sed -i 's/"//g' /tmp/connmon-lastx.csv
+	mv -f /tmp/connmon-lastx.csv "$SCRIPT_STORAGE_DIR/lastx.csv"
 }
 
 ##----------------------------------------##
-## Modified by Martinski W. [2024-Dec-21] ##
+## Modified by Martinski W. [2025-Feb-18] ##
 ##----------------------------------------##
 Reset_DB()
 {
@@ -2097,9 +2327,9 @@ Reset_DB()
         {
 		   echo "PRAGMA temp_store=1;"
 		   echo "DELETE FROM [connstats];" 
-        } > /tmp/connmon-stats.sql
-		_ApplyDatabaseSQLCmds_ /tmp/connmon-stats.sql rst1
-		rm -f /tmp/connmon-stats.sql
+        } > /tmp/connmon-reset.sql
+		_ApplyDatabaseSQLCmds_ /tmp/connmon-reset.sql rst1
+		rm -f /tmp/connmon-reset.sql
 
 		## Clear/Reset all CSV files ##
 		Generate_CSVs
@@ -2125,11 +2355,11 @@ Reset_DB()
 }
 
 ##----------------------------------------##
-## Modified by Martinski W. [2024-Dec-21] ##
+## Modified by Martinski W. [2025-Feb-05] ##
 ##----------------------------------------##
 Process_Upgrade()
 {
-    local foundError  foundLocked  resultStr
+	local foundError  foundLocked  resultStr  doUpdateDB=false
 
 	rm -f "$SCRIPT_STORAGE_DIR/.tableupgraded"
 	if [ ! -f "$SCRIPT_STORAGE_DIR/.indexcreated" ]
@@ -2142,7 +2372,7 @@ Process_Upgrade()
 		  echo "CREATE INDEX IF NOT EXISTS idx_time_ping ON connstats (Timestamp,Ping);" 
 		} > /tmp/connmon-upgrade.sql
 		_ApplyDatabaseSQLCmds_ /tmp/connmon-upgrade.sql prc1
- 
+
 		{
 		  echo "PRAGMA temp_store=1;"
 		  echo "PRAGMA cache_size=-20000;"
@@ -2161,6 +2391,7 @@ Process_Upgrade()
 		touch "$SCRIPT_STORAGE_DIR/.indexcreated"
 		Print_Output true "Database ready, continuing..." "$PASS"
 		renice 0 $$
+		doUpdateDB=true
 	fi
 	if [ ! -f "$SCRIPT_STORAGE_DIR/.newcolumns" ]
 	then
@@ -2180,9 +2411,12 @@ Process_Upgrade()
 
 		rm -f /tmp/connmon-upgrade.sql
 		touch "$SCRIPT_STORAGE_DIR/.newcolumns"
+		doUpdateDB=true
 	fi
-	if [ ! -f "$SCRIPT_STORAGE_DIR/lastx.csv" ]; then
+	if [ ! -f "$SCRIPT_STORAGE_DIR/lastx.csv" ]
+	then
 		Generate_LastXResults
+		doUpdateDB=true
 	fi
 	if [ ! -f /opt/bin/dig ] && [ -x /opt/bin/opkg ]
 	then
@@ -2222,10 +2456,11 @@ Process_Upgrade()
 	fi
 	if [ ! -f "$SCRIPT_STORAGE_DIR/connstatstext.js" ]
 	then
+		doUpdateDB=true
 		echo "Stats last updated: Not yet updated" > /tmp/connstatstitle.txt
 		WriteStats_ToJS /tmp/connstatstitle.txt "$SCRIPT_STORAGE_DIR/connstatstext.js" setConnmonStatsTitle statstitle
 	fi
-	_UpdateDatabaseFileSizeInfo_
+	"$doUpdateDB" && _UpdateDatabaseFileSizeInfo_
 }
 
 Shortcut_Script()
@@ -3796,7 +4031,7 @@ ScriptHeader()
 	printf "${BOLD}##   | (__ | (_) || | | || | | || | | | | || (_) || | | |   ##${CLEARFORMAT}\\n"
 	printf "${BOLD}##    \___| \___/ |_| |_||_| |_||_| |_| |_| \___/ |_| |_|   ##${CLEARFORMAT}\\n"
 	printf "${BOLD}##                                                          ##${CLEARFORMAT}\\n"
-	printf "${BOLD}##                   %s on %-18s           ##${CLEARFORMAT}\n" "$SCRIPT_VERSION" "$ROUTER_MODEL"
+	printf "${BOLD}##                  %9s on %-18s         ##${CLEARFORMAT}\n" "$SCRIPT_VERSION" "$ROUTER_MODEL"
 	printf "${BOLD}##                                                          ##${CLEARFORMAT}\\n"
 	printf "${BOLD}##            https://github.com/jackyaz/connmon            ##${CLEARFORMAT}\\n"
 	printf "${BOLD}##                                                          ##${CLEARFORMAT}\\n"
@@ -3906,11 +4141,12 @@ _CronScheduleHourMinsInfo_()
 }
 
 ##----------------------------------------##
-## Modified by Martinski W. [2025-Jan-04] ##
+## Modified by Martinski W. [2025-Feb-20] ##
 ##----------------------------------------##
 MainMenu()
 {
-	local menuOption  STORAGE_MenuStr  automaticModeStatus
+	local menuOption  storageLocStr  automaticModeStatus
+	local jffsFreeSpace  jffsFreeSpaceStr  jffsSpaceMsgTag
 
 	if [ "$(ExcludeFromQoS check)" = "true" ]
 	then EXCLUDEFROMQOS_MENU="excluded from"
@@ -3918,8 +4154,8 @@ MainMenu()
 	fi
 
 	if AutomaticMode check
-	then automaticModeStatus="${GRNct}ENABLED${CLEARct}"
-	else automaticModeStatus="${CRIT} DISABLED ${CLEARct}"
+	then automaticModeStatus="${PassBGRNct} ENABLED ${CLRct}"
+	else automaticModeStatus="${CritIREDct} DISABLED ${CLRct}"
 	fi
 
 	TEST_SCHEDULE="$(CronTestSchedule check)"
@@ -3932,9 +4168,22 @@ MainMenu()
 	fi
 	TEST_SCHEDULE_MENU="$(_CronScheduleHourMinsInfo_ "$CRON_SCHED_HOUR" "$CRON_SCHED_MINS")"
 
-	STORAGE_MenuStr="$(ScriptStorageLocation check | tr 'a-z' 'A-Z')"
+	storageLocStr="$(ScriptStorageLocation check | tr 'a-z' 'A-Z')"
+
+	jffsFreeSpace="$(_Get_JFFS_Space_ FREE HRx | sed 's/%/%%/')"
+	if ! echo "$JFFS_LowFreeSpaceStatus" | grep -E "^WARNING[0-9]$"
+	then
+		jffsFreeSpaceStr="${SETTING}$jffsFreeSpace"
+	else
+		if [ "$storageLocStr" = "JFFS" ]
+		then jffsSpaceMsgTag="${CritBREDct} <<< WARNING! "
+		else jffsSpaceMsgTag="${WarnBMGNct} <<< NOTICE! "
+		fi
+		jffsFreeSpaceStr="${WarnBYLWct} $jffsFreeSpace ${CLRct}  ${jffsSpaceMsgTag}${CLRct}"
+	fi
 
 	printf "WebUI for %s is available at:\n${SETTING}%s${CLEARFORMAT}\n\n" "$SCRIPT_NAME" "$(Get_WebUI_URL)"
+
 	printf "1.    Check connection now\n"
     printf "      Database size: ${SETTING}%s${CLEARFORMAT}\n\n" "$(_GetFileSize_ "$CONNSTATS_DB" HRx)"
 	printf "2.    Set preferred ping server\n"
@@ -3952,8 +4201,8 @@ MainMenu()
 	printf "8.    Set number of days data to keep in database\n"
 	printf "      Currently: ${SETTING}%s days data will be kept${CLEARFORMAT}\n\n" "$(DaysToKeep check)"
 	printf "s.    Toggle storage location for stats and config\n"
-	printf "      Current location: ${SETTING}%s${CLEARFORMAT}\n" "$STORAGE_MenuStr"
-    printf "      JFFS Available: ${SETTING}%s${CLEARFORMAT}\n\n" "$(_Get_JFFS_Space_ FREE HRx)"
+	printf "      Current location: ${SETTING}%s${CLEARFORMAT}\n" "$storageLocStr"
+    printf "      JFFS Available: ${jffsFreeSpaceStr}${CLEARFORMAT}\n\n"
 	printf "q.    Toggle exclusion of %s ping tests from QoS\n" "$SCRIPT_NAME"
 	printf "      Currently: %s ping tests are ${SETTING}%s${CLEARFORMAT} QoS\n\n" "$SCRIPT_NAME" "$EXCLUDEFROMQOS_MENU"
 	printf "n.    Configure notifications and integrations for %s\n\n" "$SCRIPT_NAME"
@@ -4230,7 +4479,7 @@ Menu_Install()
 }
 
 ##----------------------------------------##
-## Modified by Martinski W. [2024-Dec-21] ##
+## Modified by Martinski W. [2025-May-13] ##
 ##----------------------------------------##
 Menu_Startup()
 {
@@ -4245,7 +4494,7 @@ Menu_Startup()
 			Print_Output true "$1 does NOT contain Entware, not starting $SCRIPT_NAME" "$CRIT"
 			exit 1
 		else
-			Print_Output true "$1 contains Entware, starting $SCRIPT_NAME" "$PASS"
+			Print_Output true "$1 contains Entware, $SCRIPT_NAME $SCRIPT_VERSION starting up" "$PASS"
 		fi
 	fi
 
@@ -4569,10 +4818,10 @@ Menu_EditSchedule()
 	while true
 	do
 		ScriptHeader
-		printf "${BOLD}Current schedule: ${GRNct}$(_GetScheduleHR_ "$cruHour" "$cruMins" "$cruDays")${CLEARct}\n"
+		printf "${BOLD}Current schedule: ${GRNct}$(_GetScheduleHR_ "$cruHour" "$cruMins" "$cruDays")${CLRct}\n"
 		printf "\n${BOLD}Please enter the DAYS of the week when to run the ping tests.\n"
-        printf "[${GRNct}0-6${CLEARct}], ${GRNct}0${CLEARct}=Sunday, ${GRNct}6${CLEARct}=Saturday, ${GRNct}*${CLEARct}=Every day, or comma-separated days.${CLEARFORMAT}"
-        printf "\n\n${BOLD}Enter DAYS of the week (${GRNct}e${CLEARct}=Exit)${CLEARFORMAT}:  "
+        printf "[${GRNct}0-6${CLRct}], ${GRNct}0${CLRct}=Sunday, ${GRNct}6${CLRct}=Saturday, ${GRNct}*${CLRct}=Every day, or comma-separated days.${CLEARFORMAT}"
+        printf "\n\n${BOLD}Enter DAYS of the week (${GRNct}e${CLRct}=Exit)${CLEARFORMAT}:  "
 		read -r day_choice
 
 		if [ "$day_choice" = "e" ]
@@ -4646,9 +4895,9 @@ Menu_EditSchedule()
 			while true
 			do
 				ScriptHeader
-				printf "${BOLD}Current schedule: ${GRNct}$(_GetScheduleHR_ "$cruHour" "$cruMins" "$cruDays")${CLEARct}\n"
+				printf "${BOLD}Current schedule: ${GRNct}$(_GetScheduleHR_ "$cruHour" "$cruMins" "$cruDays")${CLRct}\n"
 				printf "\n${BOLD}Please enter how often in HOURS to run the ping tests.\n"
-				printf "Every X hours, where X is ${GRNct}1-24${CLEARct}, (${GRNct}e${CLEARct}=Exit)${CLEARFORMAT}:  "
+				printf "Every X hours, where X is ${GRNct}1-24${CLRct}, (${GRNct}e${CLRct}=Exit)${CLEARFORMAT}:  "
 				read -r hour_choice
 
 				if [ "$hour_choice" = "e" ]
@@ -4687,9 +4936,9 @@ Menu_EditSchedule()
 			while true
 			do
 				ScriptHeader
-				printf "${BOLD}Current schedule: ${GRNct}$(_GetScheduleHR_ "$cruHour" "$cruMins" "$cruDays")${CLEARct}\n"
+				printf "${BOLD}Current schedule: ${GRNct}$(_GetScheduleHR_ "$cruHour" "$cruMins" "$cruDays")${CLRct}\n"
 				printf "\n${BOLD}Please enter how often in MINUTES to run the ping tests.\n"
-				printf "Every X minutes, where X is ${GRNct}1-30${CLEARct}, (${GRNct}e${CLEARct}=Exit)${CLEARFORMAT}:  "
+				printf "Every X minutes, where X is ${GRNct}1-30${CLRct}, (${GRNct}e${CLRct}=Exit)${CLEARFORMAT}:  "
 				read -r mins_choice
 
 				if [ "$mins_choice" = "e" ]
@@ -4727,9 +4976,9 @@ Menu_EditSchedule()
 			while true
 			do
 				ScriptHeader
-				printf "${BOLD}Current schedule: ${GRNct}$(_GetScheduleHR_ "$cruHour" "$cruMins" "$cruDays")${CLEARct}\n"
+				printf "${BOLD}Current schedule: ${GRNct}$(_GetScheduleHR_ "$cruHour" "$cruMins" "$cruDays")${CLRct}\n"
 				printf "\n${BOLD}Please enter the HOURS when to run the ping tests.\n"
-				printf "[${GRNct}0-23${CLEARct}], ${GRNct}*${CLEARct}=Every hour, or comma-separated hours, (${GRNct}e${CLEARct}=Exit)${CLEARFORMAT}:  "
+				printf "[${GRNct}0-23${CLRct}], ${GRNct}*${CLRct}=Every hour, or comma-separated hours, (${GRNct}e${CLRct}=Exit)${CLEARFORMAT}:  "
 				read -r hour_choice
 
 				if [ "$hour_choice" = "e" ]
@@ -4792,9 +5041,9 @@ Menu_EditSchedule()
 			while true
 			do
 				ScriptHeader
-				printf "${BOLD}Current schedule: ${GRNct}$(_GetScheduleHR_ "$cruHour" "$cruMins" "$cruDays")${CLEARct}\n"
+				printf "${BOLD}Current schedule: ${GRNct}$(_GetScheduleHR_ "$cruHour" "$cruMins" "$cruDays")${CLRct}\n"
 				printf "\n${BOLD}Please enter the MINUTES when to run the ping tests.\n"
-				printf "[${GRNct}0-59${CLEARct}], ${GRNct}*${CLEARct}=Every minute, or comma-separated minutes, (${GRNct}e${CLEARct}=Exit)${CLEARFORMAT}:  "
+				printf "[${GRNct}0-59${CLRct}], ${GRNct}*${CLRct}=Every minute, or comma-separated minutes, (${GRNct}e${CLRct}=Exit)${CLEARFORMAT}:  "
 				read -r mins_choice
 
 				if [ "$mins_choice" = "e" ]
@@ -4860,23 +5109,75 @@ Menu_EditSchedule()
 
 Menu_ResetDB()
 {
-	printf "${BOLD}\\e[33mWARNING: This will reset the %s database by deleting all database records.\\n" "$SCRIPT_NAME"
-	printf "A backup of the database will be created if you change your mind.${CLEARFORMAT}\\n"
-	printf "\\n${BOLD}Do you want to continue? (y/n)${CLEARFORMAT}  "
+	printf "${BOLD}${WARN}WARNING: This will reset the %s database by deleting all database records.\n" "$SCRIPT_NAME"
+	printf "A backup of the database will be created if you change your mind.${CLEARFORMAT}\n"
+	printf "\n${BOLD}Do you want to continue? (y/n)${CLEARFORMAT}  "
 	read -r confirm
 	case "$confirm" in
 		y|Y)
-			printf "\\n"
+			printf "\n"
 			Reset_DB
 		;;
 		*)
-			printf "\\n${BOLD}\\e[33mDatabase reset cancelled${CLEARFORMAT}\\n\\n"
+			printf "\n${BOLD}${WARN}Database reset cancelled${CLEARFORMAT}\n\n"
 		;;
 	esac
 }
 
+##-------------------------------------##
+## Added by Martinski W. [2025-Feb-16] ##
+##-------------------------------------##
+_RemoveMenuAddOnsSection_()
+{
+   if [ $# -lt 2 ] || [ -z "$1" ] || [ -z "$2" ] || \
+      ! echo "$1" | grep -qE "^[1-9][0-9]*$" || \
+      ! echo "$2" | grep -qE "^[1-9][0-9]*$" || \
+      [ "$1" -ge "$2" ]
+   then return 1 ; fi
+   local BEGINnum="$1"  ENDINnum="$2"
+
+   if [ -n "$(sed -E "${BEGINnum},${ENDINnum}!d;/${webPageLineTabExp}/!d" "$TEMP_MENU_TREE")" ]
+   then return 1
+   fi
+   sed -i "${BEGINnum},${ENDINnum}d" "$TEMP_MENU_TREE"
+   return 0
+}
+
+##-------------------------------------##
+## Added by Martinski W. [2025-Feb-16] ##
+##-------------------------------------##
+_FindandRemoveMenuAddOnsSection_()
+{
+   local BEGINnum  ENDINnum  retCode=1
+
+   if grep -qE "^${BEGIN_MenuAddOnsTag}$" "$TEMP_MENU_TREE" && \
+      grep -qE "^${ENDIN_MenuAddOnsTag}$" "$TEMP_MENU_TREE"
+   then
+       BEGINnum="$(grep -nE "^${BEGIN_MenuAddOnsTag}$" "$TEMP_MENU_TREE" | awk -F ':' '{print $1}')"
+       ENDINnum="$(grep -nE "^${ENDIN_MenuAddOnsTag}$" "$TEMP_MENU_TREE" | awk -F ':' '{print $1}')"
+       _RemoveMenuAddOnsSection_ "$BEGINnum" "$ENDINnum" && retCode=0
+   fi
+
+   if grep -qE "^${webPageMenuAddons}$" "$TEMP_MENU_TREE" && \
+      grep -qE "${webPageHelpSupprt}$" "$TEMP_MENU_TREE"
+   then
+       BEGINnum="$(grep -nE "^${webPageMenuAddons}$" "$TEMP_MENU_TREE" | awk -F ':' '{print $1}')"
+       ENDINnum="$(grep -nE "${webPageHelpSupprt}$" "$TEMP_MENU_TREE" | awk -F ':' '{print $1}')"
+       if [ -n "$BEGINnum" ] && [ -n "$ENDINnum" ] && [ "$BEGINnum" -lt "$ENDINnum" ]
+       then
+           BEGINnum="$((BEGINnum - 2))" ; ENDINnum="$((ENDINnum + 3))"
+           if [ "$(sed -n "${BEGINnum}p" "$TEMP_MENU_TREE")" = "," ] && \
+              [ "$(sed -n "${ENDINnum}p" "$TEMP_MENU_TREE")" = "}" ]
+           then
+               _RemoveMenuAddOnsSection_ "$BEGINnum" "$ENDINnum" && retCode=0
+           fi
+       fi
+   fi
+   return "$retCode"
+}
+
 ##----------------------------------------##
-## Modified by Martinski W. [2024-Nov-23] ##
+## Modified by Martinski W. [2025-Feb-16] ##
 ##----------------------------------------##
 Menu_Uninstall()
 {
@@ -4902,14 +5203,20 @@ Menu_Uninstall()
 	FD=386
 	eval exec "$FD>$LOCKFILE"
 	flock -x "$FD"
+
 	Get_WebUI_Page "$SCRIPT_DIR/connmonstats_www.asp"
-	if [ -n "$MyPage" ] && [ "$MyPage" != "none" ] && [ -f /tmp/menuTree.js ]; then
-		sed -i "\\~$MyPage~d" /tmp/menuTree.js
+	if [ -n "$MyWebPage" ] && \
+	   [ "$MyWebPage" != "NONE" ] && \
+	   [ -f "$TEMP_MENU_TREE" ]
+	then
+		sed -i "\\~$MyWebPage~d" "$TEMP_MENU_TREE"
+		rm -f "$SCRIPT_WEBPAGE_DIR/$MyWebPage"
+		rm -f "$SCRIPT_WEBPAGE_DIR/$(echo "$MyWebPage" | cut -f1 -d'.').title"
+		_FindandRemoveMenuAddOnsSection_
 		umount /www/require/modules/menuTree.js
-		mount -o bind /tmp/menuTree.js /www/require/modules/menuTree.js
-		rm -f "$SCRIPT_WEBPAGE_DIR/$MyPage"
-		rm -f "$SCRIPT_WEBPAGE_DIR/$(echo $MyPage | cut -f1 -d'.').title"
+		mount -o bind "$TEMP_MENU_TREE" /www/require/modules/menuTree.js
 	fi
+
 	flock -u "$FD"
 	rm -f "$SCRIPT_DIR/connmonstats_www.asp" 2>/dev/null
 
@@ -4935,19 +5242,29 @@ Menu_Uninstall()
 	Print_Output true "Uninstall completed" "$PASS"
 }
 
+##----------------------------------------##
+## Modified by Martinski W. [2025-Feb-28] ##
+##----------------------------------------##
 NTP_Ready()
 {
+	local theSleepDelay=15  ntpMaxWaitSecs=600  ntpWaitSecs
+
 	if [ "$(nvram get ntp_ready)" -eq 0 ]
 	then
 		Check_Lock
-		ntpwaitcount=0
-		while [ "$(nvram get ntp_ready)" -eq 0 ] && [ "$ntpwaitcount" -lt 600 ]
+		ntpWaitSecs=0
+		Print_Output true "Waiting for NTP to sync..." "$WARN"
+
+		while [ "$(nvram get ntp_ready)" -eq 0 ] && [ "$ntpWaitSecs" -lt "$ntpMaxWaitSecs" ]
 		do
-			ntpwaitcount="$((ntpwaitcount + 30))"
-			Print_Output true "Waiting for NTP to sync..." "$WARN"
-			sleep 30
+			if [ "$ntpWaitSecs" -gt 0 ] && [ "$((ntpWaitSecs % 30))" -eq 0 ]
+			then
+			    Print_Output true "Waiting for NTP to sync [$ntpWaitSecs secs]..." "$WARN"
+			fi
+			sleep "$theSleepDelay"
+			ntpWaitSecs="$((ntpWaitSecs + theSleepDelay))"
 		done
-		if [ "$ntpwaitcount" -ge 600 ]
+		if [ "$ntpWaitSecs" -ge "$ntpMaxWaitSecs" ]
 		then
 			Print_Output true "NTP failed to sync after 10 minutes. Please resolve!" "$CRIT"
 			Clear_Lock
@@ -4961,11 +5278,11 @@ NTP_Ready()
 
 ### function based on @Adamm00's Skynet USB wait function ###
 ##----------------------------------------##
-## Modified by Martinski W. [2024-Dec-21] ##
+## Modified by Martinski W. [2025-Feb-28] ##
 ##----------------------------------------##
 Entware_Ready()
 {
-	local theSleepDelay=5  maxSleepTimer=100  sleepTimerSecs
+	local theSleepDelay=5  maxSleepTimer=120  sleepTimerSecs
 
 	if [ ! -f /opt/bin/opkg ]
 	then
@@ -4976,29 +5293,31 @@ Entware_Ready()
 		do
 			if [ "$((sleepTimerSecs % 10))" -eq 0 ]
 			then
-			    Print_Output true "Entware NOT found, sleeping for $theSleepDelay secs [$sleepTimerSecs secs]..." "$WARN"
+			    Print_Output true "Entware NOT found. Wait for Entware to be ready [$sleepTimerSecs secs]..." "$WARN"
 			fi
 			sleep "$theSleepDelay"
 			sleepTimerSecs="$((sleepTimerSecs + theSleepDelay))"
 		done
 		if [ ! -f /opt/bin/opkg ]
 		then
-			Print_Output true "Entware NOT found and is required for $SCRIPT_NAME to run, please resolve." "$CRIT"
+			Print_Output true "Entware NOT found and is required for $SCRIPT_NAME to run, please resolve!" "$CRIT"
 			Clear_Lock
 			exit 1
 		else
-			Print_Output true "Entware found, $SCRIPT_NAME will now continue" "$PASS"
+			Print_Output true "Entware found. $SCRIPT_NAME will now continue" "$PASS"
 			Clear_Lock
 		fi
 	fi
 }
-### ###
 
 ### function based on @dave14305's FlexQoS about function ###
+##----------------------------------------##
+## Modified by Martinski W. [2025-May-13] ##
+##----------------------------------------##
 Show_About()
 {
 	cat <<EOF
-About
+About $SCRIPT_VERS_INFO
   $SCRIPT_NAME is an internet connection monitoring tool for
   AsusWRT Merlin with charts for daily, weekly and monthly
   summaries.
@@ -5013,14 +5332,17 @@ Help & Support
 Source code
   https://github.com/jackyaz/$SCRIPT_NAME
 EOF
-	printf "\\n"
+	printf "\n"
 }
-### ###
 
 ### function based on @dave14305's FlexQoS show_help function ###
+##----------------------------------------##
+## Modified by Martinski W. [2025-May-13] ##
+##----------------------------------------##
 Show_Help()
 {
 	cat <<EOF
+HELP $SCRIPT_VERS_INFO
 Available commands:
   $SCRIPT_NAME about            explains functionality
   $SCRIPT_NAME update           checks for updates
@@ -5039,8 +5361,6 @@ EOF
 	printf "\n"
 }
 
-### ###
-
 ##-------------------------------------##
 ## Added by Martinski W. [2024-Dec-21] ##
 ##-------------------------------------##
@@ -5057,7 +5377,16 @@ SCRIPT_CONF="$SCRIPT_STORAGE_DIR/config"
 CONNSTATS_DB="$SCRIPT_STORAGE_DIR/connstats.db"
 CSV_OUTPUT_DIR="$SCRIPT_STORAGE_DIR/csv"
 USER_SCRIPT_DIR="$SCRIPT_STORAGE_DIR/userscripts.d"
+JFFS_LowFreeSpaceStatus="OK"
 
+if [ "$SCRIPT_BRANCH" != "develop" ]
+then SCRIPT_VERS_INFO=""
+else SCRIPT_VERS_INFO="$scriptVERINFO"
+fi
+
+##----------------------------------------##
+## Modified by Martinski W. [2025-Feb-11] ##
+##----------------------------------------##
 if [ $# -eq 0 ] || [ -z "$1" ]
 then
 	NTP_Ready
@@ -5079,6 +5408,7 @@ then
 	fi
 	Auto_ServiceEvent create 2>/dev/null
 	Shortcut_Script create
+	_CheckFor_WebGUI_Page_
 	Process_Upgrade
 	ScriptHeader
 	MainMenu
@@ -5324,7 +5654,7 @@ case "$1" in
 	;;
 	stable)
 		SCRIPT_BRANCH="master"
-		SCRIPT_REPO="hhttps://raw.githubusercontent.com/AMTM-OSR/$SCRIPT_NAME/$SCRIPT_BRANCH"
+		SCRIPT_REPO="https://raw.githubusercontent.com/AMTM-OSR/$SCRIPT_NAME/$SCRIPT_BRANCH"
 		Update_Version force
 		exit 0
 	;;

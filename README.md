@@ -1,7 +1,7 @@
 # connmon
 
 ## v3.0.3
-### Updated on 2025-May-18
+### Updated on 2025-May-24
 ## About
 connmon is an internet connection monitoring tool for AsusWRT Merlin with charts for daily, weekly and monthly summaries.
 
@@ -13,7 +13,7 @@ You must be running firmware Merlin 384.15/384.13_4 or Fork 43E5 (or later) [Asu
 ## Installation
 Using your preferred SSH client/terminal, copy and paste the following command, then press Enter:
 ```sh
-/usr/sbin/curl -fsL --retry 3 "https://raw.githubusercontent.com/AMTM-OSR/connmon/master/install/connmon.sh" -o "/jffs/scripts/connmon" && chmod 0755 /jffs/scripts/connmon && /jffs/scripts/connmon install
+/usr/sbin/curl -fsL --retry 3 "https://raw.githubusercontent.com/AMTM-OSR/connmon/master/connmon.sh" -o "/jffs/scripts/connmon" && chmod 0755 /jffs/scripts/connmon && /jffs/scripts/connmon install
 ```
 
 ## Usage

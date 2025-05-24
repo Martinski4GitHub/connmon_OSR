@@ -38,12 +38,13 @@ function setCookie(cookiename, cookievalue)
 { cookie.set('conn_' + cookiename, cookievalue, 10 * 365); }
 
 /**----------------------------------------**/
-/** Modified by Martinski W. [2024-Dec-22] **/
+/** Modified by Martinski W. [2025-Feb-20] **/
 /**----------------------------------------**/
 let databaseResetDone = 0;
-var jffsAvailableSpace = '0 Bytes';
 var automaticModeState = 'ENABLED';
 var sqlDatabaseFileSize = '0 Bytes';
+var jffsAvailableSpaceStr = '0 Bytes';
+var jffsAvailableSpaceLow = 'OK';
 
 var daysofweek = ['Mon', 'Tues', 'Wed', 'Thurs', 'Fri', 'Sat', 'Sun'];
 var pingtestdur = 60;
@@ -85,7 +86,8 @@ var intervallist = [24, 7, 30];
 var bordercolourlist = ['#fc8500', '#42ecf5', '#fff'];
 var backgroundcolourlist = ['rgba(252,133,0,0.5)', 'rgba(66,236,245,0.5)', 'rgba(255,255,255,0.5)'];
 
-function settingHint(hintid) {
+function settingHint(hintid)
+{
 	hintid = hintid * 1;
 	var tagName = document.getElementsByTagName('a');
 	for (var i = 0; i < tagName.length; i++) {
@@ -207,10 +209,12 @@ function validateIP(forminput) {
 	}
 }
 
-function validateDomain(forminput) {
+function validateDomain(forminput)
+{
 	var inputvalue = forminput.value;
 	var inputname = forminput.name;
-	if (/^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9]$/.test(inputvalue)) {
+	if (/^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9]$/.test(inputvalue))
+	{
 		$(forminput).removeClass('invalid');
 		return true;
 	}
@@ -220,34 +224,41 @@ function validateDomain(forminput) {
 	}
 }
 
-function validateNumberSetting(forminput, upperlimit, lowerlimit) {
+function validateNumberSetting (forminput, upperlimit, lowerlimit)
+{
 	var inputname = forminput.name;
 	var inputvalue = forminput.value * 1;
 
-	if (inputvalue > upperlimit || inputvalue < lowerlimit) {
+	if (inputvalue > upperlimit || inputvalue < lowerlimit)
+	{
 		$(forminput).addClass('invalid');
 		return false;
 	}
-	else {
+	else
+	{
 		$(forminput).removeClass('invalid');
 		return true;
 	}
 }
 
-function formatNumberSetting(forminput) {
+function formatNumberSetting (forminput)
+{
 	var inputname = forminput.name;
 	var inputvalue = forminput.value * 1;
 
-	if (forminput.value.length === 0 || isNaN(inputvalue)) {
+	if (forminput.value.length === 0 || isNaN(inputvalue))
+	{
 		return false;
 	}
-	else {
+	else
+	{
 		forminput.value = parseInt(forminput.value, 10);
 		return true;
 	}
 }
 
-function formatNumberSetting3DP(forminput) {
+function formatNumberSetting3DP(forminput)
+{
 	var inputname = forminput.name;
 	var inputvalue = forminput.value * 1;
 
@@ -260,23 +271,23 @@ function formatNumberSetting3DP(forminput) {
 	}
 }
 
-function validateSchedule(forminput, hoursmins) {
+function validateSchedule (forminput, hoursmins)
+{
 	var inputname = forminput.name;
 	var inputvalues = forminput.value.split(',');
 	var upperlimit = 0;
 
-	if (hoursmins === 'hours') {
-		upperlimit = 23;
-	}
-	else if (hoursmins === 'mins') {
-		upperlimit = 59;
-	}
+	if (hoursmins === 'hours')
+	{ upperlimit = 23; }
+	else if (hoursmins === 'mins')
+	{ upperlimit = 59; }
 
 	showhide('btnfixhours', false);
 	showhide('btnfixmins', false);
 
 	var validationfailed = 'false';
-	for (var i = 0; i < inputvalues.length; i++) {
+	for (var i = 0; i < inputvalues.length; i++)
+	{
 		if (inputvalues[i] === '*' && i === 0) {
 			validationfailed = 'false';
 		}
@@ -338,81 +349,120 @@ function validateSchedule(forminput, hoursmins) {
 			validationfailed = 'true';
 		}
 	}
-
-	if (validationfailed === 'true') {
+	if (validationfailed === 'true')
+	{
 		$(forminput).addClass('invalid');
 		return false;
 	}
-	else {
+	else
+	{
 		$(forminput).removeClass('invalid');
 		return true;
 	}
 }
 
-function validateScheduleValue(forminput) {
+function validateScheduleValue (forminput)
+{
 	var inputname = forminput.name;
 	var inputvalue = forminput.value * 1;
 
 	var upperlimit = 0;
 	var lowerlimit = 1;
-
 	var unittype = $('#everyxselect').val();
 
-	if (unittype === 'hours') {
-		upperlimit = 24;
-	}
-	else if (unittype === 'minutes') {
-		upperlimit = 30;
-	}
+	if (unittype === 'hours')
+	{ upperlimit = 24; }
+	else if (unittype === 'minutes')
+	{ upperlimit = 30; }
 
-	if (inputvalue > upperlimit || inputvalue < lowerlimit || forminput.value.length < 1) {
+	if (inputvalue > upperlimit || inputvalue < lowerlimit || forminput.value.length < 1)
+	{
 		$(forminput).addClass('invalid');
 		return false;
 	}
-	else {
+	else
+	{
 		$(forminput).removeClass('invalid');
 		return true;
 	}
 }
 
-function validateAll() {
-	var validationfailed = false;
-	if (!validateIP(document.form.connmon_ipaddr)) { validationfailed = true; }
-	if (!validateDomain(document.form.connmon_domain)) { validationfailed = true; }
-	if (!validateNumberSetting(document.form.connmon_pingduration, 60, 10)) { validationfailed = true; }
-	if (!validateNumberSetting(document.form.connmon_lastxresults, 100, 10)) { validationfailed = true; }
-	if (!validateNumberSetting(document.form.connmon_daystokeep, 365, 30)) { validationfailed = true; }
-	if (document.form.schedulemode.value === 'EveryX') {
-		if (!validateScheduleValue(document.form.everyxvalue)) { validationfailed = true; }
-	}
-	else if (document.form.schedulemode.value === 'Custom') {
-		if (!validateSchedule(document.form.connmon_schhours, 'hours')) { validationfailed = true; }
-		if (!validateSchedule(document.form.connmon_schmins, 'mins')) { validationfailed = true; }
-	}
+/**----------------------------------------**/
+/** Modified by Martinski W. [2025-Feb-08] **/
+/**----------------------------------------**/
+//Between 15 and 365 days, Default: 30//
+const theDaysToKeepMIN = 15;
+const theDaysToKeepDEF = 30;
+const theDaysToKeepMAX = 365;
+const theDaysToKeepTXT = `(between ${theDaysToKeepMIN} and ${theDaysToKeepMAX}, default: ${theDaysToKeepDEF})`;
 
-	if (validationfailed) {
-		alert('Validation for some fields failed. Please correct invalid values and try again.');
+//Between 5 and 100 results, Default: 10//
+const theLastXResultsMIN = 5;
+const theLastXResultsDEF = 10;
+const theLastXResultsMAX = 100;
+const theLastXResultsTXT = `(between ${theLastXResultsMIN} and ${theLastXResultsMAX}, default: ${theLastXResultsDEF})`;
+
+//Between 10 and 60 seconds, Default: 30//
+const thePingDurationMIN = 10;
+const thePingDurationDEF = 30;
+const thePingDurationMAX = 60;
+const thePingDurationTXT = `(between ${thePingDurationMIN} and ${thePingDurationMAX}, default: ${thePingDurationDEF})`;
+
+function validateAll()
+{
+	var validationfailed = false;
+	if (!validateIP(document.form.connmon_ipaddr))
+	{ validationfailed = true; }
+	if (!validateDomain(document.form.connmon_domain))
+	{ validationfailed = true; }
+	if (!validateNumberSetting(document.form.connmon_pingduration, thePingDurationMAX, thePingDurationMIN))
+	{ validationfailed = true; }
+	if (!validateNumberSetting(document.form.connmon_lastxresults, theLastXResultsMAX, theLastXResultsMIN))
+	{ validationfailed = true; }
+	if (!validateNumberSetting(document.form.connmon_daystokeep, theDaysToKeepMAX, theDaysToKeepMIN))
+	{ validationfailed = true; }
+	if (document.form.connmon_automaticmode.value === 'true')
+	{
+		if (document.form.schedulemode.value === 'EveryX')
+		{
+			if (!validateScheduleValue (document.form.everyxvalue))
+			{ validationfailed = true; }
+		}
+		else if (document.form.schedulemode.value === 'Custom')
+		{
+			if (!validateSchedule (document.form.connmon_schhours, 'hours')) 
+			{ validationfailed = true; }
+			if (!validateSchedule (document.form.connmon_schmins, 'mins')) 
+			{ validationfailed = true; }
+		}
+	}
+	if (validationfailed)
+	{
+		alert('**ERROR**\nValidation for some fields failed.\nPlease correct invalid values and try again.');
 		return false;
 	}
-	else {
-		return true;
-	}
+	else
+	{ return true; }
 }
 
-function fixCron(hoursmins) {
-	if (hoursmins === 'hours') {
+function fixCron(hoursmins)
+{
+	if (hoursmins === 'hours')
+	{
 		var origvalue = document.form.connmon_schhours.value;
 		document.form.connmon_schhours.value = origvalue.split('-')[0] + '-23,0-' + origvalue.split('-')[1];
-		validateSchedule(document.form.connmon_schhours, 'hours');
+		validateSchedule (document.form.connmon_schhours, 'hours');
 	}
-	else if (hoursmins === 'mins') {
+	else if (hoursmins === 'mins')
+	{
 		var origvalue = document.form.connmon_schmins.value;
 		document.form.connmon_schmins.value = origvalue.split('-')[0] + '-59,0-' + origvalue.split('-')[1];
-		validateSchedule(document.form.connmon_schmins, 'mins');
+		validateSchedule (document.form.connmon_schmins, 'mins');
 	}
 }
 
-function changePingType(forminput) {
+function changePingType(forminput)
+{
 	var inputvalue = forminput.value * 1;
 	var inputname = forminput.name;
 	if (inputvalue === 0) {
@@ -425,7 +475,8 @@ function changePingType(forminput) {
 	}
 }
 
-function getTimeFormat(value, format) {
+function getTimeFormat(value, format)
+{
 	var timeformat;
 	value = value * 1;
 	if (format === 'axis') {
@@ -1231,28 +1282,34 @@ function automaticTestEnableDisable(forminput)
 
 	if (inputvalue === 'false')
 	{
-		for (var i = 0; i < fieldnames.length; i++) {
+		for (var i = 0; i < fieldnames.length; i++)
+		{
 			$('input[name=' + prefix + '_' + fieldnames[i] + ']').addClass('disabled');
 			$('input[name=' + prefix + '_' + fieldnames[i] + ']').prop('disabled', true);
 		}
-		for (var i = 0; i < daysofweek.length; i++) {
+		for (var i = 0; i < daysofweek.length; i++)
+		{
 			$('#' + prefix + '_' + daysofweek[i].toLowerCase()).prop('disabled', true);
 		}
-		for (var i = 0; i < fieldnames2.length; i++) {
+		for (var i = 0; i < fieldnames2.length; i++)
+		{
 			$('[name=' + fieldnames2[i] + ']').addClass('disabled');
 			$('[name=' + fieldnames2[i] + ']').prop('disabled', true);
 		}
 	}
 	else if (inputvalue === 'true')
 	{
-		for (var i = 0; i < fieldnames.length; i++) {
+		for (var i = 0; i < fieldnames.length; i++)
+		{
 			$('input[name=' + prefix + '_' + fieldnames[i] + ']').removeClass('disabled');
 			$('input[name=' + prefix + '_' + fieldnames[i] + ']').prop('disabled', false);
 		}
-		for (var i = 0; i < daysofweek.length; i++) {
+		for (var i = 0; i < daysofweek.length; i++)
+		{
 			$('#' + prefix + '_' + daysofweek[i].toLowerCase()).prop('disabled', false);
 		}
-		for (var i = 0; i < fieldnames2.length; i++) {
+		for (var i = 0; i < fieldnames2.length; i++)
+		{
 			$('[name=' + fieldnames2[i] + ']').removeClass('disabled');
 			$('[name=' + fieldnames2[i] + ']').prop('disabled', false);
 		}
@@ -1264,19 +1321,23 @@ function scheduleModeToggle(forminput)
 	var inputname = forminput.name;
 	var inputvalue = forminput.value;
 
-	if (inputvalue === 'EveryX') {
+	if (inputvalue === 'EveryX')
+	{
 		showhide('schfrequency', true);
 		showhide('schcustom', false);
-		if ($('#everyxselect').val() === 'hours') {
+		if ($('#everyxselect').val() === 'hours')
+		{
 			showhide('spanxhours', true);
 			showhide('spanxminutes', false);
 		}
-		else if ($('#everyxselect').val() === 'minutes') {
+		else if ($('#everyxselect').val() === 'minutes')
+		{
 			showhide('spanxhours', false);
 			showhide('spanxminutes', true);
 		}
 	}
-	else if (inputvalue === 'Custom') {
+	else if (inputvalue === 'Custom')
+	{
 		showhide('schfrequency', false);
 		showhide('schcustom', true);
 	}
@@ -1362,36 +1423,46 @@ function getEmailpwFile()
 }
 
 /**----------------------------------------**/
-/** Modified by Martinski W. [2024-Dec-15] **/
+/** Modified by Martinski W. [2025-Feb-05] **/
 /**----------------------------------------**/
-function getConfFile()
+function getConfigFile()
 {
 	$.ajax({
 		url: '/ext/connmon/config.htm',
 		dataType: 'text',
 		cache: false,
 		error: function (xhr) {
-			setTimeout(getConfFile, 1000);
+			setTimeout(getConfigFile, 1000);
 		},
 		success: function (data)
 		{
+			let settingname, settingvalue;
 			var configdata = data.split('\n');
 			configdata = configdata.filter(Boolean);
 
-			for (var i = 0; i < configdata.length; i++)
+			for (var indx = 0; indx < configdata.length; indx++)
 			{
-				let settingname = configdata[i].split('=')[0].toLowerCase();
-				let settingvalue = configdata[i].split('=')[1].replace(/(\r\n|\n|\r)/gm, '');
+				if (configdata[indx].length === 0 || configdata[indx].match('^[ ]*#') !== null)
+				{ continue; }  //Skip comments & empty lines//
 
+				settingname = configdata[indx].split('=')[0];
+				settingvalue = configdata[indx].split('=')[1].replace(/(\r\n|\n|\r)/gm,'');
+
+				if (settingname.match(/^JFFS_MSGLOGTIME/) != null)
+				{ continue; }  //Skip this config setting// 
+
+				settingname = settingname.toLowerCase();
 				if (settingname.indexOf('pingserver') !== -1)
 				{
 					var pingserver = settingvalue;
 					document.form.connmon_pingserver.value = pingserver;
-					if (validateIP(document.form.connmon_pingserver)) {
+					if (validateIP(document.form.connmon_pingserver))
+					{
 						document.form.pingtype.value = 0;
 						document.form.connmon_ipaddr.value = pingserver;
 					}
-					else {
+					else
+					{
 						document.form.pingtype.value = 1;
 						document.form.connmon_domain.value = pingserver;
 					}
@@ -1399,72 +1470,77 @@ function getConfFile()
 				}
 				else if (settingname.indexOf('schdays') !== -1)
 				{
-					if (settingvalue === '*') {
-						for (var i2 = 0; i2 < daysofweek.length; i2++) {
-							$('#connmon_' + daysofweek[i2].toLowerCase()).prop('checked', true);
-						}
+					if (settingvalue === '*')
+					{
+						for (var i2 = 0; i2 < daysofweek.length; i2++)
+						{ $('#connmon_' + daysofweek[i2].toLowerCase()).prop('checked', true); }
 					}
-					else {
+					else
+					{
 						var schdayarray = settingvalue.split(',');
-						for (var i2 = 0; i2 < schdayarray.length; i2++) {
-							$('#connmon_' + schdayarray[i2].toLowerCase()).prop('checked', true);
-						}
+						for (var i2 = 0; i2 < schdayarray.length; i2++)
+						{ $('#connmon_' + schdayarray[i2].toLowerCase()).prop('checked', true); }
 					}
 				}
 				else if (settingname === 'notifications_pingtest')
 				{
 					var pingtesttypearray = settingvalue.split(',');
-					for (var i2 = 0; i2 < pingtesttypearray.length; i2++) {
-						$('#connmon_pingtest_' + pingtesttypearray[i2].toLowerCase()).prop('checked', true);
-					}
+					for (var i2 = 0; i2 < pingtesttypearray.length; i2++)
+					{ $('#connmon_pingtest_' + pingtesttypearray[i2].toLowerCase()).prop('checked', true); }
 				}
 				else if (settingname === 'notifications_pingthreshold')
 				{
 					var pingthresholdtypearray = settingvalue.split(',');
-					for (var i2 = 0; i2 < pingthresholdtypearray.length; i2++) {
-						$('#connmon_pingthreshold_' + pingthresholdtypearray[i2].toLowerCase()).prop('checked', true);
-					}
+					for (var i2 = 0; i2 < pingthresholdtypearray.length; i2++)
+					{ $('#connmon_pingthreshold_' + pingthresholdtypearray[i2].toLowerCase()).prop('checked', true); }
 				}
 				else if (settingname === 'notifications_jitterthreshold')
 				{
 					var jitterthresholdtypearray = settingvalue.split(',');
-					for (var i2 = 0; i2 < jitterthresholdtypearray.length; i2++) {
-						$('#connmon_jitterthreshold_' + jitterthresholdtypearray[i2].toLowerCase()).prop('checked', true);
-					}
+					for (var i2 = 0; i2 < jitterthresholdtypearray.length; i2++)
+					{ $('#connmon_jitterthreshold_' + jitterthresholdtypearray[i2].toLowerCase()).prop('checked', true); }
 				}
-				else if (settingname === 'notifications_linequalitythreshold') {
+				else if (settingname === 'notifications_linequalitythreshold')
+				{
 					var linequalitythresholdtypearray = settingvalue.split(',');
-					for (var i2 = 0; i2 < linequalitythresholdtypearray.length; i2++) {
-						$('#connmon_linequalitythreshold_' + linequalitythresholdtypearray[i2].toLowerCase()).prop('checked', true);
-					}
+					for (var i2 = 0; i2 < linequalitythresholdtypearray.length; i2++)
+					{ $('#connmon_linequalitythreshold_' + linequalitythresholdtypearray[i2].toLowerCase()).prop('checked', true); }
 				}
-				else if (settingname.indexOf('notifications_email_list') !== -1 || settingname.indexOf('notifications_pushover_list') !== -1 || settingname.indexOf('notifications_webhook_list') !== -1) {
+				else if (settingname.indexOf('notifications_email_list') !== -1 || settingname.indexOf('notifications_pushover_list') !== -1 || settingname.indexOf('notifications_webhook_list') !== -1)
+				{
 					eval('document.form.connmon_' + settingname).value = settingvalue.replace(/,/g, '\n');
 				}
-				else {
+				else
+				{
 					eval('document.form.connmon_' + settingname).value = settingvalue;
 				}
-
-				if (settingname.indexOf('automaticmode') !== -1) {
+				if (settingname.indexOf('automaticmode') !== -1)
+				{
 					automaticTestEnableDisable($('#connmon_auto_' + document.form.connmon_automaticmode.value)[0]);
 				}
-
-				if (settingname.indexOf('pingduration') !== -1) {
+				if (settingname.indexOf('pingduration') !== -1)
+				{
 					pingtestdur = document.form.connmon_pingduration.value;
 				}
 			}
+			document.getElementById('theDaysToKeepText').textContent = theDaysToKeepTXT;
+			document.getElementById('theLastXResultsText').textContent = theLastXResultsTXT;
+			document.getElementById('thePingDurationText').textContent = thePingDurationTXT;
 
-			if ($('[name=connmon_schhours]').val().indexOf('/') !== -1 && $('[name=connmon_schmins]').val() * 1 === 0) {
+			if ($('[name=connmon_schhours]').val().indexOf('/') !== -1 && $('[name=connmon_schmins]').val() * 1 === 0)
+			{
 				document.form.schedulemode.value = 'EveryX';
 				document.form.everyxselect.value = 'hours';
 				document.form.everyxvalue.value = $('[name=connmon_schhours]').val().split('/')[1];
 			}
-			else if ($('[name=connmon_schmins]').val().indexOf('/') !== -1 && $('[name=connmon_schhours]').val() === '*') {
+			else if ($('[name=connmon_schmins]').val().indexOf('/') !== -1 && $('[name=connmon_schhours]').val() === '*')
+			{
 				document.form.schedulemode.value = 'EveryX';
 				document.form.everyxselect.value = 'minutes';
 				document.form.everyxvalue.value = $('[name=connmon_schmins]').val().split('/')[1];
 			}
-			else {
+			else
+			{
 				document.form.schedulemode.value = 'Custom';
 			}
 			scheduleModeToggle($('#schmode_' + $('[name=schedulemode]:checked').val().toLowerCase())[0]);
@@ -1473,26 +1549,48 @@ function getConfFile()
 }
 
 /**----------------------------------------**/
-/** Modified by Martinski W. [2024-Dec-22] **/
+/** Modified by Martinski W. [2025-Feb-20] **/
 /**----------------------------------------**/
-function getStatstitleFile()
+function getStatsTitleFile()
 {
 	$.ajax({
 		url: '/ext/connmon/connstatstext.js',
 		dataType: 'script',
 		error: function (xhr) {
-			setTimeout(getStatstitleFile, 2000);
+			setTimeout(getStatsTitleFile, 2000);
 		},
 		success: function()
 		{
 			setConnmonStatsTitle();
-			document.getElementById('databaseSize_text').textContent  = 'Database Size: '+sqlDatabaseFileSize;
-			document.getElementById('jffsFreeSpace_text').textContent  = 'JFFS Available: '+jffsAvailableSpace;
-			if (automaticModeState === 'ENABLED')
-			{ document.getElementById('autoModeState_text').innerHTML = 'Currently: <span style="margin-left:8px; background-color: #229652; color:#f2f2f2;">&nbsp;ENABLED&nbsp;</span>' ; }
-			else
-			{ document.getElementById('autoModeState_text').innerHTML = 'Currently: <span style="margin-left:8px; background-color: #C81927; color:#f2f2f2;">&nbsp;DISABLED&nbsp;</span>' ; }
+			document.getElementById('databaseSize_text').textContent = 'Database Size: '+sqlDatabaseFileSize;
 
+			if (jffsAvailableSpaceLow.match(/^WARNING[0-9]/) === null)
+			{
+				showhide('jffsFreeSpace_LOW',false);
+				showhide('jffsFreeSpace_NOTE',false);
+				showhide('jffsFreeSpace_WARN',false);
+				document.getElementById('jffsFreeSpace_text').textContent = 'JFFS Available: ' + jffsAvailableSpaceStr;
+			}
+			else
+			{
+				document.getElementById('jffsFreeSpace_text').textContent = 'JFFS Available: ';
+				document.getElementById('jffsFreeSpace_LOW').textContent = jffsAvailableSpaceStr;
+				showhide('jffsFreeSpace_LOW',true);
+                if (document.form.connmon_storagelocation.value === 'jffs')
+				{ showhide('jffsFreeSpace_NOTE',false); showhide('jffsFreeSpace_WARN',true); }
+				else
+				{ showhide('jffsFreeSpace_WARN',false); showhide('jffsFreeSpace_NOTE',true); }
+			}
+			if (automaticModeState === 'ENABLED')
+			{
+				document.getElementById('autoModeState_text').innerHTML =
+					'Currently: <span style="margin-left:2px; background-color: #229652; color:#f2f2f2;">&nbsp;ENABLED&nbsp;</span>';
+            }
+			else
+			{
+				document.getElementById('autoModeState_text').innerHTML =
+					'Currently: <span style="margin-left:2px; background-color: #C81927; color:#f2f2f2;">&nbsp;DISABLED&nbsp;</span>'; 
+            }
 			if (databaseResetDone === 1)
 			{
 				currentNoCharts = 0;
@@ -1500,12 +1598,13 @@ function getStatstitleFile()
 				redrawAllCharts();
 				databaseResetDone += 1;
 			}
-			setTimeout(getStatstitleFile, 4000);
+			setTimeout(getStatsTitleFile, 4000);
 		}
 	});
 }
 
-function getCronFile() {
+function getCronFile()
+{
 	$.ajax({
 		url: '/ext/connmon/cron.js',
 		dataType: 'text',
@@ -1608,7 +1707,7 @@ function scriptUpdateLayout() {
 }
 
 /**----------------------------------------**/
-/** Modified by Martinski W. [2024-Dec-15] **/
+/** Modified by Martinski W. [2025-Feb-19] **/
 /**----------------------------------------**/
 function initial()
 {
@@ -1619,9 +1718,9 @@ function initial()
 	document.formScriptActions.submit();
 	setTimeout(getCustomactionList, 10000);
 	setTimeout(getEmailpwFile, 10000);
-	getConfFile();
+	getConfigFile();
 	getEmailConfFile();
-	getStatstitleFile();
+	getStatsTitleFile();
 	getEmailInfo();
 	getCronFile();
 	getChangelogFile();
@@ -1634,6 +1733,9 @@ function initial()
 	scriptUpdateLayout();
 	showhide('databaseSize_text',true);
 	showhide('jffsFreeSpace_text',true);
+	showhide('jffsFreeSpace_LOW',false);
+	showhide('jffsFreeSpace_WARN',false);
+	showhide('jffsFreeSpace_NOTE',false);
 	showhide('autoModeState_text',true);
 	var starttab = getCookie('StartTab', 'number');
 	if (starttab === 0) { starttab = 1; }
@@ -1719,7 +1821,7 @@ function postConnTest()
 {
 	currentNoCharts = 0;
 	$('#Time_Format').val(getCookie('Time_Format', 'number'));
-	setTimeout(getStatstitleFile, 3000);
+	setTimeout(getStatsTitleFile, 3000);
 	setTimeout(redrawAllCharts, 3000);
 }
 
@@ -1750,6 +1852,9 @@ function saveStatus(section)
 	});
 }
 
+/**----------------------------------------**/
+/** Modified by Martinski W. [2025-Feb-08] **/
+/**----------------------------------------**/
 function saveConfig(section)
 {
 	switch (section)
@@ -1760,32 +1865,38 @@ function saveConfig(section)
 				var disabledfields = $('#' + section).find('[disabled]');
 				disabledfields.prop('disabled', false);
 
-				if (document.form.pingtype.value * 1 === 0) {
+				if (document.form.pingtype.value * 1 === 0)
+				{
 					document.form.connmon_pingserver.value = document.form.connmon_ipaddr.value;
 				}
-				else if (document.form.pingtype.value * 1 === 1) {
+				else if (document.form.pingtype.value * 1 === 1)
+				{
 					document.form.connmon_pingserver.value = document.form.connmon_domain.value;
 				}
-
-				if (document.form.schedulemode.value === 'EveryX')
+				if (document.form.connmon_automaticmode.value === 'true')
 				{
-					if (document.form.everyxselect.value === 'hours')
+					if (document.form.schedulemode.value === 'EveryX')
 					{
-						var everyxvalue = document.form.everyxvalue.value * 1;
-						document.form.connmon_schmins.value = 0;
-						if (everyxvalue === 24) {
-							document.form.connmon_schhours.value = 0;
+						if (document.form.everyxselect.value === 'hours')
+						{
+							var everyxvalue = document.form.everyxvalue.value * 1;
+							document.form.connmon_schmins.value = 0;
+							if (everyxvalue === 24)
+							{ document.form.connmon_schhours.value = 0; }
+							else
+							{ document.form.connmon_schhours.value = '*/' + everyxvalue; }
 						}
-						else {
-							document.form.connmon_schhours.value = '*/' + everyxvalue;
+						else if (document.form.everyxselect.value === 'minutes')
+						{
+							document.form.connmon_schhours.value = '*';
+							var everyxvalue = document.form.everyxvalue.value * 1;
+							document.form.connmon_schmins.value = '*/' + everyxvalue;
 						}
 					}
-					else if (document.form.everyxselect.value === 'minutes')
-					{
-						document.form.connmon_schhours.value = '*';
-						var everyxvalue = document.form.everyxvalue.value * 1;
-						document.form.connmon_schmins.value = '*/' + everyxvalue;
-					}
+				}
+				else
+				{
+					automaticTestEnableDisable($('#connmon_auto_' + document.form.connmon_automaticmode.value)[0]);
 				}
 				document.getElementById('amng_custom').value = JSON.stringify($('#' + section).find('input,select,textarea').serializeObject());
 				document.formScriptActions.action_script.value = 'start_addon_settings;start_connmonconfig';
@@ -1796,9 +1907,8 @@ function saveConfig(section)
 				iziToast.info({ message: 'Saving...', timeout: false });
 				setTimeout(saveStatus, 5000, section);
 			}
-			else {
-				return false;
-			}
+			else
+			{ return false; }
 			break;
 		case 'NotificationMethodNavigate1Config':
 			var disabledfields = $('#' + section).find('[disabled]');
@@ -1839,7 +1949,8 @@ function saveConfig(section)
 	}
 }
 
-function getConntestResultFile() {
+function getConntestResultFile()
+{
 	$.ajax({
 		url: '/ext/connmon/ping-result.htm',
 		dataType: 'text',
@@ -1893,19 +2004,21 @@ function testNotification(testname) {
 	}
 }
 
-function everyXToggle(forminput) {
+function everyXToggle (forminput)
+{
 	var inputname = forminput.name;
 	var inputvalue = forminput.value;
 
-	if (inputvalue === 'hours') {
+	if (inputvalue === 'hours')
+	{
 		showhide('spanxhours', true);
 		showhide('spanxminutes', false);
 	}
-	else if (inputvalue === 'minutes') {
+	else if (inputvalue === 'minutes')
+	{
 		showhide('spanxhours', false);
 		showhide('spanxminutes', true);
 	}
-
 	validateScheduleValue($('[name=everyxvalue]')[0]);
 }
 
