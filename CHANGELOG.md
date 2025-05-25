@@ -1,6 +1,9 @@
 # Changelog
 
 ## v3.0.3
+Updated on 2025-May-25
+*   Moved to AMTM-OSR repo
+*   Changed repo paths to OSR, added OSR repo to headers, removed jackyaz.io tags in URL.
 Updated on 2025-Feb-18
 *   FIXED: Errors when loading the webGUI page on the 3006.102.1 F/W version.
 *   FIXED: Bug giving incorrect results when computing the free space available of a large-capacity USB-attached drive. This was preventing the user from resetting the database using the CLI menu.
