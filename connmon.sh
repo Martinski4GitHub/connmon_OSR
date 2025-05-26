@@ -5334,7 +5334,7 @@ Help & Support
   https://www.snbforums.com/forums/asuswrt-merlin-addons.60/?prefix_id=18
 
 Source code
-  https://github.com/jackyaz/$SCRIPT_NAME
+  https://github.com/AMTM-OSR/$SCRIPT_NAME
 EOF
 	printf "\n"
 }
