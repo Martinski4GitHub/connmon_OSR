@@ -8,13 +8,13 @@
 ##    \___| \___/ |_| |_||_| |_||_| |_| |_| \___/ |_| |_|   ##
 ##                                                          ##
 ##           https://github.com/AMTM-OSR/connmon            ##
-##     Forked from: https://github.com/jackyaz/connmon      ##
+##      Forked from https://github.com/jackyaz/connmon      ##
 ##                                                          ##
 ##############################################################
-# Last Modified: 2025-May-25
+# Last Modified: 2025-Jun-04
 #-------------------------------------------------------------
-## Modification by thelonelycoder [2025-May-25] ##
-# Changed repo paths to OSR, added OSR repo to headers, removed jackyaz.io tags in URL. 
+# Modification by thelonelycoder [2025-May-25]
+# Changed repo paths to OSR, added OSR repo to headers, removed jackyaz.io tags in URL.
 
 ##############        Shellcheck directives      #############
 # shellcheck disable=SC1090
@@ -38,9 +38,9 @@
 
 ### Start of script variables ###
 readonly SCRIPT_NAME="connmon"
-readonly SCRIPT_VERSION="v3.0.4"
-readonly SCRIPT_VERSTAG="25052507"
-SCRIPT_BRANCH="master"
+readonly SCRIPT_VERSION="v3.0.5"
+readonly SCRIPT_VERSTAG="25060412"
+SCRIPT_BRANCH="develop"
 SCRIPT_REPO="https://raw.githubusercontent.com/AMTM-OSR/$SCRIPT_NAME/$SCRIPT_BRANCH"
 readonly SCRIPT_DIR="/jffs/addons/$SCRIPT_NAME.d"
 readonly SCRIPT_WEBPAGE_DIR="$(readlink -f /www/user)"
@@ -84,6 +84,13 @@ readonly ni9MByte=9437184
 readonly tenMByte=10485760
 readonly oneGByte=1073741824
 readonly SHARE_TEMP_DIR="/opt/share/tmp"
+
+##-------------------------------------##
+## Added by Martinski W. [2025-Jun-04] ##
+##-------------------------------------##
+readonly sqlDBLogFileSize=102400
+readonly sqlDBLogDateTime="%Y-%m-%d %H:%M:%S"
+readonly sqlDBLogFileName="${SCRIPT_NAME}_DBSQL_DEBUG.LOG"
 
 ### End of script variables ###
 
@@ -1895,14 +1902,31 @@ _UpdateDatabaseFileSizeInfo_()
    _UpdateAutomaticModeState_
 }
 
+##-------------------------------------##
+## Added by Martinski W. [2025-Jun-04] ##
+##-------------------------------------##
+_SQLCheckDBLogFileSize_()
+{
+   if [ "$(_GetFileSize_ "$sqlDBLogFilePath")" -gt "$sqlDBLogFileSize" ]
+   then
+       cp -fp "$sqlDBLogFilePath" "${sqlDBLogFilePath}.BAK"
+       echo -n > "$sqlDBLogFilePath"
+   fi
+}
+
+_SQLGetDBLogTimeStamp_()
+{ printf "[$(date +"$sqlDBLogDateTime")]" ; }
+
 ##----------------------------------------##
-## Modified by Martinski W. [2025-Jan-28] ##
+## Modified by Martinski W. [2025-Jun-04] ##
 ##----------------------------------------##
 _ApplyDatabaseSQLCmds_()
 {
     local errorCount=0  maxErrorCount=5  callFlag
-    local triesCount=0  maxTriesCount=25  sqlErrorMsg
-    local tempLogFilePath="/tmp/connMonStats_TMP_$$.LOG"
+    local triesCount=0  maxTriesCount=10  sqlErrorMsg
+    local tempLogFilePath="/tmp/${SCRIPT_NAME}Stats_TMP_$$.LOG"
+    local debgLogFilePath="/tmp/${SCRIPT_NAME}Stats_DEBUG_$$.LOG"
+    local debgLogSQLcmds=false
 
     if [ $# -gt 1 ] && [ -n "$2" ]
     then callFlag="$2"
@@ -1911,7 +1935,7 @@ _ApplyDatabaseSQLCmds_()
 
     resultStr=""
     foundError=false ; foundLocked=false
-    rm -f "$tempLogFilePath"
+    rm -f "$tempLogFilePath" "$debgLogFilePath"
 
     while [ "$errorCount" -lt "$maxErrorCount" ] && \
           [ "$((triesCount++))" -lt "$maxTriesCount" ]
@@ -1920,24 +1944,48 @@ _ApplyDatabaseSQLCmds_()
         then foundError=false ; foundLocked=false ; break
         fi
         sqlErrorMsg="$(cat "$tempLogFilePath")"
+
         if echo "$sqlErrorMsg" | grep -qE "^(Parse error|Runtime error|Error:)"
         then
             if echo "$sqlErrorMsg" | grep -qE "^(Parse|Runtime) error .*: database is locked"
             then
+                foundLocked=true ; maxTriesCount=25
                 echo -n > "$tempLogFilePath"  ##Clear for next error found##
-                foundLocked=true ; sleep 2 ; continue
+                sleep 2 ; continue
             fi
             errorCount="$((errorCount + 1))"
             foundError=true ; foundLocked=false
             Print_Output true "SQLite3 failure[$callFlag]: $sqlErrorMsg" "$ERR"
-            echo -n > "$tempLogFilePath"  ##Clear for next error found##
         fi
+
+        if ! "$debgLogSQLcmds"
+        then
+           debgLogSQLcmds=true
+           {
+              echo "==========================================="
+              echo "$(_SQLGetDBLogTimeStamp_) BEGIN [$callFlag]"
+              echo "Database: $CONNSTATS_DB"
+           } > "$debgLogFilePath"
+        fi
+        cat "$tempLogFilePath" >> "$debgLogFilePath"
+        echo -n > "$tempLogFilePath"  ##Clear for next error found##
         [ "$triesCount" -ge "$maxTriesCount" ] && break
         [ "$errorCount" -ge "$maxErrorCount" ] && break
         sleep 1
     done
 
-    rm -f "$tempLogFilePath"
+    if "$debgLogSQLcmds"
+    then
+       {
+          echo "--------------------------------"
+          cat "$1"
+          echo "--------------------------------"
+          echo "$(_SQLGetDBLogTimeStamp_) END [$callFlag]"
+       } >> "$debgLogFilePath"
+       cat "$debgLogFilePath" >> "$sqlDBLogFilePath"
+    fi
+
+    rm -f "$tempLogFilePath" "$debgLogFilePath"
     if "$foundError"
     then resultStr="reported error(s)."
     elif "$foundLocked"
@@ -4037,7 +4085,7 @@ ScriptHeader()
 	printf "${BOLD}##                  %9s on %-18s         ##${CLEARFORMAT}\n" "$SCRIPT_VERSION" "$ROUTER_MODEL"
 	printf "${BOLD}##                                                          ##${CLEARFORMAT}\\n"
 	printf "${BOLD}##           https://github.com/AMTM-OSR/connmon            ##${CLEARFORMAT}\\n"
-	printf "${BOLD}##     Forked from: https://github.com/jackyaz/connmon      ##${CLEARFORMAT}\\n"
+	printf "${BOLD}##      Forked from https://github.com/jackyaz/connmon      ##${CLEARFORMAT}\\n"
 	printf "${BOLD}##                                                          ##${CLEARFORMAT}\\n"
 	printf "${BOLD}##############################################################${CLEARFORMAT}\\n"
 	printf "\\n"
@@ -5371,6 +5419,12 @@ EOF
 TMPDIR="$SHARE_TEMP_DIR"
 SQLITE_TMPDIR="$TMPDIR"
 export SQLITE_TMPDIR TMPDIR
+
+if [ -d "$TMPDIR" ]
+then sqlDBLogFilePath="${TMPDIR}/$sqlDBLogFileName"
+else sqlDBLogFilePath="/tmp/var/tmp/$sqlDBLogFileName"
+fi
+_SQLCheckDBLogFileSize_
 
 if [ -f "/opt/share/$SCRIPT_NAME.d/config" ]
 then SCRIPT_STORAGE_DIR="/opt/share/${SCRIPT_NAME}.d"
