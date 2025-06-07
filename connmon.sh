@@ -11,7 +11,7 @@
 ##      Forked from https://github.com/jackyaz/connmon      ##
 ##                                                          ##
 ##############################################################
-# Last Modified: 2025-Jun-04
+# Last Modified: 2025-Jun-06
 #-------------------------------------------------------------
 # Modification by thelonelycoder [2025-May-25]
 # Changed repo paths to OSR, added OSR repo to headers, removed jackyaz.io tags in URL.
@@ -39,7 +39,7 @@
 ### Start of script variables ###
 readonly SCRIPT_NAME="connmon"
 readonly SCRIPT_VERSION="v3.0.5"
-readonly SCRIPT_VERSTAG="25060412"
+readonly SCRIPT_VERSTAG="25060622"
 SCRIPT_BRANCH="develop"
 SCRIPT_REPO="https://raw.githubusercontent.com/AMTM-OSR/$SCRIPT_NAME/$SCRIPT_BRANCH"
 readonly SCRIPT_DIR="/jffs/addons/$SCRIPT_NAME.d"
@@ -614,6 +614,35 @@ Create_Symlinks()
 	fi
 }
 
+##-------------------------------------##
+## Added by Martinski W. [2025-Jun-06] ##
+##-------------------------------------##
+_GetConfigParam_()
+{
+   if [ $# -eq 0 ] || [ -z "$1" ]
+   then echo '' ; return 1 ; fi
+
+   local keyValue  checkFile
+   local defValue="$([ $# -eq 2 ] && echo "$2" || echo '')"
+
+   if [ ! -s "$SCRIPT_CONF" ]
+   then echo "$defValue" ; return 0 ; fi
+
+   if [ "$(grep -c "^${1}=" "$SCRIPT_CONF")" -gt 1 ]
+   then  ## Remove duplicates. Keep ONLY the 1st key ##
+       checkFile="${SCRIPT_CONF}.DUPKEY.txt"
+       awk "!(/^${1}=/ && dup[/^${1}=/]++)" "$SCRIPT_CONF" > "$checkFile"
+       if diff -q "$checkFile" "$SCRIPT_CONF" >/dev/null 2>&1
+       then rm -f "$checkFile"
+       else mv -f "$checkFile" "$SCRIPT_CONF"
+       fi
+   fi
+
+   keyValue="$(grep "^${1}=" "$SCRIPT_CONF" | cut -d'=' -f2)"
+   echo "${keyValue:=$defValue}"
+   return 0
+}
+
 ##----------------------------------------##
 ## Modified by Martinski W. [2025-Feb-05] ##
 ##----------------------------------------##
@@ -669,7 +698,7 @@ Conf_Exists()
 		if ! grep -q "^JFFS_MSGLOGTIME=" "$SCRIPT_CONF"; then
 			echo "JFFS_MSGLOGTIME=0" >> "$SCRIPT_CONF"
 		fi
-		if ! grep -q "^NOTIFICATIONS" "$SCRIPT_CONF"
+		if ! grep -q "^NOTIFICATIONS_" "$SCRIPT_CONF"
 		then
 			{
 				echo "NOTIFICATIONS_EMAIL=false"
@@ -728,7 +757,7 @@ Conf_Exists()
 }
 
 ##----------------------------------------##
-## Modified by Martinski W. [2024-Dec-21] ##
+## Modified by Martinski W. [2025-Jun-06] ##
 ##----------------------------------------##
 PingServer()
 {
@@ -790,14 +819,14 @@ PingServer()
 			echo
 		;;
 		check)
-			PINGSERVER="$(Conf_Parameters check PINGSERVER)"
-			echo "${PINGSERVER:=8.8.8.8}"
+			PINGSERVER="$(_GetConfigParam_ PINGSERVER '8.8.8.8')"
+			echo "$PINGSERVER"
 		;;
 	esac
 }
 
 ##----------------------------------------##
-## Modified by Martinski W. [2025-Feb-04] ##
+## Modified by Martinski W. [2025-Jun-06] ##
 ##----------------------------------------##
 PingDuration()
 {
@@ -846,14 +875,14 @@ PingDuration()
 			fi
 		;;
 		check)
-			PINGDURATION="$(Conf_Parameters check PINGDURATION)"
-			echo "${PINGDURATION:=30}"
+			PINGDURATION="$(_GetConfigParam_ PINGDURATION 30)"
+			echo "$PINGDURATION"
 		;;
 	esac
 }
 
 ##----------------------------------------##
-## Modified by Martinski W. [2025-Feb-04] ##
+## Modified by Martinski W. [2025-Jun-06] ##
 ##----------------------------------------##
 DaysToKeep()
 {
@@ -902,14 +931,14 @@ DaysToKeep()
 			fi
 		;;
 		check)
-			DAYSTOKEEP="$(Conf_Parameters check DAYSTOKEEP)"
-			echo "${DAYSTOKEEP:=30}"
+			DAYSTOKEEP="$(_GetConfigParam_ DAYSTOKEEP 30)"
+			echo "$DAYSTOKEEP"
 		;;
 	esac
 }
 
 ##----------------------------------------##
-## Modified by Martinski W. [2025-Feb-04] ##
+## Modified by Martinski W. [2025-Jun-06] ##
 ##----------------------------------------##
 LastXResults()
 {
@@ -959,8 +988,8 @@ LastXResults()
 			fi
 		;;
 		check)
-			LASTXRESULTS="$(Conf_Parameters check LASTXRESULTS)"
-			echo "${LASTXRESULTS:=10}"
+			LASTXRESULTS="$(_GetConfigParam_ LASTXRESULTS 10)"
+			echo "$LASTXRESULTS"
 		;;
 	esac
 }
@@ -1072,7 +1101,7 @@ Auto_Startup()
 }
 
 ##----------------------------------------##
-## Modified by Martinski W. [2025-Jan-18] ##
+## Modified by Martinski W. [2025-Jun-06] ##
 ##----------------------------------------##
 Auto_Cron()
 {
@@ -1084,8 +1113,8 @@ Auto_Cron()
 				cru d "${SCRIPT_NAME}"
 			fi
 			STARTUPLINECOUNTGEN="$(cru l | grep -c "${SCRIPT_NAME}_generate")"
-			CRU_SCHHOUR="$(Conf_Parameters check SCHHOURS)"
-			CRU_SCHMINS="$(Conf_Parameters check SCHMINS)"
+			CRU_SCHHOUR="$(_GetConfigParam_ SCHHOURS '*')"
+			CRU_SCHMINS="$(_GetConfigParam_ SCHMINS '*/3')"
 			STARTUPLINECOUNTEXGEN="$(cru l | grep "${SCRIPT_NAME}_generate" | grep -c "^$CRU_SCHMINS $CRU_SCHHOUR [*] [*]")"
 			if [ "$STARTUPLINECOUNTGEN" -gt 0 ] && [ "$STARTUPLINECOUNTEXGEN" -eq 0 ]
 			then
@@ -1094,7 +1123,7 @@ Auto_Cron()
 			fi
 			if [ "$STARTUPLINECOUNTGEN" -eq 0 ]
 			then
-				CRU_SCHDAYS="$(Conf_Parameters check SCHDAYS | sed 's/Sun/0/;s/Mon/1/;s/Tues/2/;s/Wed/3/;s/Thurs/4/;s/Fri/5/;s/Sat/6/;')"
+				CRU_SCHDAYS="$(_GetConfigParam_ SCHDAYS '*' | sed 's/Sun/0/;s/Mon/1/;s/Tues/2/;s/Wed/3/;s/Thurs/4/;s/Fri/5/;s/Sat/6/;')"
 				cru a "${SCRIPT_NAME}_generate" "$CRU_SCHMINS $CRU_SCHHOUR * * $CRU_SCHDAYS $theScriptFilePath generate"
 				echo "$CRU_SCHMINS $CRU_SCHHOUR * * $CRU_SCHDAYS" > "$SCRIPT_STORAGE_DIR/.cron"
 			fi
@@ -1317,6 +1346,9 @@ _CheckFor_WebGUI_Page_()
    then Mount_WebUI ; fi
 }
 
+##----------------------------------------##
+## Modified by Martinski W. [2025-Jun-06] ##
+##----------------------------------------##
 ExcludeFromQoS()
 {
 	case "$1" in
@@ -1327,14 +1359,14 @@ ExcludeFromQoS()
 		sed -i 's/^EXCLUDEFROMQOS=.*$/EXCLUDEFROMQOS=false/' "$SCRIPT_CONF"
 	;;
 	check)
-		EXCLUDEFROMQOS="$(Conf_Parameters check EXCLUDEFROMQOS)"
-		echo "${EXCLUDEFROMQOS:=true}"
+		EXCLUDEFROMQOS="$(_GetConfigParam_ EXCLUDEFROMQOS 'true')"
+		echo "$EXCLUDEFROMQOS"
 	;;
 	esac
 }
 
 ##----------------------------------------##
-## Modified by Martinski W. [2024-Dec-21] ##
+## Modified by Martinski W. [2025-Jun-06] ##
 ##----------------------------------------##
 AutomaticMode()
 {
@@ -1362,15 +1394,15 @@ AutomaticMode()
 			_UpdateAutomaticModeState_
 		;;
 		check)
-			AUTOMATICMODE="$(Conf_Parameters check AUTOMATICMODE)"
-			if [ "${AUTOMATICMODE:=true}" = "true" ]
+			AUTOMATICMODE="$(_GetConfigParam_ AUTOMATICMODE 'true')"
+			if [ "$AUTOMATICMODE" = "true" ]
 			then return 0; else return 1; fi
 		;;
 	esac
 }
 
 ##----------------------------------------##
-## Modified by Martinski W. [2024-Dec-21] ##
+## Modified by Martinski W. [2025-Jun-06] ##
 ##----------------------------------------##
 CronTestSchedule()
 {
@@ -1383,16 +1415,16 @@ CronTestSchedule()
 			AutomaticMode check && Auto_Cron create 2>/dev/null
 		;;
 		check)
-			SCHDAYS="$(Conf_Parameters check SCHDAYS)"
-			SCHHOURS="$(Conf_Parameters check SCHHOURS)"
-			SCHMINS="$(Conf_Parameters check SCHMINS)"
-			echo "${SCHDAYS:=*}|${SCHHOURS:=*}|${SCHMINS:=*/3}"
+			SCHDAYS="$(_GetConfigParam_ SCHDAYS '*')"
+			SCHHOURS="$(_GetConfigParam_ SCHHOURS '*')"
+			SCHMINS="$(_GetConfigParam_ SCHMINS '*/3')"
+			echo "${SCHDAYS}|${SCHHOURS}|${SCHMINS}"
 		;;
 	esac
 }
 
 ##----------------------------------------##
-## Modified by Martinski W. [2025-Jan-30] ##
+## Modified by Martinski W. [2025-Jun-06] ##
 ##----------------------------------------##
 ScriptStorageLocation()
 {
@@ -1446,8 +1478,8 @@ ScriptStorageLocation()
 			sleep 2
 			;;
 		check)
-			STORAGELOCATION="$(Conf_Parameters check STORAGELOCATION)"
-			echo "${STORAGELOCATION:=jffs}"
+			STORAGELOCATION="$(_GetConfigParam_ STORAGELOCATION jffs)"
+			echo "$STORAGELOCATION"
 			;;
 		load)
 			STORAGELOCATION="$(ScriptStorageLocation check)"
@@ -1468,6 +1500,9 @@ ScriptStorageLocation()
 	esac
 }
 
+##----------------------------------------##
+## Modified by Martinski W. [2025-Jun-06] ##
+##----------------------------------------##
 OutputTimeMode()
 {
 	case "$1" in
@@ -1480,8 +1515,8 @@ OutputTimeMode()
 			Generate_CSVs
 		;;
 		check)
-			OUTPUTTIMEMODE="$(Conf_Parameters check OUTPUTTIMEMODE)"
-			echo "${OUTPUTTIMEMODE:=unix}"
+			OUTPUTTIMEMODE="$(_GetConfigParam_ OUTPUTTIMEMODE unix)"
+			echo "$OUTPUTTIMEMODE"
 		;;
 	esac
 }
@@ -1790,8 +1825,11 @@ JFFS_WarningLogTime()
            sed -i 's/^JFFS_MSGLOGTIME=.*$/JFFS_MSGLOGTIME='"$2"'/' "$SCRIPT_CONF"
            ;;
        check)
-           JFFS_MSGLOGTIME="$(Conf_Parameters check JFFS_MSGLOGTIME)"
-           echo "${JFFS_MSGLOGTIME:=0}"
+           JFFS_MSGLOGTIME="$(_GetConfigParam_ JFFS_MSGLOGTIME 0)"
+           if ! echo "$JFFS_MSGLOGTIME" | grep -qE "^[0-9]+$"
+           then JFFS_MSGLOGTIME=0
+           fi
+           echo "$JFFS_MSGLOGTIME"
            ;;
    esac
 }
@@ -1918,11 +1956,11 @@ _SQLGetDBLogTimeStamp_()
 { printf "[$(date +"$sqlDBLogDateTime")]" ; }
 
 ##----------------------------------------##
-## Modified by Martinski W. [2025-Jun-04] ##
+## Modified by Martinski W. [2025-Jun-05] ##
 ##----------------------------------------##
 _ApplyDatabaseSQLCmds_()
 {
-    local errorCount=0  maxErrorCount=5  callFlag
+    local errorCount=0  maxErrorCount=3  callFlag
     local triesCount=0  maxTriesCount=10  sqlErrorMsg
     local tempLogFilePath="/tmp/${SCRIPT_NAME}Stats_TMP_$$.LOG"
     local debgLogFilePath="/tmp/${SCRIPT_NAME}Stats_DEBUG_$$.LOG"
@@ -1945,7 +1983,7 @@ _ApplyDatabaseSQLCmds_()
         fi
         sqlErrorMsg="$(cat "$tempLogFilePath")"
 
-        if echo "$sqlErrorMsg" | grep -qE "^(Parse error|Runtime error|Error:)"
+        if echo "$sqlErrorMsg" | grep -qE "^(Parse error|Runtime error|Error:|Illegal instruction)"
         then
             if echo "$sqlErrorMsg" | grep -qE "^(Parse|Runtime) error .*: database is locked"
             then
@@ -2579,7 +2617,7 @@ Email_ConfExists()
 
 Email_Header()
 {
-	if [ -z "$1" ]
+	if [ $# -eq 0 ] || [ -z "$1" ]
 	then
 		printf "If you have Two Factor Authentication (2FA) enabled you need to\\n"
 		printf "use an App password.\\n\\n"
@@ -3161,6 +3199,9 @@ linequality value=$LINEQUAL $TIMESTAMP"
 	fi
 }
 
+##----------------------------------------##
+## Modified by Martinski W. [2025-Jun-06] ##
+##----------------------------------------##
 ToggleNotificationTypes()
 {
 	case "$1" in
@@ -3171,8 +3212,9 @@ ToggleNotificationTypes()
 			sed -i 's/^'"$2"'=.*$/'"$2"'=false/' "$SCRIPT_CONF"
 		;;
 		check)
-			NOTIFICATION_SETTING="$(Conf_Parameters check "$2")"
-			if [ "$NOTIFICATION_SETTING" = "true" ]; then return 0; else return 1; fi
+			NOTIFICATION_SETTING="$(_GetConfigParam_ "$2" 'false')"
+			if [ "$NOTIFICATION_SETTING" = "true" ]
+			then return 0; else return 1; fi
 		;;
 	esac
 }
@@ -3250,7 +3292,8 @@ Conf_Parameters()
 	esac
 }
 
-Validate_Float(){
+Validate_Float()
+{
 	if echo "$1" | /bin/grep -oq "^[0-9]*\.\?[0-9]\?[0-9]$"; then
 		return 0
 	else
@@ -3445,7 +3488,8 @@ TriggerNotifications()
 	done
 	unset IFS
 
-	if ToggleNotificationTypes check NOTIFICATIONS_HEALTHCHECK && [ "$TRIGGERTYPE" = "PingTest" ]; then
+	if ToggleNotificationTypes check NOTIFICATIONS_HEALTHCHECK && [ "$TRIGGERTYPE" = "PingTest" ]
+	then
 		NOTIFICATIONS_HEALTHCHECK_UUID="$(Conf_Parameters check NOTIFICATIONS_HEALTHCHECK_UUID)"
 		TESTFAIL=""
 		if [ "$(echo "$LINEQUAL" | cut -f1 -d' ' | cut -f1 -d'.')" -eq 0 ]; then
@@ -3455,7 +3499,8 @@ TriggerNotifications()
 		fi
 	fi
 
-	if ToggleNotificationTypes check NOTIFICATIONS_INFLUXDB && [ "$TRIGGERTYPE" = "PingTest" ]; then
+	if ToggleNotificationTypes check NOTIFICATIONS_INFLUXDB && [ "$TRIGGERTYPE" = "PingTest" ]
+	then
 		SendToInfluxDB "$TIMESTAMP" "$(echo "$PING" | cut -f1 -d' ')" "$(echo "$JITTER" | cut -f1 -d' ')" "$(echo "$LINEQUAL" | cut -f1 -d' ')"
 	fi
 }
@@ -3467,7 +3512,9 @@ Menu_EmailNotifications()
 		Email_ConfExists
 		ScriptHeader
 		NOTIFICATIONS_EMAIL=""
-		if ToggleNotificationTypes check NOTIFICATIONS_EMAIL; then NOTIFICATIONS_EMAIL="${PASS}Enabled"; else NOTIFICATIONS_EMAIL="${ERR}Disabled"; fi
+		if ToggleNotificationTypes check NOTIFICATIONS_EMAIL
+		then NOTIFICATIONS_EMAIL="${PASS}Enabled"; else NOTIFICATIONS_EMAIL="${ERR}Disabled"
+		fi
 		NOTIFICATIONS_EMAIL_LIST="$(Email_Recipients check)"
 		if [ "$NOTIFICATIONS_EMAIL_LIST" = "" ]; then
 			NOTIFICATIONS_EMAIL_LIST="Generic To Address will be used"
@@ -3558,11 +3605,15 @@ Menu_EmailNotifications()
 	done
 }
 
-Menu_WebhookNotifications(){
-	while true; do
+Menu_WebhookNotifications()
+{
+	while true
+	do
 		ScriptHeader
 		NOTIFICATIONS_WEBHOOK=""
-		if ToggleNotificationTypes check NOTIFICATIONS_WEBHOOK; then NOTIFICATIONS_WEBHOOK="${PASS}Enabled"; else NOTIFICATIONS_WEBHOOK="${ERR}Disabled"; fi
+		if ToggleNotificationTypes check NOTIFICATIONS_WEBHOOK
+		then NOTIFICATIONS_WEBHOOK="${PASS}Enabled"; else NOTIFICATIONS_WEBHOOK="${ERR}Disabled"
+		fi
 		NOTIFICATIONS_WEBHOOK_LIST="$(Webhook_Targets check | sed 's~,~\n~g')"
 		printf "1.     Toggle Discord webhook notifications (subject to type configuration)\\n       Currently: ${BOLD}${NOTIFICATIONS_WEBHOOK}${CLEARFORMAT}\\n\\n"
 		printf "2.     Set list of Discord webhook URLs for %s\\n       Current webhooks:\\n       ${SETTING}${NOTIFICATIONS_WEBHOOK_LIST}${CLEARFORMAT}\\n\\n" "$SCRIPT_NAME"
@@ -3609,11 +3660,15 @@ Menu_WebhookNotifications(){
 	done
 }
 
-Menu_PushoverNotifications(){
-	while true; do
+Menu_PushoverNotifications()
+{
+	while true
+	do
 		ScriptHeader
 		NOTIFICATIONS_PUSHOVER=""
-		if ToggleNotificationTypes check NOTIFICATIONS_PUSHOVER; then NOTIFICATIONS_PUSHOVER="${PASS}Enabled"; else NOTIFICATIONS_PUSHOVER="${ERR}Disabled"; fi
+		if ToggleNotificationTypes check NOTIFICATIONS_PUSHOVER
+		then NOTIFICATIONS_PUSHOVER="${PASS}Enabled"; else NOTIFICATIONS_PUSHOVER="${ERR}Disabled"
+		fi
 		NOTIFICATIONS_PUSHOVER_LIST="$(Pushover_Devices check)"
 		if [ -z "$NOTIFICATIONS_PUSHOVER_LIST" ]; then
 			NOTIFICATIONS_PUSHOVER_LIST="All devices"
@@ -3663,8 +3718,10 @@ Menu_PushoverNotifications(){
 	done
 }
 
-CustomAction_Info(){
-	if [ -z "$1" ]; then
+CustomAction_Info()
+{
+	if [ $# -eq 0 ] || [ -z "$1" ]
+	then
 		printf "\\n${BOLD}${UNDERLINE}Scripts are passed arguments, which change depending on the type of trigger${CLEARFORMAT}\\n\\n"
 		printf "${BOLD}${UNDERLINE}Trigger                 Argument1            Argument2         Argument3   Argument4           Argument5${CLEARFORMAT}\\n"
 		printf "${BOLD}Tests${CLEARFORMAT}"'                   PingTest             FormattedDateTime "Ping ms"   "Jitter ms"         "Latency %%"'"\\n"
@@ -3696,8 +3753,10 @@ CustomAction_Info(){
 	} > "$SCRIPT_STORAGE_DIR/.customactioninfo"
 }
 
-CustomAction_List(){
-	if [ -z "$1" ]; then
+CustomAction_List()
+{
+	if [ $# -eq 0 ] || [ -z "$1" ]
+	then
 		FILES="$USER_SCRIPT_DIR/*.sh"
 		for f in $FILES; do
 			if [ -f "$f" ]; then
@@ -3714,11 +3773,15 @@ CustomAction_List(){
 	done
 }
 
-Menu_CustomActions(){
-	while true; do
+Menu_CustomActions()
+{
+	while true
+	do
 		ScriptHeader
 		NOTIFICATIONS_CUSTOM=""
-		if ToggleNotificationTypes check NOTIFICATIONS_CUSTOM; then NOTIFICATIONS_CUSTOM="${PASS}Enabled"; else NOTIFICATIONS_CUSTOM="${ERR}Disabled"; fi
+		if ToggleNotificationTypes check NOTIFICATIONS_CUSTOM
+		then NOTIFICATIONS_CUSTOM="${PASS}Enabled"; else NOTIFICATIONS_CUSTOM="${ERR}Disabled"
+		fi
 		printf "1.    Toggle custom actions and scripts (subject to type configuration)\\n      Currently: ${BOLD}${NOTIFICATIONS_CUSTOM}${CLEARFORMAT}\\n\\n"
 		printf "Scripts that will be run:\\n"
 
@@ -3767,11 +3830,15 @@ Menu_CustomActions(){
 	done
 }
 
-Menu_HealthcheckNotifications(){
-	while true; do
+Menu_HealthcheckNotifications()
+{
+	while true
+	do
 		ScriptHeader
 		NOTIFICATIONS_HEALTHCHECK=""
-		if ToggleNotificationTypes check NOTIFICATIONS_HEALTHCHECK; then NOTIFICATIONS_HEALTHCHECK="${PASS}Enabled"; else NOTIFICATIONS_HEALTHCHECK="${ERR}Disabled"; fi
+		if ToggleNotificationTypes check NOTIFICATIONS_HEALTHCHECK
+		then NOTIFICATIONS_HEALTHCHECK="${PASS}Enabled"; else NOTIFICATIONS_HEALTHCHECK="${ERR}Disabled"
+		fi
 		printf "1.    Toggle healthchecks.io\\n      Currently: ${BOLD}${NOTIFICATIONS_HEALTHCHECK}${CLEARFORMAT}\\n\\n"
 		printf "\\n${BOLD}${UNDERLINE}Healthcheck Configuration${CLEARFORMAT}\\n\\n"
 		printf "c1.    Set Healthcheck UUID\\n       Currently: ${SETTING}%s${CLEARFORMAT}\\n\\n" "$(Conf_Parameters check NOTIFICATIONS_HEALTHCHECK_UUID)"
@@ -3810,11 +3877,15 @@ Menu_HealthcheckNotifications(){
 	done
 }
 
-Menu_InfluxDB(){
-	while true; do
+Menu_InfluxDB()
+{
+	while true
+	do
 		ScriptHeader
 		NOTIFICATIONS_INFLUXDB=""
-		if ToggleNotificationTypes check NOTIFICATIONS_INFLUXDB; then NOTIFICATIONS_INFLUXDB="${PASS}Enabled"; else NOTIFICATIONS_INFLUXDB="${ERR}Disabled"; fi
+		if ToggleNotificationTypes check NOTIFICATIONS_INFLUXDB
+		then NOTIFICATIONS_INFLUXDB="${PASS}Enabled"; else NOTIFICATIONS_INFLUXDB="${ERR}Disabled"
+		fi
 		printf "1.    Toggle InfluxDB exporting\\n      Currently: ${BOLD}${NOTIFICATIONS_INFLUXDB}${CLEARFORMAT}\\n\\n"
 		printf "\\n${BOLD}${UNDERLINE}InfluxDB Configuration${CLEARFORMAT}\\n\\n"
 		printf "c1.    Set InfluxDB Host\\n       Currently: ${SETTING}%s${CLEARFORMAT}\\n\\n" "$(Conf_Parameters check NOTIFICATIONS_INFLUXDB_HOST)"
@@ -3892,17 +3963,29 @@ Menu_Notifications()
 		printf "4.     Line Quality threshold (values below this will trigger an alert)\\n       Current threshold: ${SETTING}$(Conf_Parameters check NOTIFICATIONS_LINEQUALITYTHRESHOLD_VALUE) %%${CLEARFORMAT}\\n       Current methods: ${SETTING}$(NotificationMethods check LineQualityThreshold)${CLEARFORMAT}\\n\\n"
 		printf "\\n${BOLD}${UNDERLINE}Notification Methods and Integrations${CLEARFORMAT}\\n"
 		NOTIFICATION_SETTING=""
-		if ToggleNotificationTypes check NOTIFICATIONS_EMAIL; then NOTIFICATION_SETTING="${PASS}Enabled"; else NOTIFICATION_SETTING="${ERR}Disabled"; fi
+		if ToggleNotificationTypes check NOTIFICATIONS_EMAIL
+		then NOTIFICATION_SETTING="${PASS}Enabled"; else NOTIFICATION_SETTING="${ERR}Disabled"
+		fi
 		printf "em.    Email (shared with other addons/scripts e.g. Diversion)\\n       Currently: ${BOLD}${NOTIFICATION_SETTING}${CLEARFORMAT}\\n\\n"
-		if ToggleNotificationTypes check NOTIFICATIONS_WEBHOOK; then NOTIFICATION_SETTING="${PASS}Enabled"; else NOTIFICATION_SETTING="${ERR}Disabled"; fi
+		if ToggleNotificationTypes check NOTIFICATIONS_WEBHOOK
+		then NOTIFICATION_SETTING="${PASS}Enabled"; else NOTIFICATION_SETTING="${ERR}Disabled"
+		fi
 		printf "wb.    Discord webhook\\n       Currently: ${BOLD}${NOTIFICATION_SETTING}${CLEARFORMAT}\\n\\n"
-		if ToggleNotificationTypes check NOTIFICATIONS_PUSHOVER; then NOTIFICATION_SETTING="${PASS}Enabled"; else NOTIFICATION_SETTING="${ERR}Disabled"; fi
+		if ToggleNotificationTypes check NOTIFICATIONS_PUSHOVER
+		then NOTIFICATION_SETTING="${PASS}Enabled"; else NOTIFICATION_SETTING="${ERR}Disabled"
+		fi
 		printf "po.    Pushover\\n       Currently: ${BOLD}${NOTIFICATION_SETTING}${CLEARFORMAT}\\n\\n"
-		if ToggleNotificationTypes check NOTIFICATIONS_CUSTOM; then NOTIFICATION_SETTING="${PASS}Enabled"; else NOTIFICATION_SETTING="${ERR}Disabled"; fi
+		if ToggleNotificationTypes check NOTIFICATIONS_CUSTOM
+		then NOTIFICATION_SETTING="${PASS}Enabled"; else NOTIFICATION_SETTING="${ERR}Disabled"
+		fi
 		printf "ca.    Custom actions and scripts\\n       Currently: ${BOLD}${NOTIFICATION_SETTING}${CLEARFORMAT}\\n\\n"
-		if ToggleNotificationTypes check NOTIFICATIONS_HEALTHCHECK; then NOTIFICATION_SETTING="${PASS}Enabled"; else NOTIFICATION_SETTING="${ERR}Disabled"; fi
+		if ToggleNotificationTypes check NOTIFICATIONS_HEALTHCHECK
+		then NOTIFICATION_SETTING="${PASS}Enabled"; else NOTIFICATION_SETTING="${ERR}Disabled"
+		fi
 		printf "hc.    Healthchecks.io\\n       Currently: ${BOLD}${NOTIFICATION_SETTING}${CLEARFORMAT}\\n\\n"
-		if ToggleNotificationTypes check NOTIFICATIONS_INFLUXDB; then NOTIFICATION_SETTING="${PASS}Enabled"; else NOTIFICATION_SETTING="${ERR}Disabled"; fi
+		if ToggleNotificationTypes check NOTIFICATIONS_INFLUXDB
+		then NOTIFICATION_SETTING="${PASS}Enabled"; else NOTIFICATION_SETTING="${ERR}Disabled"
+		fi
 		printf "id.    InfluxDB exporting\\n       Currently: ${BOLD}${NOTIFICATION_SETTING}${CLEARFORMAT}\\n\\n"
 		printf "e.     Go back\\n\\n"
 		printf "${BOLD}##############################################################${CLEARFORMAT}\\n"
@@ -3956,10 +4039,12 @@ NotificationMethods()
 {
 	case "$1" in
 		update)
-			while true; do
+			while true
+			do
 				ScriptHeader
 				printf "${BOLD}${UNDERLINE}${2}${CLEARFORMAT}\\n\\n"
-				if [ "$2" = "PingThreshold" ] || [ "$2" = "JitterThreshold" ] || [ "$2" = "LineQualityThreshold" ]; then
+				if [ "$2" = "PingThreshold" ] || [ "$2" = "JitterThreshold" ] || [ "$2" = "LineQualityThreshold" ]
+				then
 					case "$2" in
 						PingThreshold)
 							PARAMETERNAME="NOTIFICATIONS_PINGTHRESHOLD_VALUE"
@@ -4015,7 +4100,8 @@ NotificationMethods()
 						PressEnter
 					;;
 				esac
-				if [ "$methodsmenu" != "e" ] && [ "$methodsmenu" != "c1" ]; then
+				if [ "$methodsmenu" != "e" ] && [ "$methodsmenu" != "c1" ]
+				then
 					case "$2" in
 						PingTest)
 							SETTINGNAME="NOTIFICATIONS_PINGTEST"
@@ -4034,7 +4120,8 @@ NotificationMethods()
 					if [ "$SETTINGVALUE" = "None" ]; then
 						sed -i 's/^'"$SETTINGNAME"'=.*$/'"$SETTINGNAME"'=None/' "$SCRIPT_CONF"
 					else
-						if echo "$NOTIFICATION_SETTING" | grep -q "$SETTINGVALUE"; then
+						if echo "$NOTIFICATION_SETTING" | grep -q "$SETTINGVALUE"
+						then
 							NOTIFICATION_SETTING="$(echo "$NOTIFICATION_SETTING" | sed 's/'"$SETTINGVALUE"'//g;s/,,/,/g;s/,$//;s/^,//')"
 							sed -i 's/^'"$SETTINGNAME"'=.*$/'"$SETTINGNAME"'='"$NOTIFICATION_SETTING"'/' "$SCRIPT_CONF"
 						else
