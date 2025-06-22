@@ -1,5 +1,15 @@
 # Changelog
 
+## v3.0.5
+Updated on 2025-June-21
+
+*   FIXED: New code to remove duplicate parameter key names found in the configuration file. Getting duplicate key values can cause "bad number" or "arithmetic syntax" errors.
+*   IMPROVED: New code to create a separate logfile to capture the SQLite3 errors with more verbosity.
+    Debug logfile default location: /opt/share/tmp/
+*   IMPROVED: Added error-handling code when an SQLite3 database operation fails to create a file. 
+*   IMPROVED: When an SQLite3 operation returns error messages indicating a corrupted binary, the error-handling code will now log a separate message to the system logger and to its own debug logfile to let users know of the corrupted SQLite3 and the need to remove and reinstall its Entware package.
+*   IMPROVED: Miscellaneous code improvements.
+
 ## v3.0.4
 Updated on 2025-May-25
 *   Moved to AMTM-OSR repo
