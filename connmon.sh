@@ -39,7 +39,7 @@
 ### Start of script variables ###
 readonly SCRIPT_NAME="connmon"
 readonly SCRIPT_VERSION="v3.0.6"
-readonly SCRIPT_VERSTAG="25072011"
+readonly SCRIPT_VERSTAG="25072022"
 SCRIPT_BRANCH="develop"
 SCRIPT_REPO="https://raw.githubusercontent.com/AMTM-OSR/$SCRIPT_NAME/$SCRIPT_BRANCH"
 readonly SCRIPT_DIR="/jffs/addons/$SCRIPT_NAME.d"
@@ -177,7 +177,8 @@ Check_Lock()
 			then
 				exit 1
 			else
-				if [ "$1" = "webui" ]; then
+				if [ "$1" = "webui" ]
+				then
 					echo 'var connmonstatus = "LOCKED";' > "$SCRIPT_WEB_DIR/detect_connmon.js"
 					exit 1
 				fi
@@ -596,14 +597,19 @@ Create_Dirs()
 	fi
 }
 
+##----------------------------------------##
+## Modified by Martinski W. [2025-Jul-20] ##
+##----------------------------------------##
 Create_Symlinks()
 {
-	ln -sf "$SCRIPT_STORAGE_DIR/connstatstext.js" "$SCRIPT_WEB_DIR/connstatstext.js" 2>/dev/null
-	ln -sf "$SCRIPT_STORAGE_DIR/lastx.csv" "$SCRIPT_WEB_DIR/lastx.htm" 2>/dev/null
+	ln -sf "$SCRIPT_WEB_DIR/ping-result.txt" "$SCRIPT_WEB_DIR/ping-result.htm" 2>/dev/null
 
 	ln -sf "$EMAIL_CONF" "$SCRIPT_WEB_DIR/email_config.htm" 2>/dev/null
 	ln -sf "$SCRIPT_CONF" "$SCRIPT_WEB_DIR/config.htm" 2>/dev/null
 	ln -sf "$SCRIPT_DIR/CHANGELOG.md" "$SCRIPT_WEB_DIR/changelog.htm" 2>/dev/null
+
+	ln -sf "$SCRIPT_STORAGE_DIR/lastx.csv" "$SCRIPT_WEB_DIR/lastx.htm" 2>/dev/null
+	ln -sf "$SCRIPT_STORAGE_DIR/connstatstext.js" "$SCRIPT_WEB_DIR/connstatstext.js" 2>/dev/null
 	ln -sf "$SCRIPT_STORAGE_DIR/.cron" "$SCRIPT_WEB_DIR/cron.js" 2>/dev/null
 	ln -sf "$SCRIPT_STORAGE_DIR/.customactioninfo" "$SCRIPT_WEB_DIR/customactioninfo.htm" 2>/dev/null
 	ln -sf "$SCRIPT_STORAGE_DIR/.customactionlist" "$SCRIPT_WEB_DIR/customactionlist.htm" 2>/dev/null
@@ -1972,7 +1978,7 @@ _SQLGetDBLogTimeStamp_()
 { printf "[$(date +"$sqlDBLogDateTime")]" ; }
 
 ##----------------------------------------##
-## Modified by Martinski W. [2025-Jun-21] ##
+## Modified by Martinski W. [2025-Jul-20] ##
 ##----------------------------------------##
 readonly errorMsgsRegExp="Parse error|Runtime error|Error:"
 readonly corruptedBinExp="Illegal instruction|SQLite header and source version mismatch"
@@ -2060,7 +2066,7 @@ _ApplyDatabaseSQLCmds_()
     fi
     if "$foundError" || "$foundLocked"
     then
-        Print_Output true "SQLite process ${resultStr}" "$ERR"
+        Print_Output true "SQLite process[$callFlag] ${resultStr}" "$ERR"
     fi
 }
 
@@ -2136,6 +2142,7 @@ Run_PingTest()
 	else
 		ps | grep -v grep | grep -v $$ | grep -i "$SCRIPT_NAME" | grep generate | awk '{print $1}' | xargs kill -9 >/dev/null 2>&1
 	fi
+
 	Create_Dirs
 	Conf_Exists
 	Auto_Startup create 2>/dev/null
@@ -2157,8 +2164,6 @@ Run_PingTest()
 	rm -f "$pingFile" "$resultFile"
 
 	echo 'var connmonstatus = "InProgress";' > "$SCRIPT_WEB_DIR/detect_connmon.js"
-
-	Print_Output false "$pingDuration second ping test to $pingTarget starting..." "$PASS"
 
 	if ! expr "$pingTarget" : '[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*$' >/dev/null && \
 	   nslookup "$pingTarget" >/dev/null 2>&1
@@ -2202,6 +2207,8 @@ Run_PingTest()
 			Print_Output true "CAKE QoS was stopped." "$WARN"
 		fi
 	fi
+
+	Print_Output false "$pingDuration second ping test to $pingTarget starting..." "$PASS"
 
 	if ping -w "$pingDuration" "$pingTargetIP" > "$pingFile"
 	then pinTestOK=true
@@ -2286,7 +2293,7 @@ Run_PingTest()
 		linequal="$(echo "$pkt_rec" "$pkt_trans" | awk '{printf "%4.3f\n",100*$1/$2}')"
 	else
 		Print_Output true "Ping test for connmon failed." "$CRIT"
-		echo "Ping test failed." >> "$resultFile"
+		printf "Ping test failed.\nNo results are available.\n" > "$resultFile"
 		echo 'var connmonstatus = "Error";' > "$SCRIPT_WEB_DIR/detect_connmon.js"
 		rm -f "$pingFile"
 		return 1
@@ -2312,9 +2319,9 @@ Run_PingTest()
 	Print_Output false "Test results: Ping $ping ms - Jitter - $jitter ms - Line Quality ${linequal}%" "$PASS"
 
 	{
-		printf "Ping test result\n"
+		printf "Ping test results:\n"
 		printf "\nPing %s ms - Jitter - %s ms - Line Quality %s %%\n" "$ping" "$jitter" "$linequal"
-	} >> "$resultFile"
+	} > "$resultFile"
 
 	rm -f "$pingFile"
 	rm -f /tmp/connstatstitle.txt

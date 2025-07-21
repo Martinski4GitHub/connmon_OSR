@@ -1,3 +1,6 @@
+/**----------------------------**/
+/** Last Modified: 2025-Jul-20 **/
+/**----------------------------**/
 
 iziToast.settings({
 	title: 'connmon',
@@ -16,19 +19,25 @@ iziToast.settings({
 
 function getCookie(cookiename, returntype)
 {
-	if (cookie.get('conn_' + cookiename) !== null) {
-		if (returntype === 'string') {
+	if (cookie.get('conn_' + cookiename) !== null)
+	{
+		if (returntype === 'string')
+		{
 			return cookie.get('conn_' + cookiename);
 		}
-		else if (returntype === 'number') {
+		else if (returntype === 'number')
+		{
 			return cookie.get('conn_' + cookiename) * 1;
 		}
 	}
-	else {
-		if (returntype === 'string') {
+	else
+	{
+		if (returntype === 'string')
+		{
 			return '';
 		}
-		else if (returntype === 'number') {
+		else if (returntype === 'number')
+		{
 			return 0;
 		}
 	}
@@ -99,26 +108,31 @@ function settingHint(hintid)
 	return overlib(hinttext, 0, 0);
 }
 
-function resetZoom() {
-	for (var i = 0; i < metriclist.length; i++) {
+function resetZoom()
+{
+	for (var i = 0; i < metriclist.length; i++)
+	{
 		var chartobj = window['LineChart_' + metriclist[i]];
 		if (typeof chartobj === 'undefined' || chartobj === null) { continue; }
 		chartobj.resetZoom();
 	}
 }
 
-function toggleDragZoom(button) {
+function toggleDragZoom(button)
+{
 	var drag = true;
 	var pan = false;
 	var buttonvalue = '';
-	if (button.value.indexOf('On') !== -1) {
+	if (button.value.indexOf('On') !== -1)
+	{
 		drag = false;
 		pan = true;
 		DragZoom = false;
 		ChartPan = true;
 		buttonvalue = 'Drag Zoom Off';
 	}
-	else {
+	else
+	{
 		drag = true;
 		pan = false;
 		DragZoom = true;
@@ -126,7 +140,8 @@ function toggleDragZoom(button) {
 		buttonvalue = 'Drag Zoom On';
 	}
 
-	for (var i = 0; i < metriclist.length; i++) {
+	for (var i = 0; i < metriclist.length; i++)
+	{
 		var chartobj = window['LineChart_' + metriclist[i]];
 		if (typeof chartobj === 'undefined' || chartobj === null) { continue; }
 		chartobj.options.plugins.zoom.zoom.drag = drag;
@@ -136,24 +151,30 @@ function toggleDragZoom(button) {
 	}
 }
 
-function toggleLines() {
-	if (ShowLines === '') {
+function toggleLines()
+{
+	if (ShowLines === '')
+	{
 		ShowLines = 'line';
 		setCookie('ShowLines', 'line');
 	}
-	else {
+	else
+	{
 		ShowLines = '';
 		setCookie('ShowLines', '');
 	}
-	for (var i = 0; i < metriclist.length; i++) {
-		for (var i3 = 0; i3 < 3; i3++) {
+	for (var i = 0; i < metriclist.length; i++)
+	{
+		for (var i3 = 0; i3 < 3; i3++)
+		{
 			window['LineChart_' + metriclist[i]].options.annotation.annotations[i3].type = ShowLines;
 		}
 		window['LineChart_' + metriclist[i]].update();
 	}
 }
 
-function toggleFill() {
+function toggleFill()
+{
 	if (ShowFill === 'false') {
 		ShowFill = 'origin';
 		setCookie('ShowFill', 'origin');
@@ -168,7 +189,8 @@ function toggleFill() {
 	}
 }
 
-function keyHandler(e) {
+function keyHandler(e)
+{
 	switch (e.keyCode) {
 		case 82:
 			$(document).off('keydown');
@@ -196,7 +218,8 @@ $(document).keyup(function (e) {
 	});
 });
 
-function validateIP(forminput) {
+function validateIP(forminput)
+{
 	var inputvalue = forminput.value;
 	var inputname = forminput.name;
 	if (/^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/.test(inputvalue)) {
@@ -1688,12 +1711,14 @@ function buildLastXTableNoData() {
 	return tablehtml;
 }
 
-function scriptUpdateLayout() {
+function scriptUpdateLayout()
+{
 	var localver = getVersionNumber('local');
 	var serverver = getVersionNumber('server');
 	$('#connmon_version_local').text(localver);
 
-	if (localver !== serverver && serverver !== 'N/A') {
+	if (localver !== serverver && serverver !== 'N/A')
+	{
 		if (serverver.indexOf('hotfix') === -1) {
 			getVersionChangelogFile();
 		}
@@ -1746,36 +1771,44 @@ function initial()
 	jyNavigate(1, 'NotificationMethod', 6);
 }
 
-function setStartTab(dropdown) {
+function setStartTab(dropdown)
+{
 	setCookie('StartTab', $(dropdown).val());
 }
 
-function passChecked(obj, showobj) {
+function passChecked(obj, showobj)
+{
 	switchType(obj, showobj.checked, true);
 }
 
-function toggleAlternateLayout(checkbox) {
+function toggleAlternateLayout(checkbox)
+{
 	AltLayout = checkbox.checked.toString();
 	setCookie('AltLayout', AltLayout);
 	sortTable(sortname + ' ' + sortdir.replace('desc', '↑').replace('asc', '↓').trim());
 }
 
-function statusUpdate() {
+function statusUpdate()
+{
 	$.ajax({
 		url: '/ext/connmon/detect_update.js',
 		dataType: 'script',
 		error: function (xhr) {
 			setTimeout(statusUpdate, 1000);
 		},
-		success: function () {
-			if (updatestatus === 'InProgress') {
+		success: function()
+		{
+			if (updatestatus === 'InProgress')
+			{
 				setTimeout(statusUpdate, 1000);
 			}
-			else {
+			else
+			{
 				iziToast.destroy();
 				document.getElementById('imgChkUpdate').style.display = 'none';
 				showhide('connmon_version_server', true);
-				if (updatestatus !== 'None') {
+				if (updatestatus !== 'None')
+				{
 					customSettings.connmon_version_server = updatestatus;
 					if (updatestatus.indexOf('hotfix') === -1) {
 						getVersionChangelogFile();
@@ -1787,7 +1820,8 @@ function statusUpdate() {
 					showhide('btnChkUpdate', false);
 					showhide('btnDoUpdate', true);
 				}
-				else {
+				else
+				{
 					iziToast.info({ message: 'No updates available' });
 					$('#connmon_version_server').text('No updates available');
 					showhide('btnChkUpdate', true);
@@ -1798,7 +1832,8 @@ function statusUpdate() {
 	});
 }
 
-function checkUpdate() {
+function checkUpdate()
+{
 	document.formScriptActions.action_script.value = 'start_addon_settings;start_connmoncheckupdate';
 	document.formScriptActions.submit();
 	showhide('btnChkUpdate', false);
@@ -1807,7 +1842,8 @@ function checkUpdate() {
 	setTimeout(statusUpdate, 2000);
 }
 
-function doUpdate() {
+function doUpdate()
+{
 	document.form.action_script.value = 'start_connmondoupdate';
 	document.form.action_wait.value = 10;
 	showLoading();
@@ -1967,18 +2003,22 @@ function getConntestResultFile()
 	});
 }
 
-function testStatus(testname) {
+function testStatus(testname)
+{
 	$.ajax({
 		url: '/ext/connmon/detect_test.js',
 		dataType: 'script',
 		error: function (xhr) {
 			setTimeout(testStatus, 1000, testname);
 		},
-		success: function () {
-			if (teststatus === 'InProgress') {
+		success: function ()
+		{
+			if (teststatus === 'InProgress')
+			{
 				setTimeout(testStatus, 1000, testname);
 			}
-			else {
+			else
+			{
 				showhide('img' + testname, false);
 				iziToast.destroy();
 				showhide('btn' + testname, true);
@@ -1993,8 +2033,10 @@ function testStatus(testname) {
 	});
 }
 
-function testNotification(testname) {
-	if (confirm('If you have made any changes, you will need to save them first. Do you want to continue?')) {
+function testNotification(testname)
+{
+	if (confirm('If you have made any changes, you will need to save them first. Do you want to continue?'))
+	{
 		showhide('btn' + testname, false);
 		document.formScriptActions.action_script.value = 'start_addon_settings;start_connmon' + testname;
 		document.formScriptActions.submit();
@@ -2022,6 +2064,9 @@ function everyXToggle (forminput)
 	validateScheduleValue($('[name=everyxvalue]')[0]);
 }
 
+/**----------------------------------------**/
+/** Modified by Martinski W. [2025-Jul-20] **/
+/**----------------------------------------**/
 var pingcount = 2;
 function updateConntest()
 {
@@ -2032,18 +2077,23 @@ function updateConntest()
 		error: function (xhr) {
 			//do nothing
 		},
-		success: function () {
-			if (connmonstatus === 'InProgress') {
+		success: function()
+		{
+			if (connmonstatus === 'InProgress')
+			{
 				showhide('imgConnTest', true);
 				showhide('conntest_text', true);
 				$('#conntest_text').html('Ping test in progress - ' + pingcount + 's elapsed');
 			}
-			else if (connmonstatus === 'GenerateCSV') {
+			else if (connmonstatus === 'GenerateCSV')
+			{
 				$('#conntest_text').html('Retrieving data for charts...');
 			}
-			else if (connmonstatus === 'Done') {
+			else if (connmonstatus === 'Done')
+			{
 				clearInterval(myinterval);
-				if (intervalclear === false) {
+				if (intervalclear === false)
+				{
 					intervalclear = true;
 					pingcount = 2;
 					getConntestResultFile();
@@ -2051,7 +2101,8 @@ function updateConntest()
 					postConnTest();
 				}
 			}
-			else if (connmonstatus === 'LOCKED') {
+			else if (connmonstatus === 'LOCKED')
+			{
 				pingcount = 2;
 				clearInterval(myinterval);
 				showhide('imgConnTest', false);
@@ -2062,7 +2113,8 @@ function updateConntest()
 				iziToast.destroy();
 				iziToast.error({ message: 'Ping test failed - scheduled ping test already running!' });
 			}
-			else if (connmonstatus === 'InvalidServer') {
+			else if (connmonstatus === 'InvalidServer')
+			{
 				pingcount = 2;
 				clearInterval(myinterval);
 				showhide('imgConnTest', false);
@@ -2072,6 +2124,18 @@ function updateConntest()
 				document.getElementById('conntest_output').parentElement.parentElement.style.display = 'none';
 				iziToast.destroy();
 				iziToast.error({ message: 'Ping test failed - Specified ping server is not valid' });
+			}
+			else if (connmonstatus === 'Error')
+			{
+				pingcount = 2;
+				clearInterval(myinterval);
+				showhide('imgConnTest', false);
+				$('#conntest_text').html('Error when running ping test');
+				showhide('conntest_text', true);
+				showhide('btnRunPingtest', true);
+				document.getElementById('conntest_output').parentElement.parentElement.style.display = 'none';
+				iziToast.destroy();
+				iziToast.error({ message: 'Ping test failed - WAN interface may be down' });
 			}
 		}
 	});
@@ -2106,23 +2170,28 @@ function changeAllCharts(e)
 	value = e.value * 1;
 	name = e.id.substring(0, e.id.indexOf('_'));
 	setCookie(e.id, value);
-	for (var i = 0; i < metriclist.length; i++) {
+	for (var i = 0; i < metriclist.length; i++)
+	{
 		drawChart(metriclist[i], titlelist[i], measureunitlist[i], bordercolourlist[i], backgroundcolourlist[i]);
 	}
 }
 
-function changeChart(e) {
+function changeChart(e)
+{
 	value = e.value * 1;
 	name = e.id.substring(0, e.id.indexOf('_'));
 	setCookie(e.id, value);
 
-	if (name === 'Ping') {
+	if (name === 'Ping')
+	{
 		drawChart('Ping', titlelist[0], measureunitlist[0], bordercolourlist[0], backgroundcolourlist[0]);
 	}
-	else if (name === 'Jitter') {
+	else if (name === 'Jitter')
+	{
 		drawChart('Jitter', titlelist[1], measureunitlist[1], bordercolourlist[1], backgroundcolourlist[1]);
 	}
-	else if (name === 'LineQuality') {
+	else if (name === 'LineQuality')
+	{
 		drawChart('LineQuality', titlelist[2], measureunitlist[2], bordercolourlist[2], backgroundcolourlist[2]);
 	}
 }
