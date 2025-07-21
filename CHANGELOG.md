@@ -1,8 +1,15 @@
 # Changelog
 
+## v3.0.6
+Updated on 2025-July-21
+*   FIXED: Added code to check for return status of the ping test command and to verify all the required data is found in the results.
+*   FIXED: Missing symbolic link needed to show a summary of the ping test results on the WebUI page.
+*   IMPROVED: Added a delay after stopping and then later after restarting QoS (if enabled) to allow the operation to be completed before initiating a ping test.
+*   IMPROVED: Added log messages when stopping and later restarting QoS (if enabled).
+*   IMPROVED: Miscellaneous code improvements.
+
 ## v3.0.5
 Updated on 2025-June-21
-
 *   FIXED: New code to remove duplicate parameter key names found in the configuration file. Getting duplicate key values can cause "bad number" or "arithmetic syntax" errors.
 *   IMPROVED: New code to create a separate logfile to capture the SQLite3 errors with more verbosity.
     Debug logfile default location: /opt/share/tmp/
