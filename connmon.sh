@@ -11,7 +11,7 @@
 ##      Forked from https://github.com/jackyaz/connmon      ##
 ##                                                          ##
 ##############################################################
-# Last Modified: 2025-Jun-21
+# Last Modified: 2025-Jul-20
 #-------------------------------------------------------------
 # Modification by thelonelycoder [2025-May-25]
 # Changed repo paths to OSR, added OSR repo to headers, removed jackyaz.io tags in URL.
@@ -38,9 +38,9 @@
 
 ### Start of script variables ###
 readonly SCRIPT_NAME="connmon"
-readonly SCRIPT_VERSION="v3.0.5"
-readonly SCRIPT_VERSTAG="25062121"
-SCRIPT_BRANCH="master"
+readonly SCRIPT_VERSION="v3.0.6"
+readonly SCRIPT_VERSTAG="25072022"
+SCRIPT_BRANCH="develop"
 SCRIPT_REPO="https://raw.githubusercontent.com/AMTM-OSR/$SCRIPT_NAME/$SCRIPT_BRANCH"
 readonly SCRIPT_DIR="/jffs/addons/$SCRIPT_NAME.d"
 readonly SCRIPT_WEBPAGE_DIR="$(readlink -f /www/user)"
@@ -67,7 +67,8 @@ readonly webPageLineTabExp="\{url: \"$webPageFileRegExp\", tabName: "
 readonly webPageLineRegExp="${webPageLineTabExp}\"$SCRIPT_NAME\"\},"
 readonly BEGIN_MenuAddOnsTag="/\*\*BEGIN:_AddOns_\*\*/"
 readonly ENDIN_MenuAddOnsTag="/\*\*ENDIN:_AddOns_\*\*/"
-readonly scriptVERINFO="[${SCRIPT_VERSION}_${SCRIPT_VERSTAG}, Branch: $SCRIPT_BRANCH]"
+readonly branchx_TAG="Branch: $SCRIPT_BRANCH"
+readonly version_TAG="${SCRIPT_VERSION}_${SCRIPT_VERSTAG}"
 
 # For daily CRON job to trim database #
 readonly defTrimDB_Hour=3
@@ -110,6 +111,7 @@ readonly CLEARFORMAT="\\e[0m"
 readonly CLRct="\e[0m"
 readonly REDct="\e[1;31m"
 readonly GRNct="\e[1;32m"
+readonly MGNTct="\e[1;35m"
 readonly CritIREDct="\e[41m"
 readonly CritBREDct="\e[30;101m"
 readonly PassBGRNct="\e[30;102m"
@@ -175,7 +177,8 @@ Check_Lock()
 			then
 				exit 1
 			else
-				if [ "$1" = "webui" ]; then
+				if [ "$1" = "webui" ]
+				then
 					echo 'var connmonstatus = "LOCKED";' > "$SCRIPT_WEB_DIR/detect_connmon.js"
 					exit 1
 				fi
@@ -594,14 +597,19 @@ Create_Dirs()
 	fi
 }
 
+##----------------------------------------##
+## Modified by Martinski W. [2025-Jul-20] ##
+##----------------------------------------##
 Create_Symlinks()
 {
-	ln -sf "$SCRIPT_STORAGE_DIR/connstatstext.js" "$SCRIPT_WEB_DIR/connstatstext.js" 2>/dev/null
-	ln -sf "$SCRIPT_STORAGE_DIR/lastx.csv" "$SCRIPT_WEB_DIR/lastx.htm" 2>/dev/null
+	ln -sf "$SCRIPT_WEB_DIR/ping-result.txt" "$SCRIPT_WEB_DIR/ping-result.htm" 2>/dev/null
 
 	ln -sf "$EMAIL_CONF" "$SCRIPT_WEB_DIR/email_config.htm" 2>/dev/null
 	ln -sf "$SCRIPT_CONF" "$SCRIPT_WEB_DIR/config.htm" 2>/dev/null
 	ln -sf "$SCRIPT_DIR/CHANGELOG.md" "$SCRIPT_WEB_DIR/changelog.htm" 2>/dev/null
+
+	ln -sf "$SCRIPT_STORAGE_DIR/lastx.csv" "$SCRIPT_WEB_DIR/lastx.htm" 2>/dev/null
+	ln -sf "$SCRIPT_STORAGE_DIR/connstatstext.js" "$SCRIPT_WEB_DIR/connstatstext.js" 2>/dev/null
 	ln -sf "$SCRIPT_STORAGE_DIR/.cron" "$SCRIPT_WEB_DIR/cron.js" 2>/dev/null
 	ln -sf "$SCRIPT_STORAGE_DIR/.customactioninfo" "$SCRIPT_WEB_DIR/customactioninfo.htm" 2>/dev/null
 	ln -sf "$SCRIPT_STORAGE_DIR/.customactionlist" "$SCRIPT_WEB_DIR/customactionlist.htm" 2>/dev/null
@@ -1970,7 +1978,7 @@ _SQLGetDBLogTimeStamp_()
 { printf "[$(date +"$sqlDBLogDateTime")]" ; }
 
 ##----------------------------------------##
-## Modified by Martinski W. [2025-Jun-21] ##
+## Modified by Martinski W. [2025-Jul-20] ##
 ##----------------------------------------##
 readonly errorMsgsRegExp="Parse error|Runtime error|Error:"
 readonly corruptedBinExp="Illegal instruction|SQLite header and source version mismatch"
@@ -2058,7 +2066,7 @@ _ApplyDatabaseSQLCmds_()
     fi
     if "$foundError" || "$foundLocked"
     then
-        Print_Output true "SQLite process ${resultStr}" "$ERR"
+        Print_Output true "SQLite process[$callFlag] ${resultStr}" "$ERR"
     fi
 }
 
@@ -2119,7 +2127,7 @@ _Trim_Database_()
 }
 
 ##----------------------------------------##
-## Modified by Martinski W. [2025-Jan-29] ##
+## Modified by Martinski W. [2025-Jul-20] ##
 ##----------------------------------------##
 Run_PingTest()
 {
@@ -2134,6 +2142,7 @@ Run_PingTest()
 	else
 		ps | grep -v grep | grep -v $$ | grep -i "$SCRIPT_NAME" | grep generate | awk '{print $1}' | xargs kill -9 >/dev/null 2>&1
 	fi
+
 	Create_Dirs
 	Conf_Exists
 	Auto_Startup create 2>/dev/null
@@ -2145,60 +2154,93 @@ Run_PingTest()
 	ScriptStorageLocation load
 	Create_Symlinks
 
-	pingfile=/tmp/pingfile.txt
-	resultfile="$SCRIPT_WEB_DIR/ping-result.txt"
-	pingduration="$(PingDuration check)"
-	pingtarget="$(PingServer check)"
-	pingtargetip=""
-	completepingtarget=""
-	rm -f "$resultfile"
-	rm -f "$pingfile"
+	pingFile="/tmp/pingfile.txt"
+	resultFile="$SCRIPT_WEB_DIR/ping-result.txt"
+	local pingDuration="$(PingDuration check)"
+	local pingTarget="$(PingServer check)"
+	local pinTestOK  pingTargetIP  completePingTarget
+	local stoppedQoS  nvramQoSenable  nvramQoStype
+
+	rm -f "$pingFile" "$resultFile"
 
 	echo 'var connmonstatus = "InProgress";' > "$SCRIPT_WEB_DIR/detect_connmon.js"
 
-	Print_Output false "$pingduration second ping test to $pingtarget starting..." "$PASS"
-
-	if ! expr "$pingtarget" : '[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*$' >/dev/null && nslookup "$pingtarget" >/dev/null 2>&1
+	if ! expr "$pingTarget" : '[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*$' >/dev/null && \
+	   nslookup "$pingTarget" >/dev/null 2>&1
 	then
-		pingtargetip="$(dig +short +answer "$pingtarget" | head -n 1)"
-		completepingtarget="$pingtarget ($pingtargetip)"
+		pingTargetIP="$(dig +short +answer "$pingTarget" | head -n 1)"
+		completePingTarget="$pingTarget ($pingTargetIP)"
 	else
-		pingtargetip="$pingtarget"
-		completepingtarget="$pingtarget"
+		pingTargetIP="$pingTarget"
+		completePingTarget="$pingTarget"
 	fi
 
-	stoppedqos="false"
+	stoppedQoS=false
 	if [ "$(ExcludeFromQoS check)" = "true" ]
 	then
-		if [ "$(nvram get qos_enable)" -eq 1 ] && [ "$(nvram get qos_type)" -eq 1 ]
+		nvramQoStype="$(nvram get qos_type)"
+		nvramQoSenable="$(nvram get qos_enable)"
+		if [ "$nvramQoSenable" -eq 1 ] && [ "$nvramQoStype" -eq 1 ]
 		then
-			for ACTION in -D -A ; do
+			Print_Output true "Excluding QoS [Type: $nvramQoStype] from ping tests..." "$WARN"
+			for ACTION in -D -A
+			do
 				iptables "$ACTION" OUTPUT -p icmp -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
 				iptables -t mangle "$ACTION" OUTPUT -p icmp -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
 				iptables -t mangle "$ACTION" POSTROUTING -p icmp -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
-				stoppedqos="true"
 			done
-		elif [ "$(nvram get qos_enable)" -eq 1 ] && [ "$(nvram get qos_type)" -ne 1 ] && [ -f /tmp/qos ]; then
+ 			sleep 3 ; stoppedQoS=true
+			Print_Output true "QoS [Type: $nvramQoStype] is excluded." "$WARN"
+		##
+		elif [ "$nvramQoSenable" -eq 1 ] && [ "$nvramQoStype" -ne 1 ] && [ -f /tmp/qos ]
+		then
+			Print_Output true "Stopping QoS [Type: $nvramQoStype] for ping tests..." "$WARN"
 			/tmp/qos stop >/dev/null 2>&1
-			stoppedqos="true"
-		elif [ "$(nvram get qos_enable)" -eq 0 ] && [ -f /jffs/addons/cake-qos/cake-qos ]; then
+			sleep 4 ; stoppedQoS=true
+			Print_Output true "QoS [Type: $nvramQoStype] was stopped." "$WARN"
+		##
+		elif [ "$nvramQoSenable" -eq 0 ] && [ -f /jffs/addons/cake-qos/cake-qos ]
+		then
+			Print_Output true "Stopping CAKE QoS for ping tests..." "$WARN"
 			/jffs/addons/cake-qos/cake-qos stop >/dev/null 2>&1
-			stoppedqos="true"
+			sleep 4 ; stoppedQoS=true
+			Print_Output true "CAKE QoS was stopped." "$WARN"
 		fi
 	fi
 
-	ping -w "$pingduration" "$pingtargetip" > "$pingfile"
+	Print_Output false "$pingDuration second ping test to $pingTarget starting..." "$PASS"
 
-	if [ "$stoppedqos" = "true" ]
+	if ping -w "$pingDuration" "$pingTargetIP" > "$pingFile"
+	then pinTestOK=true
+	else pinTestOK=false
+	fi
+
+	if [ "$stoppedQoS" = "true" ]
 	then
-		if [ "$(nvram get qos_enable)" -eq 1 ] && [ "$(nvram get qos_type)" -eq 1 ]; then
+		nvramQoStype="$(nvram get qos_type)"
+		nvramQoSenable="$(nvram get qos_enable)"
+		if [ "$nvramQoSenable" -eq 1 ] && [ "$nvramQoStype" -eq 1 ]
+		then
+			Print_Output true "Restarting QoS [Type: $nvramQoStype]..." "$WARN"
 			iptables -D OUTPUT -p icmp -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
 			iptables -t mangle -D OUTPUT -p icmp -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
 			iptables -t mangle -D POSTROUTING -p icmp -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
-		elif [ "$(nvram get qos_enable)" -eq 1 ] && [ "$(nvram get qos_type)" -ne 1 ] && [ -f /tmp/qos ]; then
+			sleep 2 ; stoppedQoS=false
+			Print_Output true "QoS [Type: $nvramQoStype] was restarted." "$WARN"
+		##
+		elif [ "$nvramQoSenable" -eq 1 ] && [ "$nvramQoStype" -ne 1 ] && [ -f /tmp/qos ]
+		then
+			Print_Output true "Restarting QoS [Type: $nvramQoStype]..." "$WARN"
 			/tmp/qos start >/dev/null 2>&1
-		elif [ "$(nvram get qos_enable)" -eq 0 ] && [ -f /jffs/addons/cake-qos/cake-qos ]; then
+			sleep 3 ; stoppedQoS=false
+			Print_Output true "QoS [Type: $nvramQoStype] was restarted." "$WARN"
+		##
+		elif [ "$nvramQoSenable" -eq 0 ] && [ -f /jffs/addons/cake-qos/cake-qos ]
+		then
+			Print_Output true "Restarting CAKE QoS..." "$WARN"
 			/jffs/addons/cake-qos/cake-qos start >/dev/null 2>&1
+			sleep 3 ; stoppedQoS=false
+			Print_Output true "CAKE QoS was restarted." "$WARN"
 		fi
 	fi
 
@@ -2207,10 +2249,11 @@ Run_PingTest()
 	PREVPING=0
 	TOTALDIFF=0
 	COUNTER=1
-	PINGLIST="$(grep seq= "$pingfile")"
+	PINGLIST="$(grep -E 'seq=.+ ttl=.+ time=.+' "$pingFile")"
 	PINGCOUNT="$(echo "$PINGLIST" | sed '/^\s*$/d' | wc -l)"
 	DIFFCOUNT="$((PINGCOUNT - 1))"
-	if [ "$PINGCOUNT" -gt 0 ]
+
+	if "$pinTestOK" && [ "$PINGCOUNT" -gt 0 ]
 	then
 		until [ "$COUNTER" -gt "$PINGCOUNT" ]
 		do
@@ -2238,13 +2281,22 @@ Run_PingTest()
 	jitter=0
 	linequal=0
 
-	if [ "$PINGCOUNT" -gt 1 ]
+	## Double-check to make sure we have all the required data ##
+	if "$pinTestOK" && [ "$PINGCOUNT" -gt 1 ] && \
+	   grep -qE 'round-trip min/avg/max =.+' "$pingFile" && \
+	   grep -qE 'packets transmitted,.+ packets received,.+' "$pingFile"
 	then
-		ping="$(tail -n 1 "$pingfile"  | cut -f4 -d"/")"
+		ping="$(tail -n 1 "$pingFile"  | cut -f4 -d'/')"
 		jitter="$(echo "$TOTALDIFF" "$DIFFCOUNT" | awk '{printf "%4.3f\n",$1/$2}')"
-		pkt_trans="$(tail -n 2 "$pingfile" | head -n 1 | cut -f1 -d"," | cut -f1 -d" ")"
-		pkt_rec="$(tail -n 2 "$pingfile" | head -n 1 | cut -f2 -d"," | cut -f2 -d" ")"
+		pkt_trans="$(tail -n 2 "$pingFile" | head -n 1 | cut -f1 -d',' | cut -f1 -d' ')"
+		pkt_rec="$(tail -n 2 "$pingFile" | head -n 1 | cut -f2 -d',' | cut -f2 -d' ')"
 		linequal="$(echo "$pkt_rec" "$pkt_trans" | awk '{printf "%4.3f\n",100*$1/$2}')"
+	else
+		Print_Output true "Ping test for connmon failed." "$CRIT"
+		printf "Ping test failed.\nNo results are available.\n" > "$resultFile"
+		echo 'var connmonstatus = "Error";' > "$SCRIPT_WEB_DIR/detect_connmon.js"
+		rm -f "$pingFile"
+		return 1
 	fi
 
 	Process_Upgrade
@@ -2253,7 +2305,7 @@ Run_PingTest()
 	   echo "PRAGMA temp_store=1;"
 	   echo "PRAGMA journal_mode=TRUNCATE;"
 	   echo "CREATE TABLE IF NOT EXISTS [connstats] ([StatID] INTEGER PRIMARY KEY NOT NULL,[Timestamp] NUMERIC NOT NULL,[Ping] REAL NOT NULL,[Jitter] REAL NOT NULL,[LineQuality] REAL NOT NULL,[PingTarget] TEXT NOT NULL,[PingDuration] NUMERIC);"
-	   echo "INSERT INTO connstats ([Timestamp],[Ping],[Jitter],[LineQuality],[PingTarget],[PingDuration]) values($timenow,$ping,$jitter,$linequal,'$completepingtarget',$pingduration);"
+	   echo "INSERT INTO connstats ([Timestamp],[Ping],[Jitter],[LineQuality],[PingTarget],[PingDuration]) values($timenow,$ping,$jitter,$linequal,'$completePingTarget',$pingDuration);"
 	} > /tmp/connmon-stats.sql
 	_ApplyDatabaseSQLCmds_ /tmp/connmon-stats.sql png1
 
@@ -2267,11 +2319,11 @@ Run_PingTest()
 	Print_Output false "Test results: Ping $ping ms - Jitter - $jitter ms - Line Quality ${linequal}%" "$PASS"
 
 	{
-		printf "Ping test result\n"
+		printf "Ping test results:\n"
 		printf "\nPing %s ms - Jitter - %s ms - Line Quality %s %%\n" "$ping" "$jitter" "$linequal"
-	} >> "$resultfile"
+	} > "$resultFile"
 
-	rm -f "$pingfile"
+	rm -f "$pingFile"
 	rm -f /tmp/connstatstitle.txt
 
 	TriggerNotifications PingTest "$timenowfriendly" "$ping ms" "$jitter ms" "$linequal %" "$timenow"
@@ -5507,8 +5559,8 @@ Entware_Ready()
 ##----------------------------------------##
 Show_About()
 {
+	printf "About ${MGNTct}${SCRIPT_VERS_INFO}${CLRct}\n"
 	cat <<EOF
-About $SCRIPT_VERS_INFO
   $SCRIPT_NAME is an internet connection monitoring tool for
   AsusWRT Merlin with charts for daily, weekly and monthly
   summaries.
@@ -5532,8 +5584,8 @@ EOF
 ##----------------------------------------##
 Show_Help()
 {
+	printf "HELP ${MGNTct}${SCRIPT_VERS_INFO}${CLRct}\n"
 	cat <<EOF
-HELP $SCRIPT_VERS_INFO
 Available commands:
   $SCRIPT_NAME about            explains functionality
   $SCRIPT_NAME update           checks for updates
@@ -5546,8 +5598,8 @@ Available commands:
   $SCRIPT_NAME trimdb           run maintenance on database (this runs automatically every night)
   $SCRIPT_NAME enable           enable automatic ping tests
   $SCRIPT_NAME disable          disable automatic ping tests
-  $SCRIPT_NAME develop          switch to development branch
-  $SCRIPT_NAME stable           switch to stable branch
+  $SCRIPT_NAME develop          switch to development branch version
+  $SCRIPT_NAME stable           switch to stable/production branch version
 EOF
 	printf "\n"
 }
@@ -5577,9 +5629,9 @@ USER_SCRIPT_DIR="$SCRIPT_STORAGE_DIR/userscripts.d"
 JFFS_LowFreeSpaceStatus="OK"
 updateJFFS_SpaceInfo=false
 
-if [ "$SCRIPT_BRANCH" != "develop" ]
-then SCRIPT_VERS_INFO=""
-else SCRIPT_VERS_INFO="$scriptVERINFO"
+if [ "$SCRIPT_BRANCH" = "master" ]
+then SCRIPT_VERS_INFO="[$branchx_TAG]"
+else SCRIPT_VERS_INFO="[$version_TAG, $branchx_TAG]"
 fi
 
 ##----------------------------------------##
