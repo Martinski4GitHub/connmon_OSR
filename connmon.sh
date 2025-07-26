@@ -11,7 +11,7 @@
 ##      Forked from https://github.com/jackyaz/connmon      ##
 ##                                                          ##
 ##############################################################
-# Last Modified: 2025-Jul-20
+# Last Modified: 2025-Jul-25
 #-------------------------------------------------------------
 # Modification by thelonelycoder [2025-May-25]
 # Changed repo paths to OSR, added OSR repo to headers, removed jackyaz.io tags in URL.
@@ -38,8 +38,8 @@
 
 ### Start of script variables ###
 readonly SCRIPT_NAME="connmon"
-readonly SCRIPT_VERSION="v3.0.6"
-readonly SCRIPT_VERSTAG="25072022"
+readonly SCRIPT_VERSION="v3.0.7"
+readonly SCRIPT_VERSTAG="25072522"
 SCRIPT_BRANCH="develop"
 SCRIPT_REPO="https://raw.githubusercontent.com/AMTM-OSR/$SCRIPT_NAME/$SCRIPT_BRANCH"
 readonly SCRIPT_DIR="/jffs/addons/$SCRIPT_NAME.d"
@@ -5507,13 +5507,14 @@ NTP_Ready()
 			sleep "$theSleepDelay"
 			ntpWaitSecs="$((ntpWaitSecs + theSleepDelay))"
 		done
+
 		if [ "$ntpWaitSecs" -ge "$ntpMaxWaitSecs" ]
 		then
 			Print_Output true "NTP failed to sync after 10 minutes. Please resolve!" "$CRIT"
 			Clear_Lock
 			exit 1
 		else
-			Print_Output true "NTP synced, $SCRIPT_NAME will now continue" "$PASS"
+			Print_Output true "NTP has synced [$ntpWaitSecs secs]. $SCRIPT_NAME will now continue." "$PASS"
 			Clear_Lock
 		fi
 	fi
@@ -5541,13 +5542,14 @@ Entware_Ready()
 			sleep "$theSleepDelay"
 			sleepTimerSecs="$((sleepTimerSecs + theSleepDelay))"
 		done
+
 		if [ ! -f /opt/bin/opkg ]
 		then
 			Print_Output true "Entware NOT found and is required for $SCRIPT_NAME to run, please resolve!" "$CRIT"
 			Clear_Lock
 			exit 1
 		else
-			Print_Output true "Entware found. $SCRIPT_NAME will now continue" "$PASS"
+			Print_Output true "Entware found [$sleepTimerSecs secs]. $SCRIPT_NAME will now continue." "$PASS"
 			Clear_Lock
 		fi
 	fi
