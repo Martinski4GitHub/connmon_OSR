@@ -11,7 +11,7 @@
 ##      Forked from https://github.com/jackyaz/connmon      ##
 ##                                                          ##
 ##############################################################
-# Last Modified: 2025-Jul-25
+# Last Modified: 2025-Oct-25
 #-------------------------------------------------------------
 # Modification by thelonelycoder [2025-May-25]
 # Changed repo paths to OSR, added OSR repo to headers, removed jackyaz.io tags in URL.
@@ -39,7 +39,7 @@
 ### Start of script variables ###
 readonly SCRIPT_NAME="connmon"
 readonly SCRIPT_VERSION="v3.0.7"
-readonly SCRIPT_VERSTAG="25072522"
+readonly SCRIPT_VERSTAG="25102522"
 SCRIPT_BRANCH="develop"
 SCRIPT_REPO="https://raw.githubusercontent.com/AMTM-OSR/$SCRIPT_NAME/$SCRIPT_BRANCH"
 readonly SCRIPT_DIR="/jffs/addons/$SCRIPT_NAME.d"
@@ -4757,6 +4757,7 @@ Menu_Startup()
 	then Auto_Cron create 2>/dev/null
 	else Auto_Cron delete 2>/dev/null
 	fi
+	Set_Version_Custom_Settings local "$SCRIPT_VERSION"
 	Auto_ServiceEvent create 2>/dev/null
 	Shortcut_Script create
 	Mount_WebUI
@@ -5658,6 +5659,7 @@ then
 	then Auto_Cron create 2>/dev/null
 	else Auto_Cron delete 2>/dev/null
 	fi
+	Set_Version_Custom_Settings local "$SCRIPT_VERSION"
 	Auto_ServiceEvent create 2>/dev/null
 	Shortcut_Script create
 	_CheckFor_WebGUI_Page_
@@ -5677,7 +5679,8 @@ case "$1" in
 		exit 0
 	;;
 	startup)
-		Menu_Startup "$2"
+		shift
+		Menu_Startup "$@"
 		exit 0
 	;;
 	generate)

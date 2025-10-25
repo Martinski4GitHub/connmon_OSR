@@ -1599,7 +1599,7 @@ function getStatsTitleFile()
 				document.getElementById('jffsFreeSpace_text').textContent = 'JFFS Available: ';
 				document.getElementById('jffsFreeSpace_LOW').textContent = jffsAvailableSpaceStr;
 				showhide('jffsFreeSpace_LOW',true);
-                if (document.form.connmon_storagelocation.value === 'jffs')
+				if (document.form.connmon_storagelocation.value === 'jffs')
 				{ showhide('jffsFreeSpace_NOTE',false); showhide('jffsFreeSpace_WARN',true); }
 				else
 				{ showhide('jffsFreeSpace_WARN',false); showhide('jffsFreeSpace_NOTE',true); }
@@ -1608,12 +1608,12 @@ function getStatsTitleFile()
 			{
 				document.getElementById('autoModeState_text').innerHTML =
 					'Currently: <span style="margin-left:2px; background-color: #229652; color:#f2f2f2;">&nbsp;ENABLED&nbsp;</span>';
-            }
+			}
 			else
 			{
 				document.getElementById('autoModeState_text').innerHTML =
 					'Currently: <span style="margin-left:2px; background-color: #C81927; color:#f2f2f2;">&nbsp;DISABLED&nbsp;</span>'; 
-            }
+			}
 			if (databaseResetDone === 1)
 			{
 				currentNoCharts = 0;
