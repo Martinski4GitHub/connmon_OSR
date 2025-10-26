@@ -13,8 +13,6 @@
 ##############################################################
 # Last Modified: 2025-Oct-25
 #-------------------------------------------------------------
-# Modification by thelonelycoder [2025-May-25]
-# Changed repo paths to OSR, added OSR repo to headers, removed jackyaz.io tags in URL.
 
 ##############        Shellcheck directives      #############
 # shellcheck disable=SC1090
@@ -67,8 +65,9 @@ readonly webPageLineTabExp="\{url: \"$webPageFileRegExp\", tabName: "
 readonly webPageLineRegExp="${webPageLineTabExp}\"$SCRIPT_NAME\"\},"
 readonly BEGIN_MenuAddOnsTag="/\*\*BEGIN:_AddOns_\*\*/"
 readonly ENDIN_MenuAddOnsTag="/\*\*ENDIN:_AddOns_\*\*/"
-readonly branchx_TAG="Branch: $SCRIPT_BRANCH"
-readonly version_TAG="${SCRIPT_VERSION}_${SCRIPT_VERSTAG}"
+readonly branchxStr_TAG="[Branch: $SCRIPT_BRANCH]"
+readonly versionDev_TAG="${SCRIPT_VERSION}_${SCRIPT_VERSTAG}"
+readonly versionMod_TAG="$SCRIPT_VERSION on $ROUTER_MODEL"
 
 # For daily CRON job to trim database #
 readonly defTrimDB_Hour=3
@@ -4262,23 +4261,53 @@ NotificationMethods()
 	esac
 }
 
+##-------------------------------------##
+## Added by Martinski W. [2025-Oct-25] ##
+##-------------------------------------##
+_CenterTextStr_()
+{
+    if [ $# -lt 2 ] || [ -z "$1" ] || [ -z "$2" ] || \
+       ! echo "$2" | grep -qE "^[1-9][0-9]+$"
+    then echo ; return 1
+    fi
+    local stringLen="${#1}"
+    local space1Len="$((($2 - stringLen)/2))"
+    local space2Len="$space1Len"
+    local totalLen="$((space1Len + stringLen + space2Len))"
+
+    if [ "$totalLen" -lt "$2" ]
+    then space2Len="$((space2Len + 1))"
+    elif [ "$totalLen" -gt "$2" ]
+    then space1Len="$((space1Len - 1))"
+    fi
+    if [ "$space1Len" -gt 0 ] && [ "$space2Len" -gt 0 ]
+    then printf "%*s%s%*s" "$space1Len" '' "$1" "$space2Len" ''
+    else printf "%s" "$1"
+    fi
+}
+
+##----------------------------------------##
+## Modified by Martinski W. [2025-Oct-25] ##
+##----------------------------------------##
 ScriptHeader()
 {
 	clear
-	printf "\\n"
-	printf "${BOLD}##############################################################${CLEARFORMAT}\\n"
-	printf "${BOLD}##     ___   ___   _ __   _ __   _ __ ___    ___   _ __     ##${CLEARFORMAT}\\n"
-	printf "${BOLD}##    / __| / _ \ | '_ \ | '_ \ | '_   _ \  / _ \ | '_ \    ##${CLEARFORMAT}\\n"
-	printf "${BOLD}##   | (__ | (_) || | | || | | || | | | | || (_) || | | |   ##${CLEARFORMAT}\\n"
-	printf "${BOLD}##    \___| \___/ |_| |_||_| |_||_| |_| |_| \___/ |_| |_|   ##${CLEARFORMAT}\\n"
-	printf "${BOLD}##                                                          ##${CLEARFORMAT}\\n"
-	printf "${BOLD}##                  %9s on %-18s         ##${CLEARFORMAT}\n" "$SCRIPT_VERSION" "$ROUTER_MODEL"
-	printf "${BOLD}##                                                          ##${CLEARFORMAT}\\n"
-	printf "${BOLD}##           https://github.com/AMTM-OSR/connmon            ##${CLEARFORMAT}\\n"
-	printf "${BOLD}##      Forked from https://github.com/jackyaz/connmon      ##${CLEARFORMAT}\\n"
-	printf "${BOLD}##                                                          ##${CLEARFORMAT}\\n"
-	printf "${BOLD}##############################################################${CLEARFORMAT}\\n"
-	printf "\\n"
+	local spaceLen=56  colorCT
+	[ "$SCRIPT_BRANCH" = "master" ] && colorCT="$GRNct" || colorCT="$MGNTct"
+	echo
+	printf "${BOLD}##############################################################${CLRct}\n"
+	printf "${BOLD}##     ___   ___   _ __   _ __   _ __ ___    ___   _ __     ##${CLRct}\n"
+	printf "${BOLD}##    / __| / _ \ | '_ \ | '_ \ | '_   _ \  / _ \ | '_ \    ##${CLRct}\n"
+	printf "${BOLD}##   | (__ | (_) || | | || | | || | | | | || (_) || | | |   ##${CLRct}\n"
+	printf "${BOLD}##    \___| \___/ |_| |_||_| |_||_| |_| |_| \___/ |_| |_|   ##${CLRct}\n"
+	printf "${BOLD}##                                                          ##${CLRct}\n"
+	printf "${BOLD}## ${GRNct}%s${CLRct}${BOLD} ##${CLRct}\n" "$(_CenterTextStr_ "$versionMod_TAG" "$spaceLen")"
+	printf "${BOLD}## ${colorCT}%s${CLRct}${BOLD} ##${CLRct}\n" "$(_CenterTextStr_ "$branchxStr_TAG" "$spaceLen")"
+	printf "${BOLD}##                                                          ##${CLRct}\n"
+	printf "${BOLD}##           https://github.com/AMTM-OSR/connmon            ##${CLRct}\n"
+	printf "${BOLD}##      Forked from https://github.com/jackyaz/connmon      ##${CLRct}\n"
+	printf "${BOLD}##                                                          ##${CLRct}\n"
+	printf "${BOLD}##############################################################${CLRct}\n\n"
 }
 
 ##-------------------------------------##
@@ -5633,8 +5662,8 @@ JFFS_LowFreeSpaceStatus="OK"
 updateJFFS_SpaceInfo=false
 
 if [ "$SCRIPT_BRANCH" = "master" ]
-then SCRIPT_VERS_INFO="[$branchx_TAG]"
-else SCRIPT_VERS_INFO="[$version_TAG, $branchx_TAG]"
+then SCRIPT_VERS_INFO=""
+else SCRIPT_VERS_INFO="[$versionDev_TAG]"
 fi
 
 ##----------------------------------------##
