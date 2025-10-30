@@ -1,5 +1,10 @@
 # Changelog
 
+## v3.0.7
+Updated on 2025-Oct-30
+*   MODIFIED: Removed old Tomato JavaScript file references.
+*   IMPROVED: Miscellaneous code improvements.
+
 ## v3.0.6
 Updated on 2025-July-21
 *   FIXED: Added code to check for return status of the ping test command and to verify all the required data is found in the results.
