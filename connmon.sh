@@ -11,7 +11,7 @@
 ##      Forked from https://github.com/jackyaz/connmon      ##
 ##                                                          ##
 ##############################################################
-# Last Modified: 2025-Oct-25
+# Last Modified: 2025-Nov-04
 #-------------------------------------------------------------
 
 ##############        Shellcheck directives      #############
@@ -37,7 +37,7 @@
 ### Start of script variables ###
 readonly SCRIPT_NAME="connmon"
 readonly SCRIPT_VERSION="v3.0.7"
-readonly SCRIPT_VERSTAG="25102522"
+readonly SCRIPT_VERSTAG="25110422"
 SCRIPT_BRANCH="develop"
 SCRIPT_REPO="https://raw.githubusercontent.com/AMTM-OSR/$SCRIPT_NAME/$SCRIPT_BRANCH"
 readonly SCRIPT_DIR="/jffs/addons/$SCRIPT_NAME.d"
@@ -143,7 +143,7 @@ Print_Output()
 		    "$PASS") prioNum=6 ;; #INFO#
 		          *) prioNum=5 ;; #NOTICE#
 		esac
-		logger -t "$SCRIPT_NAME" -p $prioNum "$2"
+		logger -t "${SCRIPT_NAME}_[$$]" -p $prioNum "$2"
 	fi
 	printf "${BOLD}${3}%s${CLEARFORMAT}\n\n" "$2"
 }
@@ -1447,6 +1447,7 @@ ScriptStorageLocation()
 			mkdir -p "/opt/share/$SCRIPT_NAME.d/"
 			rm -f "/jffs/addons/$SCRIPT_NAME.d/connstats.db-shm"
 			rm -f "/jffs/addons/$SCRIPT_NAME.d/connstats.db-wal"
+			[ -d "/opt/share/$SCRIPT_NAME.d/csv" ] && rm -fr "/opt/share/$SCRIPT_NAME.d/csv"
 			mv -f "/jffs/addons/$SCRIPT_NAME.d/csv" "/opt/share/$SCRIPT_NAME.d/" 2>/dev/null
 			mv -f "/jffs/addons/$SCRIPT_NAME.d/config" "/opt/share/$SCRIPT_NAME.d/" 2>/dev/null
 			mv -f "/jffs/addons/$SCRIPT_NAME.d/config.bak" "/opt/share/$SCRIPT_NAME.d/" 2>/dev/null
@@ -1459,6 +1460,7 @@ ScriptStorageLocation()
 			mv -f "/jffs/addons/$SCRIPT_NAME.d/.customactioninfo" "/opt/share/$SCRIPT_NAME.d/" 2>/dev/null
 			mv -f "/jffs/addons/$SCRIPT_NAME.d/.customactionlist" "/opt/share/$SCRIPT_NAME.d/" 2>/dev/null
 			mv -f "/jffs/addons/$SCRIPT_NAME.d/.emailinfo" "/opt/share/$SCRIPT_NAME.d/" 2>/dev/null
+			[ -d "/opt/share/$SCRIPT_NAME.d/userscripts.d" ] && rm -fr "/opt/share/$SCRIPT_NAME.d/userscripts.d"
 			mv -f "/jffs/addons/$SCRIPT_NAME.d/userscripts.d" "/opt/share/$SCRIPT_NAME.d/" 2>/dev/null
 			SCRIPT_CONF="/opt/share/${SCRIPT_NAME}.d/config"
 			CONNSTATS_DB="/opt/share/${SCRIPT_NAME}.d/connstats.db"
@@ -1470,6 +1472,7 @@ ScriptStorageLocation()
 			printf "Please wait..."
 			sed -i 's/^STORAGELOCATION=.*$/STORAGELOCATION=jffs/' "$SCRIPT_CONF"
 			mkdir -p "/jffs/addons/$SCRIPT_NAME.d/"
+			[ -d "/jffs/addons/$SCRIPT_NAME.d/csv" ] && rm -fr "/jffs/addons/$SCRIPT_NAME.d/csv"
 			mv -f "/opt/share/$SCRIPT_NAME.d/csv" "/jffs/addons/$SCRIPT_NAME.d/" 2>/dev/null
 			mv -f "/opt/share/$SCRIPT_NAME.d/config" "/jffs/addons/$SCRIPT_NAME.d/" 2>/dev/null
 			mv -f "/opt/share/$SCRIPT_NAME.d/config.bak" "/jffs/addons/$SCRIPT_NAME.d/" 2>/dev/null
@@ -1482,6 +1485,7 @@ ScriptStorageLocation()
 			mv -f "/opt/share/$SCRIPT_NAME.d/.customactioninfo" "/jffs/addons/$SCRIPT_NAME.d/" 2>/dev/null
 			mv -f "/opt/share/$SCRIPT_NAME.d/.customactionlist" "/jffs/addons/$SCRIPT_NAME.d/" 2>/dev/null
 			mv -f "/opt/share/$SCRIPT_NAME.d/.emailinfo" "/jffs/addons/$SCRIPT_NAME.d/" 2>/dev/null
+			[ -d "/jffs/addons/$SCRIPT_NAME.d/userscripts.d" ] && rm -fr "/jffs/addons/$SCRIPT_NAME.d/userscripts.d"
 			mv -f "/opt/share/$SCRIPT_NAME.d/userscripts.d" "/jffs/addons/$SCRIPT_NAME.d/" 2>/dev/null
 			SCRIPT_CONF="/jffs/addons/${SCRIPT_NAME}.d/config"
 			CONNSTATS_DB="/jffs/addons/${SCRIPT_NAME}.d/connstats.db"
@@ -1897,7 +1901,7 @@ _JFFS_WarnLowFreeSpace_()
    then
        JFFS_WarningLogTime update "$currTimeSecs"
        logMsgStr="${logTagStr} JFFS Available Free Space ($1) is getting LOW."
-       logger -t "$SCRIPT_NAME" -p $logPriNum "$logMsgStr"
+       logger -t "${SCRIPT_NAME}_[$$]" -p $logPriNum "$logMsgStr"
    fi
 }
 
@@ -4750,6 +4754,22 @@ Menu_Install()
 	MainMenu
 }
 
+##-------------------------------------##
+## Added by Martinski W. [2025-Nov-04] ##
+##-------------------------------------##
+_SetParameters_()
+{
+    if [ -f "/opt/share/$SCRIPT_NAME.d/config" ]
+    then SCRIPT_STORAGE_DIR="/opt/share/${SCRIPT_NAME}.d"
+    else SCRIPT_STORAGE_DIR="/jffs/addons/${SCRIPT_NAME}.d"
+    fi
+
+    SCRIPT_CONF="$SCRIPT_STORAGE_DIR/config"
+    CONNSTATS_DB="$SCRIPT_STORAGE_DIR/connstats.db"
+    CSV_OUTPUT_DIR="$SCRIPT_STORAGE_DIR/csv"
+    USER_SCRIPT_DIR="$SCRIPT_STORAGE_DIR/userscripts.d"
+}
+
 ##----------------------------------------##
 ## Modified by Martinski W. [2025-May-13] ##
 ##----------------------------------------##
@@ -4771,6 +4791,8 @@ Menu_Startup()
 	fi
 
 	NTP_Ready
+	Entware_Ready
+	_SetParameters_
 	Check_Lock
 
 	if [ "$1" != "force" ]; then
@@ -5649,15 +5671,7 @@ else sqlDBLogFilePath="/tmp/var/tmp/$sqlDBLogFileName"
 fi
 _SQLCheckDBLogFileSize_
 
-if [ -f "/opt/share/$SCRIPT_NAME.d/config" ]
-then SCRIPT_STORAGE_DIR="/opt/share/${SCRIPT_NAME}.d"
-else SCRIPT_STORAGE_DIR="/jffs/addons/${SCRIPT_NAME}.d"
-fi
-
-SCRIPT_CONF="$SCRIPT_STORAGE_DIR/config"
-CONNSTATS_DB="$SCRIPT_STORAGE_DIR/connstats.db"
-CSV_OUTPUT_DIR="$SCRIPT_STORAGE_DIR/csv"
-USER_SCRIPT_DIR="$SCRIPT_STORAGE_DIR/userscripts.d"
+_SetParameters_
 JFFS_LowFreeSpaceStatus="OK"
 updateJFFS_SpaceInfo=false
 
