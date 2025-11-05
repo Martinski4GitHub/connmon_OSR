@@ -1,7 +1,9 @@
 # Changelog
 
 ## v3.0.7
-Updated on 2025-Oct-30
+Updated on 2025-Nov-04
+*   IMPROVED: Modified code to re-initialize global parameters after USB-attached drive has been mounted and Entware is found.
+*   IMPROVED: More checks to clean up files when switching from JFFS to USB and vice versa.
 *   MODIFIED: Removed old Tomato JavaScript file references.
 *   IMPROVED: Miscellaneous code improvements.
 
