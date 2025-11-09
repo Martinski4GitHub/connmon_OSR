@@ -11,10 +11,8 @@
 ##      Forked from https://github.com/jackyaz/connmon      ##
 ##                                                          ##
 ##############################################################
-# Last Modified: 2025-Jul-20
+# Last Modified: 2025-Nov-04
 #-------------------------------------------------------------
-# Modification by thelonelycoder [2025-May-25]
-# Changed repo paths to OSR, added OSR repo to headers, removed jackyaz.io tags in URL.
 
 ##############        Shellcheck directives      #############
 # shellcheck disable=SC1090
@@ -38,8 +36,8 @@
 
 ### Start of script variables ###
 readonly SCRIPT_NAME="connmon"
-readonly SCRIPT_VERSION="v3.0.6"
-readonly SCRIPT_VERSTAG="25072022"
+readonly SCRIPT_VERSION="v3.0.7"
+readonly SCRIPT_VERSTAG="25110422"
 SCRIPT_BRANCH="master"
 SCRIPT_REPO="https://raw.githubusercontent.com/AMTM-OSR/$SCRIPT_NAME/$SCRIPT_BRANCH"
 readonly SCRIPT_DIR="/jffs/addons/$SCRIPT_NAME.d"
@@ -67,8 +65,9 @@ readonly webPageLineTabExp="\{url: \"$webPageFileRegExp\", tabName: "
 readonly webPageLineRegExp="${webPageLineTabExp}\"$SCRIPT_NAME\"\},"
 readonly BEGIN_MenuAddOnsTag="/\*\*BEGIN:_AddOns_\*\*/"
 readonly ENDIN_MenuAddOnsTag="/\*\*ENDIN:_AddOns_\*\*/"
-readonly branchx_TAG="Branch: $SCRIPT_BRANCH"
-readonly version_TAG="${SCRIPT_VERSION}_${SCRIPT_VERSTAG}"
+readonly branchxStr_TAG="[Branch: $SCRIPT_BRANCH]"
+readonly versionDev_TAG="${SCRIPT_VERSION}_${SCRIPT_VERSTAG}"
+readonly versionMod_TAG="$SCRIPT_VERSION on $ROUTER_MODEL"
 
 # For daily CRON job to trim database #
 readonly defTrimDB_Hour=3
@@ -144,7 +143,7 @@ Print_Output()
 		    "$PASS") prioNum=6 ;; #INFO#
 		          *) prioNum=5 ;; #NOTICE#
 		esac
-		logger -t "$SCRIPT_NAME" -p $prioNum "$2"
+		logger -t "${SCRIPT_NAME}_[$$]" -p $prioNum "$2"
 	fi
 	printf "${BOLD}${3}%s${CLEARFORMAT}\n\n" "$2"
 }
@@ -1448,6 +1447,7 @@ ScriptStorageLocation()
 			mkdir -p "/opt/share/$SCRIPT_NAME.d/"
 			rm -f "/jffs/addons/$SCRIPT_NAME.d/connstats.db-shm"
 			rm -f "/jffs/addons/$SCRIPT_NAME.d/connstats.db-wal"
+			[ -d "/opt/share/$SCRIPT_NAME.d/csv" ] && rm -fr "/opt/share/$SCRIPT_NAME.d/csv"
 			mv -f "/jffs/addons/$SCRIPT_NAME.d/csv" "/opt/share/$SCRIPT_NAME.d/" 2>/dev/null
 			mv -f "/jffs/addons/$SCRIPT_NAME.d/config" "/opt/share/$SCRIPT_NAME.d/" 2>/dev/null
 			mv -f "/jffs/addons/$SCRIPT_NAME.d/config.bak" "/opt/share/$SCRIPT_NAME.d/" 2>/dev/null
@@ -1460,6 +1460,7 @@ ScriptStorageLocation()
 			mv -f "/jffs/addons/$SCRIPT_NAME.d/.customactioninfo" "/opt/share/$SCRIPT_NAME.d/" 2>/dev/null
 			mv -f "/jffs/addons/$SCRIPT_NAME.d/.customactionlist" "/opt/share/$SCRIPT_NAME.d/" 2>/dev/null
 			mv -f "/jffs/addons/$SCRIPT_NAME.d/.emailinfo" "/opt/share/$SCRIPT_NAME.d/" 2>/dev/null
+			[ -d "/opt/share/$SCRIPT_NAME.d/userscripts.d" ] && rm -fr "/opt/share/$SCRIPT_NAME.d/userscripts.d"
 			mv -f "/jffs/addons/$SCRIPT_NAME.d/userscripts.d" "/opt/share/$SCRIPT_NAME.d/" 2>/dev/null
 			SCRIPT_CONF="/opt/share/${SCRIPT_NAME}.d/config"
 			CONNSTATS_DB="/opt/share/${SCRIPT_NAME}.d/connstats.db"
@@ -1471,6 +1472,7 @@ ScriptStorageLocation()
 			printf "Please wait..."
 			sed -i 's/^STORAGELOCATION=.*$/STORAGELOCATION=jffs/' "$SCRIPT_CONF"
 			mkdir -p "/jffs/addons/$SCRIPT_NAME.d/"
+			[ -d "/jffs/addons/$SCRIPT_NAME.d/csv" ] && rm -fr "/jffs/addons/$SCRIPT_NAME.d/csv"
 			mv -f "/opt/share/$SCRIPT_NAME.d/csv" "/jffs/addons/$SCRIPT_NAME.d/" 2>/dev/null
 			mv -f "/opt/share/$SCRIPT_NAME.d/config" "/jffs/addons/$SCRIPT_NAME.d/" 2>/dev/null
 			mv -f "/opt/share/$SCRIPT_NAME.d/config.bak" "/jffs/addons/$SCRIPT_NAME.d/" 2>/dev/null
@@ -1483,6 +1485,7 @@ ScriptStorageLocation()
 			mv -f "/opt/share/$SCRIPT_NAME.d/.customactioninfo" "/jffs/addons/$SCRIPT_NAME.d/" 2>/dev/null
 			mv -f "/opt/share/$SCRIPT_NAME.d/.customactionlist" "/jffs/addons/$SCRIPT_NAME.d/" 2>/dev/null
 			mv -f "/opt/share/$SCRIPT_NAME.d/.emailinfo" "/jffs/addons/$SCRIPT_NAME.d/" 2>/dev/null
+			[ -d "/jffs/addons/$SCRIPT_NAME.d/userscripts.d" ] && rm -fr "/jffs/addons/$SCRIPT_NAME.d/userscripts.d"
 			mv -f "/opt/share/$SCRIPT_NAME.d/userscripts.d" "/jffs/addons/$SCRIPT_NAME.d/" 2>/dev/null
 			SCRIPT_CONF="/jffs/addons/${SCRIPT_NAME}.d/config"
 			CONNSTATS_DB="/jffs/addons/${SCRIPT_NAME}.d/connstats.db"
@@ -1898,7 +1901,7 @@ _JFFS_WarnLowFreeSpace_()
    then
        JFFS_WarningLogTime update "$currTimeSecs"
        logMsgStr="${logTagStr} JFFS Available Free Space ($1) is getting LOW."
-       logger -t "$SCRIPT_NAME" -p $logPriNum "$logMsgStr"
+       logger -t "${SCRIPT_NAME}_[$$]" -p $logPriNum "$logMsgStr"
    fi
 }
 
@@ -4262,23 +4265,53 @@ NotificationMethods()
 	esac
 }
 
+##-------------------------------------##
+## Added by Martinski W. [2025-Oct-25] ##
+##-------------------------------------##
+_CenterTextStr_()
+{
+    if [ $# -lt 2 ] || [ -z "$1" ] || [ -z "$2" ] || \
+       ! echo "$2" | grep -qE "^[1-9][0-9]+$"
+    then echo ; return 1
+    fi
+    local stringLen="${#1}"
+    local space1Len="$((($2 - stringLen)/2))"
+    local space2Len="$space1Len"
+    local totalLen="$((space1Len + stringLen + space2Len))"
+
+    if [ "$totalLen" -lt "$2" ]
+    then space2Len="$((space2Len + 1))"
+    elif [ "$totalLen" -gt "$2" ]
+    then space1Len="$((space1Len - 1))"
+    fi
+    if [ "$space1Len" -gt 0 ] && [ "$space2Len" -gt 0 ]
+    then printf "%*s%s%*s" "$space1Len" '' "$1" "$space2Len" ''
+    else printf "%s" "$1"
+    fi
+}
+
+##----------------------------------------##
+## Modified by Martinski W. [2025-Oct-25] ##
+##----------------------------------------##
 ScriptHeader()
 {
 	clear
-	printf "\\n"
-	printf "${BOLD}##############################################################${CLEARFORMAT}\\n"
-	printf "${BOLD}##     ___   ___   _ __   _ __   _ __ ___    ___   _ __     ##${CLEARFORMAT}\\n"
-	printf "${BOLD}##    / __| / _ \ | '_ \ | '_ \ | '_   _ \  / _ \ | '_ \    ##${CLEARFORMAT}\\n"
-	printf "${BOLD}##   | (__ | (_) || | | || | | || | | | | || (_) || | | |   ##${CLEARFORMAT}\\n"
-	printf "${BOLD}##    \___| \___/ |_| |_||_| |_||_| |_| |_| \___/ |_| |_|   ##${CLEARFORMAT}\\n"
-	printf "${BOLD}##                                                          ##${CLEARFORMAT}\\n"
-	printf "${BOLD}##                  %9s on %-18s         ##${CLEARFORMAT}\n" "$SCRIPT_VERSION" "$ROUTER_MODEL"
-	printf "${BOLD}##                                                          ##${CLEARFORMAT}\\n"
-	printf "${BOLD}##           https://github.com/AMTM-OSR/connmon            ##${CLEARFORMAT}\\n"
-	printf "${BOLD}##      Forked from https://github.com/jackyaz/connmon      ##${CLEARFORMAT}\\n"
-	printf "${BOLD}##                                                          ##${CLEARFORMAT}\\n"
-	printf "${BOLD}##############################################################${CLEARFORMAT}\\n"
-	printf "\\n"
+	local spaceLen=56  colorCT
+	[ "$SCRIPT_BRANCH" = "master" ] && colorCT="$GRNct" || colorCT="$MGNTct"
+	echo
+	printf "${BOLD}##############################################################${CLRct}\n"
+	printf "${BOLD}##     ___   ___   _ __   _ __   _ __ ___    ___   _ __     ##${CLRct}\n"
+	printf "${BOLD}##    / __| / _ \ | '_ \ | '_ \ | '_   _ \  / _ \ | '_ \    ##${CLRct}\n"
+	printf "${BOLD}##   | (__ | (_) || | | || | | || | | | | || (_) || | | |   ##${CLRct}\n"
+	printf "${BOLD}##    \___| \___/ |_| |_||_| |_||_| |_| |_| \___/ |_| |_|   ##${CLRct}\n"
+	printf "${BOLD}##                                                          ##${CLRct}\n"
+	printf "${BOLD}## ${GRNct}%s${CLRct}${BOLD} ##${CLRct}\n" "$(_CenterTextStr_ "$versionMod_TAG" "$spaceLen")"
+	printf "${BOLD}## ${colorCT}%s${CLRct}${BOLD} ##${CLRct}\n" "$(_CenterTextStr_ "$branchxStr_TAG" "$spaceLen")"
+	printf "${BOLD}##                                                          ##${CLRct}\n"
+	printf "${BOLD}##           https://github.com/AMTM-OSR/connmon            ##${CLRct}\n"
+	printf "${BOLD}##      Forked from https://github.com/jackyaz/connmon      ##${CLRct}\n"
+	printf "${BOLD}##                                                          ##${CLRct}\n"
+	printf "${BOLD}##############################################################${CLRct}\n\n"
 }
 
 ##-------------------------------------##
@@ -4721,6 +4754,22 @@ Menu_Install()
 	MainMenu
 }
 
+##-------------------------------------##
+## Added by Martinski W. [2025-Nov-04] ##
+##-------------------------------------##
+_SetParameters_()
+{
+    if [ -f "/opt/share/$SCRIPT_NAME.d/config" ]
+    then SCRIPT_STORAGE_DIR="/opt/share/${SCRIPT_NAME}.d"
+    else SCRIPT_STORAGE_DIR="/jffs/addons/${SCRIPT_NAME}.d"
+    fi
+
+    SCRIPT_CONF="$SCRIPT_STORAGE_DIR/config"
+    CONNSTATS_DB="$SCRIPT_STORAGE_DIR/connstats.db"
+    CSV_OUTPUT_DIR="$SCRIPT_STORAGE_DIR/csv"
+    USER_SCRIPT_DIR="$SCRIPT_STORAGE_DIR/userscripts.d"
+}
+
 ##----------------------------------------##
 ## Modified by Martinski W. [2025-May-13] ##
 ##----------------------------------------##
@@ -4742,6 +4791,8 @@ Menu_Startup()
 	fi
 
 	NTP_Ready
+	Entware_Ready
+	_SetParameters_
 	Check_Lock
 
 	if [ "$1" != "force" ]; then
@@ -4757,6 +4808,7 @@ Menu_Startup()
 	then Auto_Cron create 2>/dev/null
 	else Auto_Cron delete 2>/dev/null
 	fi
+	Set_Version_Custom_Settings local "$SCRIPT_VERSION"
 	Auto_ServiceEvent create 2>/dev/null
 	Shortcut_Script create
 	Mount_WebUI
@@ -5507,13 +5559,14 @@ NTP_Ready()
 			sleep "$theSleepDelay"
 			ntpWaitSecs="$((ntpWaitSecs + theSleepDelay))"
 		done
+
 		if [ "$ntpWaitSecs" -ge "$ntpMaxWaitSecs" ]
 		then
 			Print_Output true "NTP failed to sync after 10 minutes. Please resolve!" "$CRIT"
 			Clear_Lock
 			exit 1
 		else
-			Print_Output true "NTP synced, $SCRIPT_NAME will now continue" "$PASS"
+			Print_Output true "NTP has synced [$ntpWaitSecs secs]. $SCRIPT_NAME will now continue." "$PASS"
 			Clear_Lock
 		fi
 	fi
@@ -5541,13 +5594,14 @@ Entware_Ready()
 			sleep "$theSleepDelay"
 			sleepTimerSecs="$((sleepTimerSecs + theSleepDelay))"
 		done
+
 		if [ ! -f /opt/bin/opkg ]
 		then
 			Print_Output true "Entware NOT found and is required for $SCRIPT_NAME to run, please resolve!" "$CRIT"
 			Clear_Lock
 			exit 1
 		else
-			Print_Output true "Entware found. $SCRIPT_NAME will now continue" "$PASS"
+			Print_Output true "Entware found [$sleepTimerSecs secs]. $SCRIPT_NAME will now continue." "$PASS"
 			Clear_Lock
 		fi
 	fi
@@ -5617,21 +5671,13 @@ else sqlDBLogFilePath="/tmp/var/tmp/$sqlDBLogFileName"
 fi
 _SQLCheckDBLogFileSize_
 
-if [ -f "/opt/share/$SCRIPT_NAME.d/config" ]
-then SCRIPT_STORAGE_DIR="/opt/share/${SCRIPT_NAME}.d"
-else SCRIPT_STORAGE_DIR="/jffs/addons/${SCRIPT_NAME}.d"
-fi
-
-SCRIPT_CONF="$SCRIPT_STORAGE_DIR/config"
-CONNSTATS_DB="$SCRIPT_STORAGE_DIR/connstats.db"
-CSV_OUTPUT_DIR="$SCRIPT_STORAGE_DIR/csv"
-USER_SCRIPT_DIR="$SCRIPT_STORAGE_DIR/userscripts.d"
+_SetParameters_
 JFFS_LowFreeSpaceStatus="OK"
 updateJFFS_SpaceInfo=false
 
 if [ "$SCRIPT_BRANCH" = "master" ]
-then SCRIPT_VERS_INFO="[$branchx_TAG]"
-else SCRIPT_VERS_INFO="[$version_TAG, $branchx_TAG]"
+then SCRIPT_VERS_INFO=""
+else SCRIPT_VERS_INFO="[$versionDev_TAG]"
 fi
 
 ##----------------------------------------##
@@ -5656,6 +5702,7 @@ then
 	then Auto_Cron create 2>/dev/null
 	else Auto_Cron delete 2>/dev/null
 	fi
+	Set_Version_Custom_Settings local "$SCRIPT_VERSION"
 	Auto_ServiceEvent create 2>/dev/null
 	Shortcut_Script create
 	_CheckFor_WebGUI_Page_
@@ -5675,7 +5722,8 @@ case "$1" in
 		exit 0
 	;;
 	startup)
-		Menu_Startup "$2"
+		shift
+		Menu_Startup "$@"
 		exit 0
 	;;
 	generate)
