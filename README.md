@@ -17,6 +17,11 @@ Using your preferred SSH client/terminal, copy and paste the following command, 
 /usr/sbin/curl -fsL --retry 3 "https://raw.githubusercontent.com/AMTM-OSR/connmon/master/connmon.sh" -o "/jffs/scripts/connmon" && chmod 0755 /jffs/scripts/connmon && /jffs/scripts/connmon install
 ```
 
+## Prerequisites
+Asuswrt-Merlin running on a supported ASUS router
+Entware installed, preferably using amtm
+jffs scripts enabled in the firmware; installing Entware should have taken care of this part
+
 ## Usage
 ### WebUI
 connmon can be configured via the WebUI, in the Addons section.
