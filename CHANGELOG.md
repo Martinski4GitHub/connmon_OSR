@@ -1,5 +1,10 @@
 # Changelog
 
+## v3.0.8
+Updated on 2025-Nov-14
+*   NEW: Feature to set up notifications and run custom scripts when a ping test fails.
+*   IMPROVED: Miscellaneous code improvements.
+
 ## v3.0.7
 Updated on 2025-Nov-08
 *   IMPROVED: Modified code to re-initialize global parameters after USB-attached drive has been mounted and Entware is found.
