@@ -11,7 +11,7 @@
 ##      Forked from https://github.com/jackyaz/connmon      ##
 ##                                                          ##
 ##############################################################
-# Last Modified: 2025-Nov-14
+# Last Modified: 2025-Nov-15
 #-------------------------------------------------------------
 
 ##############        Shellcheck directives      #############
@@ -37,7 +37,7 @@
 ### Start of script variables ###
 readonly SCRIPT_NAME="connmon"
 readonly SCRIPT_VERSION="v3.0.8"
-readonly SCRIPT_VERSTAG="25111422"
+readonly SCRIPT_VERSTAG="25111500"
 SCRIPT_BRANCH="develop"
 SCRIPT_REPO="https://raw.githubusercontent.com/AMTM-OSR/$SCRIPT_NAME/$SCRIPT_BRANCH"
 readonly SCRIPT_DIR="/jffs/addons/$SCRIPT_NAME.d"
@@ -4193,7 +4193,7 @@ Menu_Notifications()
 	while true
 	do
 		ScriptHeader
-		printf "${BOLD}${GRNct}${UNDERLINE}Notification Types${CLEARFORMAT}\n\n"
+		printf " ${BOLD}${GRNct}${UNDERLINE}Notification Types${CLEARFORMAT}\n\n"
 		printf "  1.  Ping test success\n"
 		printf "      Current methods: ${SETTING}$(NotificationMethods check PingTestOK)${CLEARFORMAT}\n\n"
 		printf "  2.  Ping test failure\n"
@@ -4208,7 +4208,7 @@ Menu_Notifications()
 		printf "      Current threshold: ${SETTING}$(Conf_Parameters check NOTIFICATIONS_LINEQUALITYTHRESHOLD_VALUE) %%${CLEARFORMAT}\n"
 		printf "      Current methods: ${SETTING}$(NotificationMethods check LineQualityThreshold)${CLEARFORMAT}\n\n"
 
-		printf "\n${BOLD}${GRNct}${UNDERLINE}Notification Methods and Integrations${CLEARFORMAT}\n\n"
+		printf "\n ${BOLD}${GRNct}${UNDERLINE}Notification Methods and Integrations${CLEARFORMAT}\n\n"
 		NOTIFICATION_SETTING=""
 		if ToggleNotificationTypes check NOTIFICATIONS_EMAIL
 		then NOTIFICATION_SETTING="${PASS}Enabled"
@@ -4294,7 +4294,7 @@ NotificationMethods()
 			while true
 			do
 				ScriptHeader
-				printf "${BOLD}${UNDERLINE}${2}${CLEARFORMAT}\n\n"
+				printf " ${BOLD}${GRNct}${UNDERLINE}${2}${CLEARFORMAT}\n\n"
 				if [ "$2" = "PingThreshold" ]  || \
 				   [ "$2" = "JitterThreshold" ] || \
 				   [ "$2" = "LineQualityThreshold" ]
@@ -4313,18 +4313,18 @@ NotificationMethods()
 							UNIT="%%"
 						;;
 					esac
-					printf "c1.    Set threshold value - Currently: ${SETTING}$(Conf_Parameters check "$PARAMETERNAME") $UNIT${CLEARFORMAT}\n\n"
+					printf "c1.   Set threshold value - Currently: ${SETTING}$(Conf_Parameters check "$PARAMETERNAME") $UNIT${CLEARFORMAT}\n\n"
 				fi
 				SETTINGNAME="" ; SETTINGVALUE=""
 
 				printf "Please choose the notification methods to enable\n"
 				printf "${BOLD}Currently enabled: ${SETTING}%s${CLEARFORMAT}\n\n" "$(NotificationMethods check "$2")"
-				printf "1.     Email\n"
-				printf "2.     Webhook\n"
-				printf "3.     Pushover\n"
-				printf "4.     Custom\n"
-				printf "5.     None\n\n"
-				printf "e.     Go back\n\n"
+				printf " 1.   Email\n"
+				printf " 2.   Webhook\n"
+				printf " 3.   Pushover\n"
+				printf " 4.   Custom\n"
+				printf " 5.   None\n\n"
+				printf " e.   Go back\n\n"
 				printf "Choose an option:  "
 				read -r methodsmenu
 				case "$methodsmenu" in

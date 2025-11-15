@@ -1,7 +1,7 @@
 # connmon
 
 ## v3.0.8
-### Updated on 2025-Nov-14
+### Updated on 2025-Nov-15
 
 ## About
 connmon is an internet connection monitoring tool for AsusWRT Merlin with charts for daily, weekly and monthly summaries.
