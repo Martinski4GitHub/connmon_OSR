@@ -1,8 +1,8 @@
 # Changelog
 
 ## v3.0.8
-Updated on 2025-Nov-14
-*   NEW: Feature to set up notifications and run custom scripts when a ping test fails.
+Updated on 2025-Nov-15
+*   NEW: Additional "Notification Event Type" to set up notifications and run custom user scripts when a ping test fails.
 *   IMPROVED: Miscellaneous code improvements.
 
 ## v3.0.7
