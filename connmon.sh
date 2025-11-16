@@ -11,7 +11,7 @@
 ##      Forked from https://github.com/jackyaz/connmon      ##
 ##                                                          ##
 ##############################################################
-# Last Modified: 2025-Nov-15
+# Last Modified: 2025-Nov-16
 #-------------------------------------------------------------
 
 ##############        Shellcheck directives      #############
@@ -37,7 +37,7 @@
 ### Start of script variables ###
 readonly SCRIPT_NAME="connmon"
 readonly SCRIPT_VERSION="v3.0.8"
-readonly SCRIPT_VERSTAG="25111500"
+readonly SCRIPT_VERSTAG="25111600"
 SCRIPT_BRANCH="develop"
 SCRIPT_REPO="https://raw.githubusercontent.com/AMTM-OSR/$SCRIPT_NAME/$SCRIPT_BRANCH"
 readonly SCRIPT_DIR="/jffs/addons/$SCRIPT_NAME.d"
@@ -458,7 +458,7 @@ Validate_Domain()
 }
 
 ##----------------------------------------##
-## Modified by Martinski W. [2025-Jan-18] ##
+## Modified by Martinski W. [2025-Nov-15] ##
 ##----------------------------------------##
 Conf_FromSettings()
 {
@@ -493,7 +493,7 @@ Conf_FromSettings()
 			rm -f "$TMPFILE"
 			rm -f "${SETTINGSFILE}.bak"
 
-			if diff "$SCRIPT_CONF" "${SCRIPT_CONF}.bak" | grep -q "STORAGELOCATION="
+			if diff -U0 "$SCRIPT_CONF" "${SCRIPT_CONF}.bak" | grep -qE "[-+]STORAGELOCATION="
 			then
 				STORAGEtype="$(ScriptStorageLocation check)"
 				if [ "$STORAGEtype" = "jffs" ]
@@ -507,15 +507,17 @@ Conf_FromSettings()
 				then
 				    ScriptStorageLocation usb
 				fi
+				Create_Dirs
+				Conf_Exists
 				Create_Symlinks
 			fi
-			if diff "$SCRIPT_CONF" "${SCRIPT_CONF}.bak" | grep -qE "(SCHDAYS|SCHHOUR|SCHMINS|AUTOMATICMODE=)"
+			if diff -U0 "$SCRIPT_CONF" "${SCRIPT_CONF}.bak" | grep -qE "(SCHDAYS|SCHHOUR|SCHMINS|AUTOMATICMODE=)"
 			then
 				Auto_Cron delete 2>/dev/null
 				AutomaticMode check && Auto_Cron create 2>/dev/null
 				_UpdateAutomaticModeState_
 			fi
-			if diff "$SCRIPT_CONF" "${SCRIPT_CONF}.bak" | grep -qE "(OUTPUTTIMEMODE=|DAYSTOKEEP=|LASTXRESULTS=)"
+			if diff -U0 "$SCRIPT_CONF" "${SCRIPT_CONF}.bak" | grep -qE "(OUTPUTTIMEMODE=|DAYSTOKEEP=|LASTXRESULTS=)"
 			then
 				Generate_CSVs
 			fi
@@ -1442,7 +1444,7 @@ CronTestSchedule()
 }
 
 ##----------------------------------------##
-## Modified by Martinski W. [2025-Jun-06] ##
+## Modified by Martinski W. [2025-Nov-15] ##
 ##----------------------------------------##
 ScriptStorageLocation()
 {
@@ -1453,7 +1455,10 @@ ScriptStorageLocation()
 			mkdir -p "/opt/share/$SCRIPT_NAME.d/"
 			rm -f "/jffs/addons/$SCRIPT_NAME.d/connstats.db-shm"
 			rm -f "/jffs/addons/$SCRIPT_NAME.d/connstats.db-wal"
-			[ -d "/opt/share/$SCRIPT_NAME.d/csv" ] && rm -fr "/opt/share/$SCRIPT_NAME.d/csv"
+			if [ -d "/opt/share/$SCRIPT_NAME.d/csv" ] && \
+			   [ -d "/jffs/addons/$SCRIPT_NAME.d/csv" ]
+			then rm -fr "/opt/share/$SCRIPT_NAME.d/csv"
+			fi
 			mv -f "/jffs/addons/$SCRIPT_NAME.d/csv" "/opt/share/$SCRIPT_NAME.d/" 2>/dev/null
 			mv -f "/jffs/addons/$SCRIPT_NAME.d/config" "/opt/share/$SCRIPT_NAME.d/" 2>/dev/null
 			mv -f "/jffs/addons/$SCRIPT_NAME.d/config.bak" "/opt/share/$SCRIPT_NAME.d/" 2>/dev/null
@@ -1466,7 +1471,10 @@ ScriptStorageLocation()
 			mv -f "/jffs/addons/$SCRIPT_NAME.d/.customactioninfo" "/opt/share/$SCRIPT_NAME.d/" 2>/dev/null
 			mv -f "/jffs/addons/$SCRIPT_NAME.d/.customactionlist" "/opt/share/$SCRIPT_NAME.d/" 2>/dev/null
 			mv -f "/jffs/addons/$SCRIPT_NAME.d/.emailinfo" "/opt/share/$SCRIPT_NAME.d/" 2>/dev/null
-			[ -d "/opt/share/$SCRIPT_NAME.d/userscripts.d" ] && rm -fr "/opt/share/$SCRIPT_NAME.d/userscripts.d"
+			if [ -d "/opt/share/$SCRIPT_NAME.d/userscripts.d" ] && \
+			   [ -d "/jffs/addons/$SCRIPT_NAME.d/userscripts.d" ]
+			then rm -fr "/opt/share/$SCRIPT_NAME.d/userscripts.d"
+			fi
 			mv -f "/jffs/addons/$SCRIPT_NAME.d/userscripts.d" "/opt/share/$SCRIPT_NAME.d/" 2>/dev/null
 			SCRIPT_CONF="/opt/share/${SCRIPT_NAME}.d/config"
 			CONNSTATS_DB="/opt/share/${SCRIPT_NAME}.d/connstats.db"
@@ -1478,7 +1486,10 @@ ScriptStorageLocation()
 			printf "Please wait..."
 			sed -i 's/^STORAGELOCATION=.*$/STORAGELOCATION=jffs/' "$SCRIPT_CONF"
 			mkdir -p "/jffs/addons/$SCRIPT_NAME.d/"
-			[ -d "/jffs/addons/$SCRIPT_NAME.d/csv" ] && rm -fr "/jffs/addons/$SCRIPT_NAME.d/csv"
+			if [ -d "/opt/share/$SCRIPT_NAME.d/csv" ] && \
+			   [ -d "/jffs/addons/$SCRIPT_NAME.d/csv" ]
+			then rm -fr "/jffs/addons/$SCRIPT_NAME.d/csv"
+			fi
 			mv -f "/opt/share/$SCRIPT_NAME.d/csv" "/jffs/addons/$SCRIPT_NAME.d/" 2>/dev/null
 			mv -f "/opt/share/$SCRIPT_NAME.d/config" "/jffs/addons/$SCRIPT_NAME.d/" 2>/dev/null
 			mv -f "/opt/share/$SCRIPT_NAME.d/config.bak" "/jffs/addons/$SCRIPT_NAME.d/" 2>/dev/null
@@ -1491,7 +1502,10 @@ ScriptStorageLocation()
 			mv -f "/opt/share/$SCRIPT_NAME.d/.customactioninfo" "/jffs/addons/$SCRIPT_NAME.d/" 2>/dev/null
 			mv -f "/opt/share/$SCRIPT_NAME.d/.customactionlist" "/jffs/addons/$SCRIPT_NAME.d/" 2>/dev/null
 			mv -f "/opt/share/$SCRIPT_NAME.d/.emailinfo" "/jffs/addons/$SCRIPT_NAME.d/" 2>/dev/null
-			[ -d "/jffs/addons/$SCRIPT_NAME.d/userscripts.d" ] && rm -fr "/jffs/addons/$SCRIPT_NAME.d/userscripts.d"
+			if [ -d "/opt/share/$SCRIPT_NAME.d/userscripts.d" ] && \
+			   [ -d "/jffs/addons/$SCRIPT_NAME.d/userscripts.d" ]
+			then rm -fr "/jffs/addons/$SCRIPT_NAME.d/userscripts.d"
+			fi
 			mv -f "/opt/share/$SCRIPT_NAME.d/userscripts.d" "/jffs/addons/$SCRIPT_NAME.d/" 2>/dev/null
 			SCRIPT_CONF="/jffs/addons/${SCRIPT_NAME}.d/config"
 			CONNSTATS_DB="/jffs/addons/${SCRIPT_NAME}.d/connstats.db"
@@ -2167,7 +2181,7 @@ Run_PingTest()
 	resultFile="$SCRIPT_WEB_DIR/ping-result.txt"
 	local pingDuration="$(PingDuration check)"
 	local pingTarget="$(PingServer check)"
-	local pinTestOK  pingTargetIP  fullPingTarget
+	local pingTestOK  pingTargetIP  fullPingTarget
 	local stoppedQoS  nvramQoSenable  nvramQoStype
 
 	rm -f "$pingFile" "$resultFile"
@@ -2220,8 +2234,8 @@ Run_PingTest()
 	Print_Output true "$pingDuration second ping test to $pingTarget starting..." "$PASS"
 
 	if ping -w "$pingDuration" "$pingTargetIP" > "$pingFile"
-	then pinTestOK=true
-	else pinTestOK=false
+	then pingTestOK=true
+	else pingTestOK=false
 	fi
 
 	if [ "$stoppedQoS" = "true" ]
@@ -2262,7 +2276,7 @@ Run_PingTest()
 	PINGCOUNT="$(echo "$PINGLIST" | sed '/^\s*$/d' | wc -l)"
 	DIFFCOUNT="$((PINGCOUNT - 1))"
 
-	if "$pinTestOK" && [ "$PINGCOUNT" -gt 0 ]
+	if "$pingTestOK" && [ "$PINGCOUNT" -gt 0 ]
 	then
 		until [ "$COUNTER" -gt "$PINGCOUNT" ]
 		do
@@ -2287,25 +2301,29 @@ Run_PingTest()
 	timenowfriendly="$(/bin/date +'%c')"
 
 	pkt_trans=0 ; pkt_recvd=0
-	ping=0 ; jitter=0 ; linequal=0
+	pingAvrge=0.0 ; jitterVal=0.0 ; lineQualt=0.0
 
 	## Double-check to make sure we have all the required data ##
-	if "$pinTestOK" && [ "$PINGCOUNT" -gt 1 ] && \
+	if "$pingTestOK" && [ "$PINGCOUNT" -gt 1 ] && \
 	   grep -qE 'round-trip min/avg/max =.+' "$pingFile" && \
 	   grep -qE 'packets transmitted,.+ packets received,.+' "$pingFile"
 	then
-		ping="$(tail -n 1 "$pingFile"  | cut -f4 -d'/')"
-		jitter="$(echo "$TOTALDIFF" "$DIFFCOUNT" | awk '{printf "%4.3f\n",$1/$2}')"
+		pingAvrge="$(tail -n 1 "$pingFile" | cut -f4 -d'/')"
+		jitterVal="$(echo "$TOTALDIFF" "$DIFFCOUNT" | awk '{printf "%4.3f\n",$1/$2}')"
 		pkt_trans="$(tail -n 2 "$pingFile" | head -n 1 | cut -f1 -d',' | cut -f1 -d' ')"
 		pkt_recvd="$(tail -n 2 "$pingFile" | head -n 1 | cut -f2 -d',' | cut -f2 -d' ')"
-		linequal="$(echo "$pkt_recvd" "$pkt_trans" | awk '{printf "%4.3f\n",100*$1/$2}')"
+		lineQualt="$(echo "$pkt_recvd" "$pkt_trans" | awk '{printf "%4.3f\n",100*$1/$2}')"
 	else
+		pingTestOK=false
 		Print_Output true "Ping test to '$fullPingTarget' from connmon failed." "$CRIT"
-		printf "Ping test failed.\nNo results are available.\n" > "$resultFile"
+		{
+		   printf "Ping test to '$fullPingTarget' failed.\n"
+		   printf "Check if WAN interface and specified ping target are up.\n"
+		} > "$resultFile"
 		echo 'var connmonstatus = "Error";' > "$SCRIPT_WEB_DIR/detect_connmon.js"
-		rm -f "$pingFile"
 		TriggerNotifications PingTestFailed "$timenowfriendly" "$fullPingTarget"
-		return 1
+		rm -f "$pingFile"
+		##*OFF*## return 1 ##*OFF*##
 	fi
 
 	Process_Upgrade
@@ -2314,7 +2332,7 @@ Run_PingTest()
 	   echo "PRAGMA temp_store=1;"
 	   echo "PRAGMA journal_mode=TRUNCATE;"
 	   echo "CREATE TABLE IF NOT EXISTS [connstats] ([StatID] INTEGER PRIMARY KEY NOT NULL,[Timestamp] NUMERIC NOT NULL,[Ping] REAL NOT NULL,[Jitter] REAL NOT NULL,[LineQuality] REAL NOT NULL,[PingTarget] TEXT NOT NULL,[PingDuration] NUMERIC);"
-	   echo "INSERT INTO connstats ([Timestamp],[Ping],[Jitter],[LineQuality],[PingTarget],[PingDuration]) values($timenow,$ping,$jitter,$linequal,'$fullPingTarget',$pingDuration);"
+	   echo "INSERT INTO connstats ([Timestamp],[Ping],[Jitter],[LineQuality],[PingTarget],[PingDuration]) values($timenow,$pingAvrge,$jitterVal,$lineQualt,'$fullPingTarget',$pingDuration);"
 	} > /tmp/connmon-stats.sql
 	_ApplyDatabaseSQLCmds_ /tmp/connmon-stats.sql png1
 
@@ -2325,31 +2343,35 @@ Run_PingTest()
 
 	echo "Stats last updated: $timenowfriendly" > /tmp/connstatstitle.txt
 	WriteStats_ToJS /tmp/connstatstitle.txt "$SCRIPT_STORAGE_DIR/connstatstext.js" setConnmonStatsTitle statstitle
-	Print_Output false "Test results: Ping $ping ms - Jitter - $jitter ms - Line Quality ${linequal}%" "$PASS"
+	rm -f "$pingFile" /tmp/connstatstitle.txt
 
+	if ! "$pingTestOK"
+	then
+		echo 'var connmonstatus = "Error";' > "$SCRIPT_WEB_DIR/detect_connmon.js"
+		return 1
+	fi
+
+	Print_Output false "Test results: Ping $pingAvrge ms - Jitter $jitterVal ms - Line Quality ${lineQualt}%" "$PASS"
 	{
 		printf "Ping test results:\n"
-		printf "\nPing %s ms - Jitter - %s ms - Line Quality %s %%\n" "$ping" "$jitter" "$linequal"
+		printf "\nPing %s ms - Jitter %s ms - Line Quality %s %%\n" "$pingAvrge" "$jitterVal" "$lineQualt"
 	} > "$resultFile"
 
-	rm -f "$pingFile"
-	rm -f /tmp/connstatstitle.txt
+	TriggerNotifications PingTestOK "$timenowfriendly" "$pingAvrge ms" "$jitterVal ms" "$lineQualt %" "$timenow"
 
-	TriggerNotifications PingTestOK "$timenowfriendly" "$ping ms" "$jitter ms" "$linequal %" "$timenow"
-
-	if [ "$(echo "$ping" "$(Conf_Parameters check NOTIFICATIONS_PINGTHRESHOLD_VALUE)" | awk '{print ($1 > $2)}')" -eq 1 ]
+	if [ "$(echo "$pingAvrge" "$(Conf_Parameters check NOTIFICATIONS_PINGTHRESHOLD_VALUE)" | awk '{print ($1 > $2)}')" -eq 1 ]
 	then
-		TriggerNotifications PingThreshold "$timenowfriendly" "$ping ms" "$(Conf_Parameters check NOTIFICATIONS_PINGTHRESHOLD_VALUE) ms"
+		TriggerNotifications PingThreshold "$timenowfriendly" "$pingAvrge ms" "$(Conf_Parameters check NOTIFICATIONS_PINGTHRESHOLD_VALUE) ms"
 	fi
 
-	if [ "$(echo "$jitter" "$(Conf_Parameters check NOTIFICATIONS_JITTERTHRESHOLD_VALUE)" | awk '{print ($1 > $2)}')" -eq 1 ]
+	if [ "$(echo "$jitterVal" "$(Conf_Parameters check NOTIFICATIONS_JITTERTHRESHOLD_VALUE)" | awk '{print ($1 > $2)}')" -eq 1 ]
 	then
-		TriggerNotifications JitterThreshold "$timenowfriendly" "$jitter ms" "$(Conf_Parameters check NOTIFICATIONS_JITTERTHRESHOLD_VALUE) ms"
+		TriggerNotifications JitterThreshold "$timenowfriendly" "$jitterVal ms" "$(Conf_Parameters check NOTIFICATIONS_JITTERTHRESHOLD_VALUE) ms"
 	fi
 
-	if [ "$(echo "$linequal" "$(Conf_Parameters check NOTIFICATIONS_LINEQUALITYTHRESHOLD_VALUE)" | awk '{print ($1 < $2)}')" -eq 1 ]
+	if [ "$(echo "$lineQualt" "$(Conf_Parameters check NOTIFICATIONS_LINEQUALITYTHRESHOLD_VALUE)" | awk '{print ($1 < $2)}')" -eq 1 ]
 	then
-		TriggerNotifications LineQualityThreshold "$timenowfriendly" "$linequal %" "$(Conf_Parameters check NOTIFICATIONS_LINEQUALITYTHRESHOLD_VALUE) %"
+		TriggerNotifications LineQualityThreshold "$timenowfriendly" "$lineQualt %" "$(Conf_Parameters check NOTIFICATIONS_LINEQUALITYTHRESHOLD_VALUE) %"
 	fi
 	echo 'var connmonstatus = "Done";' > "$SCRIPT_WEB_DIR/detect_connmon.js"
 }
