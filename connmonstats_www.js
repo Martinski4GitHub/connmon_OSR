@@ -1,5 +1,5 @@
 /**----------------------------**/
-/** Last Modified: 2025-Nov-14 **/
+/** Last Modified: 2025-Nov-16 **/
 /**----------------------------**/
 
 iziToast.settings({
@@ -1947,14 +1947,18 @@ function saveStatus(section)
 	$.ajax({
 		url: '/ext/connmon/detect_save.js',
 		dataType: 'script',
-		error: function (xhr) {
+		error: function (xhr)
+		{
 			setTimeout(saveStatus, 1000, section);
 		},
-		success: function () {
-			if (savestatus === 'InProgress') {
+		success: function ()
+		{
+			if (savestatus === 'InProgress')
+			{
 				setTimeout(saveStatus, 1000, section);
 			}
-			else {
+			else
+			{
 				showhide('imgSave' + section, false);
 				if (savestatus === 'Success')
 				{
@@ -2072,10 +2076,12 @@ function getConntestResultFile()
 		url: '/ext/connmon/ping-result.htm',
 		dataType: 'text',
 		cache: false,
-		error: function (xhr) {
-			setTimeout(getConntestResultFile, 500);
+		error: function (xhr)
+		{
+			setTimeout(getConntestResultFile, 1000);
 		},
-		success: function (data) {
+		success: function (data)
+		{
 			var lines = data.trim().split('\n');
 			data = lines.join('\n');
 			$('#conntest_output').html(data);
@@ -2146,7 +2152,7 @@ function everyXToggle (forminput)
 }
 
 /**----------------------------------------**/
-/** Modified by Martinski W. [2025-Jul-20] **/
+/** Modified by Martinski W. [2025-Nov-16] **/
 /**----------------------------------------**/
 var pingcount = 2;
 function updateConntest()
@@ -2175,8 +2181,8 @@ function updateConntest()
 				clearInterval(myinterval);
 				if (intervalclear === false)
 				{
-					intervalclear = true;
 					pingcount = 2;
+					intervalclear = true;
 					getConntestResultFile();
 					$('#conntest_text').html('Refreshing charts...');
 					postConnTest();
@@ -2207,16 +2213,17 @@ function updateConntest()
 				iziToast.error({ message: 'Ping test failed - Specified ping server is not valid' });
 			}
 			else if (connmonstatus === 'Error')
-			{
+			{   //"Ping Test Failure" event//
 				pingcount = 2;
 				clearInterval(myinterval);
+				getConntestResultFile();  //Show 'Failure' event//
 				showhide('imgConnTest', false);
 				$('#conntest_text').html('Error when running ping test');
 				showhide('conntest_text', true);
 				showhide('btnRunPingtest', true);
-				document.getElementById('conntest_output').parentElement.parentElement.style.display = 'none';
 				iziToast.destroy();
-				iziToast.error({ message: 'Ping test failed - WAN interface may be down' });
+				iziToast.error({ message: 'Ping test failed. Check if WAN interface and specified ping target are up.' });
+				postConnTest();  //Show 'Failure' results//
 			}
 		}
 	});
