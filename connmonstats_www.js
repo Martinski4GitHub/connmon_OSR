@@ -1,5 +1,5 @@
 /**----------------------------**/
-/** Last Modified: 2025-Jul-20 **/
+/** Last Modified: 2025-Nov-16 **/
 /**----------------------------**/
 
 iziToast.settings({
@@ -1025,7 +1025,8 @@ function buildLastXTable() {
 	return tablehtml;
 }
 
-function sortTable(sorttext) {
+function sortTable(sorttext)
+{
 	sortname = sorttext.replace('↑', '').replace('↓', '').trim();
 	var sorttype = 'number';
 	var sortfield = sortname;
@@ -1096,11 +1097,13 @@ function sortTable(sorttext) {
 	});
 }
 
-function parseLastXData(data) {
+function parseLastXData(data)
+{
 	var arraysortlines = data.split('\n');
 	arraysortlines = arraysortlines.filter(Boolean);
 	arraysortlistlines = [];
-	for (var i = 0; i < arraysortlines.length; i++) {
+	for (var i = 0; i < arraysortlines.length; i++)
+	{
 		try {
 			var resultfields = arraysortlines[i].split(',');
 			var parsedsortline = new Object();
@@ -1113,30 +1116,59 @@ function parseLastXData(data) {
 			arraysortlistlines.push(parsedsortline);
 		}
 		catch {
-			//do nothing,continue
+			//do nothing,continue//
 		}
 	}
 	sortTable(sortname + ' ' + sortdir.replace('desc', '↑').replace('asc', '↓').trim());
 }
 
-$.fn.serializeObject = function () {
+/**----------------------------------------**/
+/** Modified by Martinski W. [2025-Nov-14] **/
+/**----------------------------------------**/
+$.fn.serializeObject = function()
+{
 	var o = customSettings;
 	var a = this.serializeArray();
-	$.each(a, function () {
-		if (o[this.name] !== undefined && this.name.indexOf('connmon') !== -1 && this.name.indexOf('version') === -1 && this.name.indexOf('ipaddr') === -1 && this.name.indexOf('domain') === -1 &&
-			this.name.indexOf('schdays') === -1 && this.name.indexOf('pushover_list') === -1 && this.name.indexOf('pushover_list') === -1 && this.name.indexOf('webhook_list') === -1 &&
-			this.name !== 'connmon_notifications_pingtest' && this.name !== 'connmon_notifications_pingthreshold' && this.name !== 'connmon_notifications_jitterthreshold' && this.name !== 'connmon_notifications_linequalitythreshold') {
+	$.each(a, function()
+	{
+		if (o[this.name] !== undefined &&
+		    this.name.indexOf('connmon') !== -1 &&
+		    this.name.indexOf('version') === -1 &&
+		    this.name.indexOf('ipaddr') === -1 &&
+		    this.name.indexOf('domain') === -1 &&
+		    this.name.indexOf('schdays') === -1 &&
+		    this.name.indexOf('pushover_list') === -1 &&
+		    this.name.indexOf('pushover_list') === -1 &&
+		    this.name.indexOf('webhook_list') === -1 &&
+		    this.name !== 'connmon_notifications_pingtest' &&
+		    this.name !== 'connmon_notifications_pingtest_failed' &&
+		    this.name !== 'connmon_notifications_pingthreshold' &&
+		    this.name !== 'connmon_notifications_jitterthreshold' &&
+		    this.name !== 'connmon_notifications_linequalitythreshold')
+		{
 			if (!o[this.name].push) {
 				o[this.name] = [o[this.name]];
 			}
 			o[this.name].push(this.value || '');
 		}
-		else if (this.name.indexOf('connmon') !== -1 && this.name.indexOf('version') === -1 && this.name.indexOf('ipaddr') === -1 && this.name.indexOf('domain') === -1 && this.name.indexOf('schdays') === -1 &&
-			this.name.indexOf('pushover_list') === -1 && this.name.indexOf('pushover_list') === -1 && this.name.indexOf('webhook_list') === -1 &&
-			this.name !== 'connmon_notifications_pingtest' && this.name !== 'connmon_notifications_pingthreshold' && this.name !== 'connmon_notifications_jitterthreshold' && this.name !== 'connmon_notifications_linequalitythreshold') {
+		else if (this.name.indexOf('connmon') !== -1 &&
+		         this.name.indexOf('version') === -1 &&
+		         this.name.indexOf('ipaddr') === -1 &&
+		         this.name.indexOf('domain') === -1 &&
+		         this.name.indexOf('schdays') === -1 &&
+		         this.name.indexOf('pushover_list') === -1 &&
+		         this.name.indexOf('pushover_list') === -1 &&
+		         this.name.indexOf('webhook_list') === -1 &&
+		         this.name !== 'connmon_notifications_pingtest' &&
+		         this.name !== 'connmon_notifications_pingtest_failed' &&
+		         this.name !== 'connmon_notifications_pingthreshold' &&
+		         this.name !== 'connmon_notifications_jitterthreshold' &&
+		         this.name !== 'connmon_notifications_linequalitythreshold')
+		{
 			o[this.name] = this.value || '';
 		}
-		if (this.name.indexOf('schdays') !== -1) {
+		if (this.name.indexOf('schdays') !== -1)
+		{
 			var schdays = [];
 			$.each($('input[name="connmon_schdays"]:checked'), function () {
 				schdays.push($(this).val());
@@ -1147,47 +1179,64 @@ $.fn.serializeObject = function () {
 			}
 			o['connmon_schdays'] = schdaysstring;
 		}
-		if (this.name === 'connmon_notifications_pingtest') {
-			var pingtesttypes = [];
+		if (this.name === 'connmon_notifications_pingtest')
+		{
+			var pingtestOKtypes = [];
 			$.each($('input[name="connmon_notifications_pingtest"]:checked'), function () {
-				pingtesttypes.push($(this).val());
+				pingtestOKtypes.push($(this).val());
 			});
-			o['connmon_notifications_pingtest'] = pingtesttypes.join(',');
+			o['connmon_notifications_pingtest'] = pingtestOKtypes.join(',');
 		}
-		if (this.name === 'connmon_notifications_pingthreshold') {
+		if (this.name === 'connmon_notifications_pingtest_failed')
+		{
+			var pingtestFailedTypes = [];
+			$.each($('input[name="connmon_notifications_pingtest_failed"]:checked'), function () {
+				pingtestFailedTypes.push($(this).val());
+			});
+			o['connmon_notifications_pingtest_failed'] = pingtestFailedTypes.join(',');
+		}
+		if (this.name === 'connmon_notifications_pingthreshold')
+		{
 			var pingthresholdtypes = [];
 			$.each($('input[name="connmon_notifications_pingthreshold"]:checked'), function () {
 				pingthresholdtypes.push($(this).val());
 			});
 			o['connmon_notifications_pingthreshold'] = pingthresholdtypes.join(',');
 		}
-		if (this.name === 'connmon_notifications_jitterthreshold') {
+		if (this.name === 'connmon_notifications_jitterthreshold')
+		{
 			var jitterthresholdtypes = [];
 			$.each($('input[name="connmon_notifications_jitterthreshold"]:checked'), function () {
 				jitterthresholdtypes.push($(this).val());
 			});
 			o['connmon_notifications_jitterthreshold'] = jitterthresholdtypes.join(',');
 		}
-		if (this.name === 'connmon_notifications_linequalitythreshold') {
+		if (this.name === 'connmon_notifications_linequalitythreshold')
+		{
 			var linequalitythresholdtypes = [];
 			$.each($('input[name="connmon_notifications_linequalitythreshold"]:checked'), function () {
 				linequalitythresholdtypes.push($(this).val());
 			});
 			o['connmon_notifications_linequalitythreshold'] = linequalitythresholdtypes.join(',');
 		}
-		if (this.name.indexOf('connmon_notifications_email_list') !== -1) {
+		if (this.name.indexOf('connmon_notifications_email_list') !== -1)
+		{
 			o['connmon_notifications_email_list'] = document.getElementById('connmon_notifications_email_list').value.replace(/\n/g, '||||');
 		}
-		if (this.name.indexOf('connmon_notifications_pushover_list') !== -1) {
+		if (this.name.indexOf('connmon_notifications_pushover_list') !== -1)
+		{
 			o['connmon_notifications_pushover_list'] = document.getElementById('connmon_notifications_pushover_list').value.replace(/\n/g, '||||');
 		}
-		if (this.name.indexOf('connmon_notifications_webhook_list') !== -1) {
+		if (this.name.indexOf('connmon_notifications_webhook_list') !== -1)
+		{
 			o['connmon_notifications_webhook_list'] = document.getElementById('connmon_notifications_webhook_list').value.replace(/\n/g, '||||');
 		}
 	});
 
-	$.each(this, function () {
-		if (this.name.indexOf('schdays') !== -1) {
+	$.each(this, function()
+	{
+		if (this.name.indexOf('schdays') !== -1)
+		{
 			var schdays = [];
 			$.each($('input[name="connmon_schdays"]:checked'), function () {
 				schdays.push($(this).val());
@@ -1196,16 +1245,28 @@ $.fn.serializeObject = function () {
 				o['connmon_schdays'] = '*';
 			}
 		}
-		if (this.name === 'connmon_notifications_pingtest') {
-			var pingtesttypes = [];
+		if (this.name === 'connmon_notifications_pingtest')
+		{
+			var pingtestOKtypes = [];
 			$.each($('input[name="connmon_notifications_pingtest"]:checked'), function () {
-				pingtesttypes.push($(this).val());
+				pingtestOKtypes.push($(this).val());
 			});
-			if (pingtesttypes.length === 0) {
+			if (pingtestOKtypes.length === 0) {
 				o['connmon_notifications_pingtest'] = 'None';
 			}
 		}
-		if (this.name === 'connmon_notifications_pingthreshold') {
+		if (this.name === 'connmon_notifications_pingtest_failed')
+		{
+			var pingtestFailedTypes = [];
+			$.each($('input[name="connmon_notifications_pingtest_failed"]:checked'), function () {
+				pingtestFailedTypes.push($(this).val());
+			});
+			if (pingtestFailedTypes.length === 0) {
+				o['connmon_notifications_pingtest_failed'] = 'None';
+			}
+		}
+		if (this.name === 'connmon_notifications_pingthreshold')
+		{
 			var pingthresholdtypes = [];
 			$.each($('input[name="connmon_notifications_pingthreshold"]:checked'), function () {
 				pingthresholdtypes.push($(this).val());
@@ -1214,7 +1275,8 @@ $.fn.serializeObject = function () {
 				o['connmon_notifications_pingthreshold'] = 'None';
 			}
 		}
-		if (this.name === 'connmon_notifications_jitterthreshold') {
+		if (this.name === 'connmon_notifications_jitterthreshold')
+		{
 			var jitterthresholdtypes = [];
 			$.each($('input[name="connmon_notifications_jitterthreshold"]:checked'), function () {
 				jitterthresholdtypes.push($(this).val());
@@ -1223,7 +1285,8 @@ $.fn.serializeObject = function () {
 				o['connmon_notifications_jitterthreshold'] = 'None';
 			}
 		}
-		if (this.name === 'connmon_notifications_linequalitythreshold') {
+		if (this.name === 'connmon_notifications_linequalitythreshold')
+		{
 			var linequalitythresholdtypes = [];
 			$.each($('input[name="connmon_notifications_linequalitythreshold"]:checked'), function () {
 				linequalitythresholdtypes.push($(this).val());
@@ -1236,7 +1299,8 @@ $.fn.serializeObject = function () {
 	return o;
 };
 
-$.fn.serializeObjectEmail = function () {
+$.fn.serializeObjectEmail = function()
+{
 	var o = customSettings;
 	var a = this.serializeArray();
 	$.each(a, function () {
@@ -1253,43 +1317,54 @@ $.fn.serializeObjectEmail = function () {
 	return o;
 };
 
-function setCurrentPage() {
+function setCurrentPage()
+{
 	document.form.next_page.value = window.location.pathname.substring(1);
 	document.form.current_page.value = window.location.pathname.substring(1);
 }
 
-function parseCSVExport(data) {
+function parseCSVExport(data)
+{
 	var csvContent = 'Timestamp,Ping,Jitter,LineQuality,PingTarget,PingDuration\n';
-	for (var i = 0; i < data.length; i++) {
+	for (var i = 0; i < data.length; i++)
+	{
 		var dataString = data[i].Timestamp + ',' + data[i].Ping + ',' + data[i].Jitter + ',' + data[i].LineQuality + ',' + data[i].PingTarget + ',' + data[i].PingDuration;
 		csvContent += i < data.length - 1 ? dataString + '\n' : dataString;
 	}
 	document.getElementById('aExport').href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csvContent);
 }
 
-function errorCSVExport() {
+function errorCSVExport()
+{
 	document.getElementById('aExport').href = 'javascript:alert(\'Error exporting CSV,please refresh the page and try again\')';
 }
 
-function jyNavigate(tab, type, tabslength)
+/**----------------------------------------**/
+/** Modified by Martinski W. [2025-Nov-14] **/
+/**----------------------------------------**/
+function jyNavigate(tabNum, tabType, numOfTabs)
 {
-	for (var i = 1; i <= tabslength; i++)
+	for (var indx = 1; indx <= numOfTabs; indx++)
 	{
-		if (tab === 0) {
-			$('#' + type + 'Navigate' + i).show();
-			$('#btn' + type + 'Navigate' + i).css('background', '');
-			$('#btn' + type + 'Navigate0').css({ 'background': '#085F96', 'background': '-webkit-linear-gradient(#09639C 0%,#003047 100%)', 'background': '-o-linear-gradient(#09639C 0%,#003047 100%)', 'background': 'linear-gradient(#09639C 0%,#003047 100%)' });
+		if (tabNum === 0)
+		{
+			$('#' + tabType + 'Navigate' + indx).show();
+			$('#btn' + tabType + 'Navigate' + indx).css('background', '');
+			$('#btn' + tabType + 'Navigate0').css({ 'background': '#085F96', 'background': '-webkit-linear-gradient(#09639C 0%,#003047 100%)', 'background': '-o-linear-gradient(#09639C 0%,#003047 100%)', 'background': 'linear-gradient(#09639C 0%,#003047 100%)' });
 		}
-		else {
-			if (i === tab) {
-				$('#' + type + 'Navigate' + i).show();
-				$('#btn' + type + 'Navigate' + i).css({ 'background': '#085F96', 'background': '-webkit-linear-gradient(#09639C 0%,#003047 100%)', 'background': '-o-linear-gradient(#09639C 0%,#003047 100%)', 'background': 'linear-gradient(#09639C 0%,#003047 100%)' });
+		else
+		{
+			if (indx === tabNum)
+			{
+				$('#' + tabType + 'Navigate' + indx).show();
+				$('#btn' + tabType + 'Navigate' + indx).css({ 'background': '#085F96', 'background': '-webkit-linear-gradient(#09639C 0%,#003047 100%)', 'background': '-o-linear-gradient(#09639C 0%,#003047 100%)', 'background': 'linear-gradient(#09639C 0%,#003047 100%)' });
 			}
-			else {
-				$('#' + type + 'Navigate' + i).hide();
-				$('#btn' + type + 'Navigate' + i).css('background', '');
+			else
+			{
+				$('#' + tabType + 'Navigate' + indx).hide();
+				$('#btn' + tabType + 'Navigate' + indx).css('background', '');
 			}
-			$('#btn' + type + 'Navigate0').css('background', '');
+			$('#btn' + tabType + 'Navigate0').css('background', '');
 		}
 	}
 }
@@ -1395,13 +1470,13 @@ function getEmailConfFile()
 	});
 }
 
-function getCustomactionInfo()
+function getCustomActionInfo()
 {
 	$.ajax({
 		url: '/ext/connmon/customactioninfo.htm',
 		dataType: 'text',
 		error: function (xhr) {
-			setTimeout(getCustomactionInfo, 1000);
+			setTimeout(getCustomActionInfo, 1000);
 		},
 		success: function (data) {
 			$('#customaction_details').append('\n' + data);
@@ -1409,18 +1484,18 @@ function getCustomactionInfo()
 	});
 }
 
-function getCustomactionList()
+function getCustomActionList()
 {
 	$.ajax({
 		url: '/ext/connmon/customactionlist.htm',
 		dataType: 'text',
 		cache: false,
 		error: function (xhr) {
-			setTimeout(getCustomactionList, 1000);
+			setTimeout(getCustomActionList, 1000);
 		},
 		success: function (data) {
 			$('#customaction_details').html(data);
-			getCustomactionInfo();
+			getCustomActionInfo();
 		}
 	});
 }
@@ -1434,7 +1509,7 @@ function getEmailpwFile()
 		error: function (xhr) {
 			document.formScriptActions.action_script.value = 'start_addon_settings;start_connmoncustomactionlist;start_connmonemailpassword';
 			document.formScriptActions.submit();
-			setTimeout(getCustomactionList, 10000);
+			setTimeout(getCustomActionList, 10000);
 			setTimeout(getEmailpwFile, 10000);
 		},
 		success: function (data) {
@@ -1446,7 +1521,7 @@ function getEmailpwFile()
 }
 
 /**----------------------------------------**/
-/** Modified by Martinski W. [2025-Feb-05] **/
+/** Modified by Martinski W. [2025-Nov-14] **/
 /**----------------------------------------**/
 function getConfigFile()
 {
@@ -1510,6 +1585,12 @@ function getConfigFile()
 					var pingtesttypearray = settingvalue.split(',');
 					for (var i2 = 0; i2 < pingtesttypearray.length; i2++)
 					{ $('#connmon_pingtest_' + pingtesttypearray[i2].toLowerCase()).prop('checked', true); }
+				}
+				else if (settingname === 'notifications_pingtest_failed')
+				{
+					var pingtesttypearray = settingvalue.split(',');
+					for (var i2 = 0; i2 < pingtesttypearray.length; i2++)
+					{ $('#connmon_pingtest_failed_' + pingtesttypearray[i2].toLowerCase()).prop('checked', true); }
 				}
 				else if (settingname === 'notifications_pingthreshold')
 				{
@@ -1732,7 +1813,7 @@ function scriptUpdateLayout()
 }
 
 /**----------------------------------------**/
-/** Modified by Martinski W. [2025-Feb-19] **/
+/** Modified by Martinski W. [2025-Nov-14] **/
 /**----------------------------------------**/
 function initial()
 {
@@ -1741,7 +1822,7 @@ function initial()
 	show_menu();
 	document.formScriptActions.action_script.value = 'start_addon_settings;start_connmoncustomactionlist;start_connmonemailpassword';
 	document.formScriptActions.submit();
-	setTimeout(getCustomactionList, 10000);
+	setTimeout(getCustomActionList, 10000);
 	setTimeout(getEmailpwFile, 10000);
 	getConfigFile();
 	getEmailConfFile();
@@ -1767,7 +1848,7 @@ function initial()
 	$('#starttab').val(starttab);
 	jyNavigate(starttab, '', 5);
 	jyNavigate(1, 'Chart', 3);
-	jyNavigate(1, 'NotificationType', 4);
+	jyNavigate(1, 'NotificationType', 5);
 	jyNavigate(1, 'NotificationMethod', 6);
 }
 
@@ -1866,14 +1947,18 @@ function saveStatus(section)
 	$.ajax({
 		url: '/ext/connmon/detect_save.js',
 		dataType: 'script',
-		error: function (xhr) {
+		error: function (xhr)
+		{
 			setTimeout(saveStatus, 1000, section);
 		},
-		success: function () {
-			if (savestatus === 'InProgress') {
+		success: function ()
+		{
+			if (savestatus === 'InProgress')
+			{
 				setTimeout(saveStatus, 1000, section);
 			}
-			else {
+			else
+			{
 				showhide('imgSave' + section, false);
 				if (savestatus === 'Success')
 				{
@@ -1991,10 +2076,12 @@ function getConntestResultFile()
 		url: '/ext/connmon/ping-result.htm',
 		dataType: 'text',
 		cache: false,
-		error: function (xhr) {
-			setTimeout(getConntestResultFile, 500);
+		error: function (xhr)
+		{
+			setTimeout(getConntestResultFile, 1000);
 		},
-		success: function (data) {
+		success: function (data)
+		{
 			var lines = data.trim().split('\n');
 			data = lines.join('\n');
 			$('#conntest_output').html(data);
@@ -2065,7 +2152,7 @@ function everyXToggle (forminput)
 }
 
 /**----------------------------------------**/
-/** Modified by Martinski W. [2025-Jul-20] **/
+/** Modified by Martinski W. [2025-Nov-16] **/
 /**----------------------------------------**/
 var pingcount = 2;
 function updateConntest()
@@ -2094,8 +2181,8 @@ function updateConntest()
 				clearInterval(myinterval);
 				if (intervalclear === false)
 				{
-					intervalclear = true;
 					pingcount = 2;
+					intervalclear = true;
 					getConntestResultFile();
 					$('#conntest_text').html('Refreshing charts...');
 					postConnTest();
@@ -2126,16 +2213,17 @@ function updateConntest()
 				iziToast.error({ message: 'Ping test failed - Specified ping server is not valid' });
 			}
 			else if (connmonstatus === 'Error')
-			{
+			{   //"Ping Test Failure" event//
 				pingcount = 2;
 				clearInterval(myinterval);
+				getConntestResultFile();  //Show 'Failure' event//
 				showhide('imgConnTest', false);
 				$('#conntest_text').html('Error when running ping test');
 				showhide('conntest_text', true);
 				showhide('btnRunPingtest', true);
-				document.getElementById('conntest_output').parentElement.parentElement.style.display = 'none';
 				iziToast.destroy();
-				iziToast.error({ message: 'Ping test failed - WAN interface may be down' });
+				iziToast.error({ message: 'Ping test failed. Check if WAN interface and specified ping target are up.' });
+				postConnTest();  //Show 'Failure' results//
 			}
 		}
 	});
