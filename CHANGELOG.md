@@ -4,6 +4,7 @@
 Updated on 2025-Nov-16
 *   NEW: Additional "Notification Event Type" to set up notifications and run custom user scripts when a ping test fails.
 *   NEW: Added "Ping Test Failure" events to the results shown on the WebUI page.
+*   IMPROVED: Modified code to make sure we get correct parameters when changing settings from the WebUI.
 *   IMPROVED: Miscellaneous code improvements.
 
 ## v3.0.7
