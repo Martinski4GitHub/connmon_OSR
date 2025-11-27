@@ -11,7 +11,7 @@
 ##      Forked from https://github.com/jackyaz/connmon      ##
 ##                                                          ##
 ##############################################################
-# Last Modified: 2025-Nov-16
+# Last Modified: 2025-Nov-27
 #-------------------------------------------------------------
 
 ##############        Shellcheck directives      #############
@@ -36,8 +36,8 @@
 
 ### Start of script variables ###
 readonly SCRIPT_NAME="connmon"
-readonly SCRIPT_VERSION="v3.0.8"
-readonly SCRIPT_VERSTAG="25111600"
+readonly SCRIPT_VERSION="v3.0.9"
+readonly SCRIPT_VERSTAG="25112700"
 SCRIPT_BRANCH="develop"
 SCRIPT_REPO="https://raw.githubusercontent.com/AMTM-OSR/$SCRIPT_NAME/$SCRIPT_BRANCH"
 readonly SCRIPT_DIR="/jffs/addons/$SCRIPT_NAME.d"
@@ -653,11 +653,11 @@ _GetConfigParam_()
 }
 
 ##----------------------------------------##
-## Modified by Martinski W. [2025-Nov-14] ##
+## Modified by Martinski W. [2025-Nov-26] ##
 ##----------------------------------------##
 Conf_Exists()
 {
-	local PINGFREQUENCY  AUTOMATEDopt
+	local PINGFREQUENCY  AUTOMATEDopt  delCRON=false
 
 	if [ -f "$SCRIPT_CONF" ]
 	then
@@ -668,6 +668,9 @@ Conf_Exists()
 		then
 			AUTOMATEDopt="$(Conf_Parameters check AUTOMATED)"
 			sed -i 's/^AUTOMATED=.*$/AUTOMATICMODE='"$AUTOMATEDopt"'/' "$SCRIPT_CONF"
+		fi
+		if ! grep -q "^PINGSERVER=" "$SCRIPT_CONF"; then
+			echo "PINGSERVER=8.8.8.8" >> "$SCRIPT_CONF"
 		fi
 		if ! grep -q "^AUTOMATICMODE=" "$SCRIPT_CONF"; then
 			echo "AUTOMATICMODE=true" >> "$SCRIPT_CONF"
@@ -684,7 +687,22 @@ Conf_Exists()
 			PINGFREQUENCY="$(Conf_Parameters check PINGFREQUENCY)"
 			echo "SCHMINS=*/$PINGFREQUENCY" >> "$SCRIPT_CONF"
 			sed -i '/SCHEDULESTART/d;/SCHEDULEEND/d;/PINGFREQUENCY/d;' "$SCRIPT_CONF"
-			Auto_Cron delete 2>/dev/null
+			delCRON=true
+		fi
+		if ! grep -q "^SCHDAYS=" "$SCRIPT_CONF"; then
+			echo "SCHDAYS=*" >> "$SCRIPT_CONF"
+			delCRON=true
+		fi
+		if ! grep -q "^SCHHOURS=" "$SCRIPT_CONF"; then
+			echo "SCHHOURS=*" >> "$SCRIPT_CONF"
+			delCRON=true
+		fi
+		if ! grep -q "^SCHMINS=" "$SCRIPT_CONF"; then
+			echo "SCHMINS=*/5" >> "$SCRIPT_CONF"
+			delCRON=true
+		fi
+		if "$delCRON"
+		then Auto_Cron delete 2>/dev/null
 		fi
 		if grep -q "OUTPUTDATAMODE" "$SCRIPT_CONF"; then
 			sed -i '/OUTPUTDATAMODE/d;' "$SCRIPT_CONF"
@@ -748,25 +766,44 @@ Conf_Exists()
 		return 0
 	else
 		{
-		  echo "PINGSERVER=8.8.8.8"; echo "OUTPUTTIMEMODE=unix"
-		  echo "STORAGELOCATION=jffs"; echo "PINGDURATION=30"; echo "AUTOMATICMODE=true"
-		  echo "SCHDAYS=*"; echo "SCHHOURS=*"; echo "SCHMINS=*/3"; echo "JFFS_MSGLOGTIME=0"
-		  echo "DAYSTOKEEP=30"; echo "LASTXRESULTS=10"; echo "EXCLUDEFROMQOS=true"
-		  echo "NOTIFICATIONS_EMAIL=false"; echo "NOTIFICATIONS_WEBHOOK=false"
-		  echo "NOTIFICATIONS_PUSHOVER=false"; echo "NOTIFICATIONS_CUSTOM=false"
-		  echo "NOTIFICATIONS_HEALTHCHECK=false"; echo "NOTIFICATIONS_INFLUXDB=false"
-		  echo "NOTIFICATIONS_PINGTEST=None"; echo "NOTIFICATIONS_PINGTEST_FAILED=None"
-		  echo "NOTIFICATIONS_PINGTHRESHOLD=None" ; echo "NOTIFICATIONS_PINGTHRESHOLD_VALUE=30"
-		  echo "NOTIFICATIONS_JITTERTHRESHOLD=None"; echo "NOTIFICATIONS_LINEQUALITYTHRESHOLD=None"
-		  echo "NOTIFICATIONS_JITTERTHRESHOLD_VALUE=15" ; echo "NOTIFICATIONS_LINEQUALITYTHRESHOLD_VALUE=75"
-		  echo "NOTIFICATIONS_EMAIL_LIST="; echo "NOTIFICATIONS_HEALTHCHECK_UUID="
-		  echo "NOTIFICATIONS_WEBHOOK_LIST="; echo "NOTIFICATIONS_PUSHOVER_LIST="
-		  echo "NOTIFICATIONS_PUSHOVER_API="; echo "NOTIFICATIONS_PUSHOVER_USERKEY="
-		  echo "NOTIFICATIONS_INFLUXDB_HOST="; echo "NOTIFICATIONS_INFLUXDB_PORT=8086"
-		  echo "NOTIFICATIONS_INFLUXDB_DB=connmon"
-		  echo "NOTIFICATIONS_INFLUXDB_VERSION=1.8"; echo "NOTIFICATIONS_INFLUXDB_USERNAME="
-		  echo "NOTIFICATIONS_INFLUXDB_PASSWORD="; echo "NOTIFICATIONS_INFLUXDB_APITOKEN="
-        } > "$SCRIPT_CONF"
+		   echo "PINGSERVER=8.8.8.8"
+		   echo "OUTPUTTIMEMODE=unix"
+		   echo "STORAGELOCATION=jffs"
+		   echo "PINGDURATION=30"
+		   echo "AUTOMATICMODE=true"
+		   echo "SCHDAYS=*"; echo "SCHHOURS=*"; echo "SCHMINS=*/5"
+		   echo "JFFS_MSGLOGTIME=0"
+		   echo "DAYSTOKEEP=30"
+		   echo "LASTXRESULTS=10"
+		   echo "EXCLUDEFROMQOS=true"
+		   echo "NOTIFICATIONS_EMAIL=false"
+		   echo "NOTIFICATIONS_WEBHOOK=false"
+		   echo "NOTIFICATIONS_PUSHOVER=false"
+		   echo "NOTIFICATIONS_CUSTOM=false"
+		   echo "NOTIFICATIONS_HEALTHCHECK=false"
+		   echo "NOTIFICATIONS_INFLUXDB=false"
+		   echo "NOTIFICATIONS_PINGTEST=None"
+		   echo "NOTIFICATIONS_PINGTEST_FAILED=None"
+		   echo "NOTIFICATIONS_PINGTHRESHOLD=None"
+		   echo "NOTIFICATIONS_JITTERTHRESHOLD=None"
+		   echo "NOTIFICATIONS_LINEQUALITYTHRESHOLD=None"
+		   echo "NOTIFICATIONS_PINGTHRESHOLD_VALUE=30"
+		   echo "NOTIFICATIONS_JITTERTHRESHOLD_VALUE=15"
+		   echo "NOTIFICATIONS_LINEQUALITYTHRESHOLD_VALUE=75"
+		   echo "NOTIFICATIONS_EMAIL_LIST="
+		   echo "NOTIFICATIONS_HEALTHCHECK_UUID="
+		   echo "NOTIFICATIONS_WEBHOOK_LIST="
+		   echo "NOTIFICATIONS_PUSHOVER_LIST="
+		   echo "NOTIFICATIONS_PUSHOVER_API="
+		   echo "NOTIFICATIONS_PUSHOVER_USERKEY="
+		   echo "NOTIFICATIONS_INFLUXDB_HOST="
+		   echo "NOTIFICATIONS_INFLUXDB_PORT=8086"
+		   echo "NOTIFICATIONS_INFLUXDB_DB=connmon"
+		   echo "NOTIFICATIONS_INFLUXDB_VERSION=1.8"
+		   echo "NOTIFICATIONS_INFLUXDB_USERNAME="
+		   echo "NOTIFICATIONS_INFLUXDB_PASSWORD="
+		   echo "NOTIFICATIONS_INFLUXDB_APITOKEN="
+		} > "$SCRIPT_CONF"
 		return 1
 	fi
 }
@@ -1129,7 +1166,7 @@ Auto_Cron()
 			fi
 			STARTUPLINECOUNTGEN="$(cru l | grep -c "${SCRIPT_NAME}_generate")"
 			CRU_SCHHOUR="$(_GetConfigParam_ SCHHOURS '*')"
-			CRU_SCHMINS="$(_GetConfigParam_ SCHMINS '*/3')"
+			CRU_SCHMINS="$(_GetConfigParam_ SCHMINS '*/5')"
 			STARTUPLINECOUNTEXGEN="$(cru l | grep "${SCRIPT_NAME}_generate" | grep -c "^$CRU_SCHMINS $CRU_SCHHOUR [*] [*]")"
 			if [ "$STARTUPLINECOUNTGEN" -gt 0 ] && [ "$STARTUPLINECOUNTEXGEN" -eq 0 ]
 			then
@@ -1437,7 +1474,7 @@ CronTestSchedule()
 		check)
 			SCHDAYS="$(_GetConfigParam_ SCHDAYS '*')"
 			SCHHOURS="$(_GetConfigParam_ SCHHOURS '*')"
-			SCHMINS="$(_GetConfigParam_ SCHMINS '*/3')"
+			SCHMINS="$(_GetConfigParam_ SCHMINS '*/5')"
 			echo "${SCHDAYS}|${SCHHOURS}|${SCHMINS}"
 		;;
 	esac
