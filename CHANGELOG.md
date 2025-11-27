@@ -1,5 +1,11 @@
 # Changelog
 
+## v3.0.9
+Updated on 2025-Nov-27
+*   FIXED: In some rare situations, the setting for the ping test server IP address went "missing" from the configuration file, and the value could no longer be modified by the user.
+*   FIXED: In some rare situations, the setting for the automatic ping test time schedule went "missing" from the configuration file, and the value could no longer be modified by the user.
+*   MODIFIED: Upon a fresh installation, the default setting for the automatic ping test time schedule is now set to every 5 minutes instead of every 3 minutes.
+
 ## v3.0.8
 Updated on 2025-Nov-16
 *   NEW: Additional "Notification Event Type" to set up notifications and run custom user scripts when a ping test fails.
