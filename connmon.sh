@@ -11,7 +11,7 @@
 ##      Forked from https://github.com/jackyaz/connmon      ##
 ##                                                          ##
 ##############################################################
-# Last Modified: 2025-Nov-27
+# Last Modified: 2025-Dec-02
 #-------------------------------------------------------------
 
 ##############        Shellcheck directives      #############
@@ -36,8 +36,8 @@
 
 ### Start of script variables ###
 readonly SCRIPT_NAME="connmon"
-readonly SCRIPT_VERSION="v3.0.9"
-readonly SCRIPT_VERSTAG="25112700"
+readonly SCRIPT_VERSION="v3.0.10"
+readonly SCRIPT_VERSTAG="25120200"
 SCRIPT_BRANCH="develop"
 SCRIPT_REPO="https://raw.githubusercontent.com/AMTM-OSR/$SCRIPT_NAME/$SCRIPT_BRANCH"
 readonly SCRIPT_DIR="/jffs/addons/$SCRIPT_NAME.d"
