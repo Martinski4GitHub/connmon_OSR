@@ -33,7 +33,7 @@ p{font-weight:bolder}thead.collapsible-jquery{color:#fff;padding:0;width:100%;bo
 <script>
 
 /**----------------------------------------**/
-/** Modified by Martinski W. [2025-Nov-16] **/
+/** Modified by Martinski W. [2025-Dec-02] **/
 /**----------------------------------------**/
 
 var customSettings;
@@ -586,7 +586,7 @@ function getCookie(e,t){if(null!==cookie.get("conn_"+e)){if("string"===t)return 
 	<option value="minutes" selected>minutes</option>
 	</select>
 	<span id="spanxhours" style="color:#FFCC00;">(between 1 and 24)</span>
-	<span id="spanxminutes" style="color:#FFCC00;">(between 1 and 30, default: 3)</span>
+	<span id="spanxminutes" style="color:#FFCC00;">(between 1 and 30, default: 5)</span>
 </div>
 <div id="schcustom">
 <div class="schedulesettings">
