@@ -11,7 +11,7 @@
 ##      Forked from https://github.com/jackyaz/connmon      ##
 ##                                                          ##
 ##############################################################
-# Last Modified: 2025-Dec-02
+# Last Modified: 2025-Dec-07
 #-------------------------------------------------------------
 
 ##############        Shellcheck directives      #############
@@ -37,7 +37,7 @@
 ### Start of script variables ###
 readonly SCRIPT_NAME="connmon"
 readonly SCRIPT_VERSION="v3.0.10"
-readonly SCRIPT_VERSTAG="25120200"
+readonly SCRIPT_VERSTAG="25120708"
 SCRIPT_BRANCH="develop"
 SCRIPT_REPO="https://raw.githubusercontent.com/AMTM-OSR/$SCRIPT_NAME/$SCRIPT_BRANCH"
 readonly SCRIPT_DIR="/jffs/addons/$SCRIPT_NAME.d"
@@ -3393,6 +3393,9 @@ ToggleNotificationTypes()
 	esac
 }
 
+##----------------------------------------##
+## Modified by Martinski W. [2025-Dec-07] ##
+##----------------------------------------##
 Conf_Parameters()
 {
 	case "$1" in
@@ -3460,7 +3463,7 @@ Conf_Parameters()
 			esac
 		;;
 		check)
-			CONFIG_SETTING="$(grep "^${2}=" "$SCRIPT_CONF" | cut -f2 -d'=')"
+			CONFIG_SETTING="$(grep "^${2}=" "$SCRIPT_CONF" | cut -d'=' -f2-)"
 			echo "$CONFIG_SETTING"
 		;;
 	esac
