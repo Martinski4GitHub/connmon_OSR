@@ -37,7 +37,7 @@
 ### Start of script variables ###
 readonly SCRIPT_NAME="connmon"
 readonly SCRIPT_VERSION="v3.0.10"
-readonly SCRIPT_VERSTAG="25120708"
+readonly SCRIPT_VERSTAG="25120710"
 SCRIPT_BRANCH="develop"
 SCRIPT_REPO="https://raw.githubusercontent.com/AMTM-OSR/$SCRIPT_NAME/$SCRIPT_BRANCH"
 readonly SCRIPT_DIR="/jffs/addons/$SCRIPT_NAME.d"
@@ -458,7 +458,7 @@ Validate_Domain()
 }
 
 ##----------------------------------------##
-## Modified by Martinski W. [2025-Nov-15] ##
+## Modified by Martinski W. [2025-Dec-07] ##
 ##----------------------------------------##
 Conf_FromSettings()
 {
@@ -475,8 +475,8 @@ Conf_FromSettings()
 			sed -i "s/^connmon_//g;s/ /=/g" "$TMPFILE"
 			while IFS='' read -r line || [ -n "$line" ]
 			do
-				SETTINGNAME="$(echo "$line" | cut -f1 -d'=' | awk '{print toupper($1)}')"
-				SETTINGVALUE="$(echo "$line" | cut -f2 -d'=')"
+				SETTINGNAME="$(echo "$line" | cut -d'=' -f1 | awk '{print toupper($1)}')"
+				SETTINGVALUE="$(echo "$line" | cut -d'=' -f2-)"
 				if [ "$SETTINGNAME" = "NOTIFICATIONS_EMAIL_LIST" ]  || \
 				   [ "$SETTINGNAME" = "NOTIFICATIONS_WEBHOOK_LIST" ] || \
 				   [ "$SETTINGNAME" = "NOTIFICATIONS_PUSHOVER_LIST" ]
@@ -647,7 +647,7 @@ _GetConfigParam_()
        fi
    fi
 
-   keyValue="$(grep "^${1}=" "$SCRIPT_CONF" | cut -d'=' -f2)"
+   keyValue="$(grep "^${1}=" "$SCRIPT_CONF" | cut -d'=' -f2-)"
    echo "${keyValue:=$defValue}"
    return 0
 }
