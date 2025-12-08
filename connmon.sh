@@ -37,7 +37,7 @@
 ### Start of script variables ###
 readonly SCRIPT_NAME="connmon"
 readonly SCRIPT_VERSION="v3.0.10"
-readonly SCRIPT_VERSTAG="25120808"
+readonly SCRIPT_VERSTAG="25120811"
 SCRIPT_BRANCH="develop"
 SCRIPT_REPO="https://raw.githubusercontent.com/AMTM-OSR/$SCRIPT_NAME/$SCRIPT_BRANCH"
 readonly SCRIPT_DIR="/jffs/addons/$SCRIPT_NAME.d"
@@ -3379,7 +3379,7 @@ linequality value=$LINEQUAL $TIMESTAMP" >> "$tempLogFile" 2>&1
 	then
 		echo
 		Print_Output false "Data sent to InfluxDB successfully" "$PASS"
-		rm -f "$tempLogFile"
+		##TEMP-OFF## rm -f "$tempLogFile" ##TEMP-OFF##
 		return 0
 	else
 		echo
