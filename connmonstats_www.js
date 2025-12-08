@@ -1,5 +1,5 @@
 /**----------------------------**/
-/** Last Modified: 2025-Nov-16 **/
+/** Last Modified: 2025-Dec-07 **/
 /**----------------------------**/
 
 iziToast.settings({
@@ -1521,7 +1521,7 @@ function getEmailpwFile()
 }
 
 /**----------------------------------------**/
-/** Modified by Martinski W. [2025-Nov-14] **/
+/** Modified by Martinski W. [2025-Dec-07] **/
 /**----------------------------------------**/
 function getConfigFile()
 {
@@ -1534,17 +1534,23 @@ function getConfigFile()
 		},
 		success: function (data)
 		{
-			let settingname, settingvalue;
+			let settingname, settingvalue, equalSignIndx;
 			var configdata = data.split('\n');
 			configdata = configdata.filter(Boolean);
 
 			for (var indx = 0; indx < configdata.length; indx++)
 			{
-				if (configdata[indx].length === 0 || configdata[indx].match('^[ ]*#') !== null)
+				if (configdata[indx].length === 0 ||
+				    configdata[indx].match('^[ ]*#') !== null)
 				{ continue; }  //Skip comments & empty lines//
 
 				settingname = configdata[indx].split('=')[0];
-				settingvalue = configdata[indx].split('=')[1].replace(/(\r\n|\n|\r)/gm,'');
+
+				equalSignIndx = configdata[indx].indexOf('=');
+				if (equalSignIndx !== -1)
+				{ settingvalue = configdata[indx].slice(equalSignIndx + 1).replace(/(\r\n|\n|\r)/gm,''); }
+				else
+				{ continue; }
 
 				if (settingname.match(/^JFFS_MSGLOGTIME/) != null)
 				{ continue; }  //Skip this config setting// 
@@ -1610,7 +1616,9 @@ function getConfigFile()
 					for (var i2 = 0; i2 < linequalitythresholdtypearray.length; i2++)
 					{ $('#connmon_linequalitythreshold_' + linequalitythresholdtypearray[i2].toLowerCase()).prop('checked', true); }
 				}
-				else if (settingname.indexOf('notifications_email_list') !== -1 || settingname.indexOf('notifications_pushover_list') !== -1 || settingname.indexOf('notifications_webhook_list') !== -1)
+				else if (settingname.indexOf('notifications_email_list') !== -1 ||
+				         settingname.indexOf('notifications_webhook_list') !== -1 ||
+				         settingname.indexOf('notifications_pushover_list') !== -1)
 				{
 					eval('document.form.connmon_' + settingname).value = settingvalue.replace(/,/g, '\n');
 				}

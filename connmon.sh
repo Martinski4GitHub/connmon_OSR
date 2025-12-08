@@ -37,7 +37,7 @@
 ### Start of script variables ###
 readonly SCRIPT_NAME="connmon"
 readonly SCRIPT_VERSION="v3.0.10"
-readonly SCRIPT_VERSTAG="25120710"
+readonly SCRIPT_VERSTAG="25120718"
 SCRIPT_BRANCH="develop"
 SCRIPT_REPO="https://raw.githubusercontent.com/AMTM-OSR/$SCRIPT_NAME/$SCRIPT_BRANCH"
 readonly SCRIPT_DIR="/jffs/addons/$SCRIPT_NAME.d"
@@ -3478,24 +3478,34 @@ Validate_Float()
 	fi
 }
 
+##----------------------------------------##
+## Modified by Martinski W. [2025-Dec-07] ##
+##----------------------------------------##
 Notification_String()
 {
 	NOTIFICATION_STRING=""
 	while true
 	do
-		printf "\\n${BOLD}Enter $1:${CLEARFORMAT}  "
+		printf "\n${BOLD}Enter ${1}:${CLRct}"
+		if echo "$1" | grep -qE '.* API Token$'
+		then printf "\n"
+		else printf "  "
+		fi
 		read -r NOTIFICATION_STRING
-		if [ "$NOTIFICATION_STRING" = "e" ]; then
+		if [ "$NOTIFICATION_STRING" = "e" ]
+		then
 			NOTIFICATION_STRING=""
 			break
 		else
-			printf "${BOLD}${WARN}Is this correct? (y/n):${CLEARFORMAT}  "
+			printf "${BOLD}${WARN}Is this correct? (y/n):${CLRct}  "
 			read -r CONFIRM_INPUT
 			case "$CONFIRM_INPUT" in
 				y|Y)
-					if [ "$1" = "To name" ]; then
+					if [ "$1" = "To name" ]
+					then
 						sed -i 's/^TO_NAME=.*$/TO_NAME='"$NOTIFICATION_STRING"'/' "$EMAIL_CONF"
-					elif [ "$1" = "Username" ]; then
+					elif [ "$1" = "Username" ]
+					then
 						sed -i 's/^USERNAME=.*$/USERNAME='"$NOTIFICATION_STRING"'/' "$EMAIL_CONF"
 					else
 						Conf_Parameters update "$1" "$NOTIFICATION_STRING"
@@ -3515,15 +3525,15 @@ Notification_Number()
 	NOTIFICATION_NUMBER=""
 	while true
 	do
-		printf "\\n${BOLD}Enter $1:${CLEARFORMAT}  "
+		printf "\n${BOLD}Enter ${1}:${CLRct}  "
 		read -r NOTIFICATION_NUMBER
 		if [ "$NOTIFICATION_NUMBER" = "e" ]; then
 			NOTIFICATION_NUMBER=""
 			break
 		elif ! Validate_Number "$NOTIFICATION_NUMBER"; then
-			printf "\\n${ERR}Please enter a number${CLEARFORMAT}\\n"
+			printf "\n${ERR}Please enter a number${CLRct}\n"
 		else
-			printf "${BOLD}${WARN}Is this correct? (y/n):${CLEARFORMAT}  "
+			printf "${BOLD}${WARN}Is this correct? (y/n):${CLRct}  "
 			read -r CONFIRM_INPUT
 			case "$CONFIRM_INPUT" in
 				y|Y)
@@ -3905,6 +3915,9 @@ Menu_WebhookNotifications()
 	done
 }
 
+##----------------------------------------##
+## Modified by Martinski W. [2025-Dec-07] ##
+##----------------------------------------##
 Menu_PushoverNotifications()
 {
 	while true
@@ -3919,13 +3932,13 @@ Menu_PushoverNotifications()
 		if [ -z "$NOTIFICATIONS_PUSHOVER_LIST" ]; then
 			NOTIFICATIONS_PUSHOVER_LIST="All devices"
 		fi
-		printf "1.     Toggle Pushover notifications (subject to type configuration)\\n       Currently: ${BOLD}${NOTIFICATIONS_PUSHOVER}${CLEARFORMAT}\\n\\n"
-		printf "\\n${BOLD}${UNDERLINE}Pushover Configuration${CLEARFORMAT}\\n"
-		printf "c1.    Set API token\\n       Currently: ${SETTING}%s${CLEARFORMAT}\\n\\n" "$(Conf_Parameters check NOTIFICATIONS_PUSHOVER_API)"
-		printf "c2.    Set User key\\n       Currently: ${SETTING}%s${CLEARFORMAT}\\n\\n" "$(Conf_Parameters check NOTIFICATIONS_PUSHOVER_USERKEY)"
-		printf "c3.    Set list of Pushover devices for %s\\n       Current devices: ${SETTING}${NOTIFICATIONS_PUSHOVER_LIST}${CLEARFORMAT}\\n\\n" "$SCRIPT_NAME"
-		printf "cs.    Send a test pushover notification\\n\\n"
-		printf "e.     Go back\n\n"
+		printf " 1.    Toggle Pushover notifications (subject to type configuration)\n       Currently: ${BOLD}${NOTIFICATIONS_PUSHOVER}${CLRct}\n\n"
+		printf "  ${BOLD}${GRNct}${UNDERLINE}Pushover Configuration${CLRct}\n\n"
+		printf "c1.    Set Pushover API Token\n       Currently: ${SETTING}%s${CLEARFORMAT}\n\n" "$(Conf_Parameters check NOTIFICATIONS_PUSHOVER_API)"
+		printf "c2.    Set Pushover User Key\n       Currently: ${SETTING}%s${CLEARFORMAT}\n\n" "$(Conf_Parameters check NOTIFICATIONS_PUSHOVER_USERKEY)"
+		printf "c3.    Set list of Pushover devices for %s\n       Current devices: ${SETTING}${NOTIFICATIONS_PUSHOVER_LIST}${CLEARFORMAT}\n\n" "$SCRIPT_NAME"
+		printf "cs.    Send a test pushover notification\n\n"
+		printf " e.    Go back\n\n"
 		printf "${BOLD}##############################################################${CLEARFORMAT}\n"
 		printf "\n"
 
@@ -4122,6 +4135,9 @@ Menu_CustomActions()
 	done
 }
 
+##----------------------------------------##
+## Modified by Martinski W. [2025-Dec-07] ##
+##----------------------------------------##
 Menu_HealthcheckNotifications()
 {
 	while true
@@ -4132,12 +4148,12 @@ Menu_HealthcheckNotifications()
 		then NOTIFICATIONS_HEALTHCHECK="${PASS}Enabled"
 		else NOTIFICATIONS_HEALTHCHECK="${ERR}Disabled"
 		fi
-		printf "1.    Toggle healthchecks.io\\n      Currently: ${BOLD}${NOTIFICATIONS_HEALTHCHECK}${CLEARFORMAT}\\n\\n"
-		printf "\\n${BOLD}${UNDERLINE}Healthcheck Configuration${CLEARFORMAT}\\n\\n"
-		printf "c1.    Set Healthcheck UUID\\n       Currently: ${SETTING}%s${CLEARFORMAT}\\n\\n" "$(Conf_Parameters check NOTIFICATIONS_HEALTHCHECK_UUID)"
-		printf "Cron schedule for Healthchecks.io configuration: ${SETTING}%s${CLEARFORMAT}\\n\\n" "$(cru l | grep "$SCRIPT_NAME" | cut -f1-5 -d' ')"
-		printf "cs.    Send a test healthcheck notification\\n\\n"
-		printf "e.     Go back\n\n"
+		printf " 1.    Toggle healthchecks.io\n       Currently: ${BOLD}${NOTIFICATIONS_HEALTHCHECK}${CLRct}\n\n"
+		printf "  ${BOLD}${GRNct}${UNDERLINE}Healthcheck Configuration${CLRct}\n\n"
+		printf "c1.    Set Healthcheck UUID\n       Currently: ${SETTING}%s${CLEARFORMAT}\n\n" "$(Conf_Parameters check NOTIFICATIONS_HEALTHCHECK_UUID)"
+		printf "Cron schedule for Healthchecks.io configuration: ${SETTING}%s${CLEARFORMAT}\n\n" "$(cru l | grep "$SCRIPT_NAME" | cut -f1-5 -d' ')"
+		printf "cs.    Send a test healthcheck notification\n\n"
+		printf " e.    Go back\n\n"
 		printf "${BOLD}##############################################################${CLEARFORMAT}\n"
 		printf "\n"
 
@@ -4171,6 +4187,9 @@ Menu_HealthcheckNotifications()
 	done
 }
 
+##----------------------------------------##
+## Modified by Martinski W. [2025-Dec-07] ##
+##----------------------------------------##
 Menu_InfluxDB()
 {
 	while true
@@ -4181,17 +4200,17 @@ Menu_InfluxDB()
 		then NOTIFICATIONS_INFLUXDB="${PASS}Enabled"
 		else NOTIFICATIONS_INFLUXDB="${ERR}Disabled"
 		fi
-		printf "1.    Toggle InfluxDB exporting\\n      Currently: ${BOLD}${NOTIFICATIONS_INFLUXDB}${CLEARFORMAT}\\n\\n"
-		printf "\\n${BOLD}${UNDERLINE}InfluxDB Configuration${CLEARFORMAT}\\n\\n"
-		printf "c1.    Set InfluxDB Host\\n       Currently: ${SETTING}%s${CLEARFORMAT}\\n\\n" "$(Conf_Parameters check NOTIFICATIONS_INFLUXDB_HOST)"
-		printf "c2.    Set InfluxDB Port\\n       Currently: ${SETTING}%s${CLEARFORMAT}\\n\\n" "$(Conf_Parameters check NOTIFICATIONS_INFLUXDB_PORT)"
-		printf "c3.    Set InfluxDB Database\\n       Currently: ${SETTING}%s${CLEARFORMAT}\\n\\n" "$(Conf_Parameters check NOTIFICATIONS_INFLUXDB_DB)"
-		printf "c4.    Set InfluxDB Version\\n       Currently: ${SETTING}%s${CLEARFORMAT}\\n\\n" "$(Conf_Parameters check NOTIFICATIONS_INFLUXDB_VERSION)"
-		printf "c5.    Set InfluxDB Username (v1.8+ only)\\n       Currently: ${SETTING}%s${CLEARFORMAT}\\n\\n" "$(Conf_Parameters check NOTIFICATIONS_INFLUXDB_USERNAME)"
-		printf "c6.    Set InfluxDB Password (v1.8+ only)\\n\\n"
-		printf "c7.    Set InfluxDB API Token (v2.x only)\\n       Currently: ${SETTING}%s${CLEARFORMAT}\\n\\n" "$(Conf_Parameters check NOTIFICATIONS_INFLUXDB_APITOKEN)"
-		printf "cs.    Send test data to InfluxDB\\n\\n"
-		printf "e.     Go back\n\n"
+		printf " 1.    Toggle InfluxDB exporting\n       Currently: ${BOLD}${NOTIFICATIONS_INFLUXDB}${CLRct}\n\n"
+		printf "  ${BOLD}${GRNct}${UNDERLINE}InfluxDB Configuration${CLRct}\n\n"
+		printf "c1.    Set InfluxDB Host\n       Currently: ${SETTING}%s${CLEARFORMAT}\n\n" "$(Conf_Parameters check NOTIFICATIONS_INFLUXDB_HOST)"
+		printf "c2.    Set InfluxDB Port\n       Currently: ${SETTING}%s${CLEARFORMAT}\n\n" "$(Conf_Parameters check NOTIFICATIONS_INFLUXDB_PORT)"
+		printf "c3.    Set InfluxDB Database\n       Currently: ${SETTING}%s${CLEARFORMAT}\n\n" "$(Conf_Parameters check NOTIFICATIONS_INFLUXDB_DB)"
+		printf "c4.    Set InfluxDB Version\n       Currently: ${SETTING}%s${CLEARFORMAT}\n\n" "$(Conf_Parameters check NOTIFICATIONS_INFLUXDB_VERSION)"
+		printf "c5.    Set InfluxDB Username (v1.8+ only)\\n       Currently: ${SETTING}%s${CLEARFORMAT}\n\n" "$(Conf_Parameters check NOTIFICATIONS_INFLUXDB_USERNAME)"
+		printf "c6.    Set InfluxDB Password (v1.8+ only)\n\n"
+		printf "c7.    Set InfluxDB API Token (v2.x only)\n       Currently: ${SETTING}%s${CLEARFORMAT}\n\n" "$(Conf_Parameters check NOTIFICATIONS_INFLUXDB_APITOKEN)"
+		printf "cs.    Send test data to InfluxDB\n\n"
+		printf " e.    Go back\n\n"
 		printf "${BOLD}##############################################################${CLEARFORMAT}\n"
 		printf "\n"
 
@@ -4255,7 +4274,7 @@ Menu_Notifications()
 	while true
 	do
 		ScriptHeader
-		printf " ${BOLD}${GRNct}${UNDERLINE}Notification Types${CLEARFORMAT}\n\n"
+		printf "  ${BOLD}${GRNct}${UNDERLINE}Notification Types${CLRct}\n\n"
 		printf "  1.  Ping test success\n"
 		printf "      Current methods: ${SETTING}$(NotificationMethods check PingTestOK)${CLEARFORMAT}\n\n"
 		printf "  2.  Ping test failure\n"
@@ -4270,7 +4289,7 @@ Menu_Notifications()
 		printf "      Current threshold: ${SETTING}$(Conf_Parameters check NOTIFICATIONS_LINEQUALITYTHRESHOLD_VALUE) %%${CLEARFORMAT}\n"
 		printf "      Current methods: ${SETTING}$(NotificationMethods check LineQualityThreshold)${CLEARFORMAT}\n\n"
 
-		printf "\n ${BOLD}${GRNct}${UNDERLINE}Notification Methods and Integrations${CLEARFORMAT}\n\n"
+		printf "\n  ${BOLD}${GRNct}${UNDERLINE}Notification Methods and Integrations${CLEARFORMAT}\n\n"
 		NOTIFICATION_SETTING=""
 		if ToggleNotificationTypes check NOTIFICATIONS_EMAIL
 		then NOTIFICATION_SETTING="${PASS}Enabled"
