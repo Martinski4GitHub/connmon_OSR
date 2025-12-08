@@ -11,7 +11,7 @@
 ##      Forked from https://github.com/jackyaz/connmon      ##
 ##                                                          ##
 ##############################################################
-# Last Modified: 2025-Dec-07
+# Last Modified: 2025-Dec-08
 #-------------------------------------------------------------
 
 ##############        Shellcheck directives      #############
@@ -37,7 +37,7 @@
 ### Start of script variables ###
 readonly SCRIPT_NAME="connmon"
 readonly SCRIPT_VERSION="v3.0.10"
-readonly SCRIPT_VERSTAG="25120718"
+readonly SCRIPT_VERSTAG="25120808"
 SCRIPT_BRANCH="develop"
 SCRIPT_REPO="https://raw.githubusercontent.com/AMTM-OSR/$SCRIPT_NAME/$SCRIPT_BRANCH"
 readonly SCRIPT_DIR="/jffs/addons/$SCRIPT_NAME.d"
@@ -117,6 +117,8 @@ readonly PassBGRNct="\e[30;102m"
 readonly WarnBYLWct="\e[30;103m"
 readonly WarnIMGNct="\e[45m"
 readonly WarnBMGNct="\e[30;105m"
+isInteractive=false
+[ -t 0 ] && ! tty | grep -qwi "NOT" && isInteractive=true
 
 ### End of output format variables ###
 
@@ -3335,8 +3337,13 @@ SendHealthcheckPing()
 	fi
 }
 
+##----------------------------------------##
+## Modified by Martinski W. [2025-Dec-08] ##
+##----------------------------------------##
 SendToInfluxDB()
 {
+	local curlCode  tempLogFile="/tmp/var/tmp/temp_${SCRIPT_NAME}.LOG"
+
 	TIMESTAMP="$1"
 	PING="$2"
 	JITTER="$3"
@@ -3346,29 +3353,43 @@ SendToInfluxDB()
 	NOTIFICATIONS_INFLUXDB_DB="$(Conf_Parameters check NOTIFICATIONS_INFLUXDB_DB)"
 	NOTIFICATIONS_INFLUXDB_VERSION="$(Conf_Parameters check NOTIFICATIONS_INFLUXDB_VERSION)"
 	NOTIFICATIONS_INFLUXDB_PROTO="http"
-	if [ "$NOTIFICATIONS_INFLUXDB_PORT" = "443" ]; then
+	if [ "$NOTIFICATIONS_INFLUXDB_PORT" = "443" ]
+	then
 		NOTIFICATIONS_INFLUXDB_PROTO="https"
 	fi
 
-	if [ "$NOTIFICATIONS_INFLUXDB_VERSION" = "1.8" ]; then
+	if [ "$NOTIFICATIONS_INFLUXDB_VERSION" = "1.8" ]
+	then
 		INFLUX_AUTHHEADER="$(Conf_Parameters check NOTIFICATIONS_INFLUXDB_USERNAME):$(Conf_Parameters check NOTIFICATIONS_INFLUXDB_PASSWORD)"
-	elif [ "$NOTIFICATIONS_INFLUXDB_VERSION" = "2.0" ]; then
+	elif [ "$NOTIFICATIONS_INFLUXDB_VERSION" = "2.0" ]
+	then
 		INFLUX_AUTHHEADER="$(Conf_Parameters check NOTIFICATIONS_INFLUXDB_APITOKEN)"
 	fi
+	date +'%Y-%b-%d %a %I:%M:%S %p %Z' > "$tempLogFile"
 
-	curl -fsL --retry 4 --retry-delay 5 --output /dev/null -XPOST "$NOTIFICATIONS_INFLUXDB_PROTO://$NOTIFICATIONS_INFLUXDB_HOST:$NOTIFICATIONS_INFLUXDB_PORT/api/v2/write?bucket=$NOTIFICATIONS_INFLUXDB_DB&precision=s" \
---header "Authorization: Token $INFLUX_AUTHHEADER" --header "Accept-Encoding: gzip" \
---data-raw "ping value=$PING $TIMESTAMP
+	curl -v --retry 4 --retry-delay 5 --output /dev/null \
+    -XPOST "$NOTIFICATIONS_INFLUXDB_PROTO://$NOTIFICATIONS_INFLUXDB_HOST:$NOTIFICATIONS_INFLUXDB_PORT/api/v2/write?bucket=$NOTIFICATIONS_INFLUXDB_DB&precision=s" \
+    --header "Authorization: Token $INFLUX_AUTHHEADER" --header "Accept-Encoding: gzip" \
+    --data-raw "ping value=$PING $TIMESTAMP
 jitter value=$JITTER $TIMESTAMP
-linequality value=$LINEQUAL $TIMESTAMP"
+linequality value=$LINEQUAL $TIMESTAMP" >> "$tempLogFile" 2>&1
+	curlCode="$?"
 
-	if [ $? -eq 0 ]; then
-		echo ""
+	if [ "$curlCode" -eq 0 ]
+	then
+		echo
 		Print_Output false "Data sent to InfluxDB successfully" "$PASS"
+		rm -f "$tempLogFile"
 		return 0
 	else
-		echo ""
-		Print_Output true "Data failed to send to InfluxDB" "$ERR"
+		echo
+		Print_Output true "Data failed to send to InfluxDB [Code: $curlCode]" "$ERR"
+		if "$isInteractive"
+		then
+			echo "-------------------------------------------------------"
+			cat "$tempLogFile"
+			echo "-------------------------------------------------------"
+		fi
 		return 1
 	fi
 }
@@ -4252,7 +4273,7 @@ Menu_InfluxDB()
 			;;
 			cs)
 				SendToInfluxDB "$(/bin/date +%s)" 30 15 90
-				printf "\n"
+				echo
 				PressEnter
 			;;
 			e)
