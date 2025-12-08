@@ -1,5 +1,11 @@
 # Changelog
 
+## v3.0.10
+Updated on 2025-Dec-07
+*   FIXED: Bug fix in a CLI menu function to get the full value of notification parameters from the configuration file.
+*   FIXED: Bug fix in a WebUI JS function to get the full value of notification parameters from the configuration file.
+*   FIXED: Modified WebUI text message to show default interval of 5 minutes. Functionality was correct. This is just a correction to the text string.
+
 ## v3.0.9
 Updated on 2025-Nov-27
 *   FIXED: In some rare situations, the setting for the ping test server IP address went "missing" from the configuration file, and the value could no longer be modified by the user.
