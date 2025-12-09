@@ -11,7 +11,7 @@
 ##      Forked from https://github.com/jackyaz/connmon      ##
 ##                                                          ##
 ##############################################################
-# Last Modified: 2025-Dec-08
+# Last Modified: 2025-Dec-09
 #-------------------------------------------------------------
 
 ##############        Shellcheck directives      #############
@@ -37,7 +37,7 @@
 ### Start of script variables ###
 readonly SCRIPT_NAME="connmon"
 readonly SCRIPT_VERSION="v3.0.10"
-readonly SCRIPT_VERSTAG="25120811"
+readonly SCRIPT_VERSTAG="25120908"
 SCRIPT_BRANCH="develop"
 SCRIPT_REPO="https://raw.githubusercontent.com/AMTM-OSR/$SCRIPT_NAME/$SCRIPT_BRANCH"
 readonly SCRIPT_DIR="/jffs/addons/$SCRIPT_NAME.d"
@@ -68,6 +68,13 @@ readonly ENDIN_MenuAddOnsTag="/\*\*ENDIN:_AddOns_\*\*/"
 readonly branchxStr_TAG="[Branch: $SCRIPT_BRANCH]"
 readonly versionDev_TAG="${SCRIPT_VERSION}_${SCRIPT_VERSTAG}"
 readonly versionMod_TAG="$SCRIPT_VERSION on $ROUTER_MODEL"
+readonly dateTimeLogFormat='%Y-%b-%d %a %I:%M:%S %p %Z'
+readonly curlErr1RegExp="invalid|error"
+readonly curlErr2RegExp="404: Not Found|400 Bad Request"
+readonly curlErr3RegExp="$curlErr1RegExp|$curlErr2RegExp"
+readonly curlOutLogFile="/tmp/var/tmp/temp_${SCRIPT_NAME}_curl_OUT.LOG"
+readonly curlErrLogFile="/tmp/var/tmp/temp_${SCRIPT_NAME}_curl_ERR.LOG"
+readonly tmpCurlSEPstr="-------------------------------------------------------"
 
 # For daily CRON job to trim database #
 readonly defTrimDB_Hour=3
@@ -2747,8 +2754,14 @@ Shortcut_Script()
 	esac
 }
 
+##----------------------------------------##
+## Modified by Martinski W. [2025-Dec-08] ##
+##----------------------------------------##
 PressEnter()
 {
+	if ! "$isInteractive"
+	then return 0
+	fi
 	while true
 	do
 		printf "Press <Enter> key to continue..."
@@ -2827,23 +2840,28 @@ Email_EmailAddress()
 	EMAIL_ADDRESS=""
 	while true
 	do
-		printf "\\n${BOLD}Enter email address:${CLEARFORMAT}  "
+		printf "\n${BOLD}Enter email address:${CLEARFORMAT}  "
 		read -r EMAIL_ADDRESS
-		if [ "$EMAIL_ADDRESS" = "e" ]; then
+		if [ "$EMAIL_ADDRESS" = "e" ]
+		then
 			EMAIL_ADDRESS=""
 			break
-		elif ! echo "$EMAIL_ADDRESS" | grep -qE "$EMAIL_REGEX"; then
-			printf "\\n${ERR}Please enter a valid email address${CLEARFORMAT}\\n"
+		elif ! echo "$EMAIL_ADDRESS" | grep -qE "$EMAIL_REGEX"
+		then
+			printf "\n${ERR}Please enter a valid email address${CLEARFORMAT}\n"
 		else
 			printf "${BOLD}${WARN}Is this correct? (y/n):${CLEARFORMAT}  "
 			read -r CONFIRM_INPUT
 			case "$CONFIRM_INPUT" in
 				y|Y)
-					if [ "$1" = "From" ]; then
+					if [ "$1" = "From" ]
+					then
 						sed -i 's/^FROM_ADDRESS=.*$/FROM_ADDRESS="'"$EMAIL_ADDRESS"'"/' "$EMAIL_CONF"
-					elif [ "$1" = "To" ]; then
+					elif [ "$1" = "To" ]
+					then
 						sed -i 's/^TO_ADDRESS=.*$/TO_ADDRESS="'"$EMAIL_ADDRESS"'"/' "$EMAIL_CONF"
-					elif [ "$1" = "Override" ]; then
+					elif [ "$1" = "Override" ]
+					then
 						NOTIFICATIONS_EMAIL_LIST="$(Email_Recipients check),$EMAIL_ADDRESS"
 						NOTIFICATIONS_EMAIL_LIST="$(echo "$NOTIFICATIONS_EMAIL_LIST" | sed 's/,,/,/g;s/,$//;s/^,//')"
 						sed -i 's/^NOTIFICATIONS_EMAIL_LIST=.*$/NOTIFICATIONS_EMAIL_LIST='"$NOTIFICATIONS_EMAIL_LIST"'/' "$SCRIPT_CONF"
@@ -2865,16 +2883,21 @@ Email_RouterName()
 	do
 		printf "\\n${BOLD}Enter friendly router name:${CLEARFORMAT}  "
 		read -r FRIENDLY_ROUTER_NAME
-		if [ "$FRIENDLY_ROUTER_NAME" = "e" ]; then
+		if [ "$FRIENDLY_ROUTER_NAME" = "e" ]
+		then
 			FRIENDLY_ROUTER_NAME=""
 			break
-		elif [ "$(printf "%s" "$FRIENDLY_ROUTER_NAME" | wc -m)" -lt 2 ] || [ "$(printf "%s" "$FRIENDLY_ROUTER_NAME" | wc -m)" -gt 16 ]; then
+		elif [ "$(printf "%s" "$FRIENDLY_ROUTER_NAME" | wc -m)" -lt 2 ] || [ "$(printf "%s" "$FRIENDLY_ROUTER_NAME" | wc -m)" -gt 16 ]
+		then
 			printf "\\n${ERR}Router friendly name must be between 2 and 16 characters${CLEARFORMAT}\\n"
-		elif echo "$FRIENDLY_ROUTER_NAME" | grep -q "^-" || echo "$FRIENDLY_ROUTER_NAME" | grep -q "^_"; then
+		elif echo "$FRIENDLY_ROUTER_NAME" | grep -q "^-" || echo "$FRIENDLY_ROUTER_NAME" | grep -q "^_"
+		then
 			printf "\\n${ERR}Router friendly name must not start with dash (-) or underscore (_)${CLEARFORMAT}\\n"
-		elif echo "$FRIENDLY_ROUTER_NAME" | grep -q "[-]$" || echo "$FRIENDLY_ROUTER_NAME" | grep -q "_$"; then
+		elif echo "$FRIENDLY_ROUTER_NAME" | grep -q "[-]$" || echo "$FRIENDLY_ROUTER_NAME" | grep -q "_$"
+		then
 			printf "\\n${ERR}Router friendly name must not end with dash (-) or underscore (_)${CLEARFORMAT}\\n"
-		elif ! echo "$FRIENDLY_ROUTER_NAME" | grep -qE "^[a-zA-Z0-9_\-]*$"; then
+		elif ! echo "$FRIENDLY_ROUTER_NAME" | grep -qE "^[a-zA-Z0-9_\-]*$"
+		then
 			printf "\\n${ERR}Router friendly name must not contain special characters other than dash (-) or underscore (_)${CLEARFORMAT}\\n"
 		else
 			printf "${BOLD}${WARN}Is this correct? (y/n):${CLEARFORMAT}  "
@@ -2892,15 +2915,19 @@ Email_RouterName()
 	done
 }
 
-Email_Server(){
+Email_Server()
+{
 	SMTP=""
-	while true; do
+	while true
+	do
 		printf "\\n${BOLD}Enter SMTP Server:${CLEARFORMAT}  "
 		read -r SMTP
-		if [ "$SMTP" = "e" ]; then
+		if [ "$SMTP" = "e" ]
+		then
 			SMTP=""
 			break
-		elif ! Validate_Domain "$SMTP"; then
+		elif ! Validate_Domain "$SMTP"
+		then
 			printf "\\n${ERR}Domain cannot be resolved by nslookup, please ensure you enter a valid domain name${CLEARFORMAT}\\n"
 		else
 			printf "${BOLD}${WARN}Is this correct? (y/n):${CLEARFORMAT}  "
@@ -2918,8 +2945,10 @@ Email_Server(){
 	done
 }
 
-Email_Protocol(){
-	while true; do
+Email_Protocol()
+{
+	while true
+	do
 		printf "\\n${BOLD}Please choose the protocol for your email provider:${CLEARFORMAT}\\n"
 		printf "    1. smtp\\n"
 		printf "    2. smtps\\n\\n"
@@ -2948,7 +2977,8 @@ Email_Protocol(){
 Email_SSL()
 {
 	SSL_FLAG=""
-	while true; do
+	while true
+	do
 		printf "\\n${BOLD}Please choose the SSL security level:${CLEARFORMAT}\\n"
 		printf "    1. Secure (recommended)\\n"
 		printf "    2. Insecure (choose this if you see SSL errors)\\n\\n"
@@ -2978,10 +3008,12 @@ Email_SSL()
 Email_Password()
 {
 	PASSWORD=""
-	while true; do
+	while true
+	do
 		printf "\\n${BOLD}Enter Password:${CLEARFORMAT}  "
 		read -r PASSWORD
-		if [ "$PASSWORD" = "e" ]; then
+		if [ "$PASSWORD" = "e" ]
+		then
 			PASSWORD=""
 			break
 		else
@@ -3005,7 +3037,8 @@ Email_Encrypt_Password()
 {
 	PWENCFILE="$EMAIL_DIR/emailpw.enc"
 	emailPwEnc="$(grep "emailPwEnc=" "$EMAIL_CONF" | cut -f2 -d"=" | sed 's/""//')"
-	if [ -f /usr/sbin/openssl11 ]; then
+	if [ -f /usr/sbin/openssl11 ]
+	then
 		printf "$1" | /usr/sbin/openssl11 aes-256-cbc $emailPwEnc -out "$PWENCFILE" -pass pass:ditbabot,isoi
 	else
 		printf "$1" | /usr/sbin/openssl aes-256-cbc $emailPwEnc -out "$PWENCFILE" -pass pass:ditbabot,isoi
@@ -3015,13 +3048,16 @@ Email_Encrypt_Password()
 Email_Decrypt_Password()
 {
 	PWENCFILE="$EMAIL_DIR/emailpw.enc"
-	if /usr/sbin/openssl aes-256-cbc -d -in "$PWENCFILE" -pass pass:ditbabot,isoi >/dev/null 2>&1 ; then
+	if /usr/sbin/openssl aes-256-cbc -d -in "$PWENCFILE" -pass pass:ditbabot,isoi >/dev/null 2>&1
+	then
 		# old OpenSSL 1.0.x
 		PASSWORD="$(/usr/sbin/openssl aes-256-cbc -d -in "$PWENCFILE" -pass pass:ditbabot,isoi 2>/dev/null)"
-	elif /usr/sbin/openssl aes-256-cbc -d -md md5 -in "$PWENCFILE" -pass pass:ditbabot,isoi >/dev/null 2>&1 ; then
+	elif /usr/sbin/openssl aes-256-cbc -d -md md5 -in "$PWENCFILE" -pass pass:ditbabot,isoi >/dev/null 2>&1
+	then
 		# new OpenSSL 1.1.x non-converted password
 		PASSWORD="$(/usr/sbin/openssl aes-256-cbc -d -md md5 -in "$PWENCFILE" -pass pass:ditbabot,isoi 2>/dev/null)"
-	elif /usr/sbin/openssl aes-256-cbc $emailPwEnc -d -in "$PWENCFILE" -pass pass:ditbabot,isoi >/dev/null 2>&1 ; then
+	elif /usr/sbin/openssl aes-256-cbc $emailPwEnc -d -in "$PWENCFILE" -pass pass:ditbabot,isoi >/dev/null 2>&1
+	then
 		# new OpenSSL 1.1.x converted password with -pbkdf2 flag
 		PASSWORD="$(/usr/sbin/openssl aes-256-cbc $emailPwEnc -d -in "$PWENCFILE" -pass pass:ditbabot,isoi 2>/dev/null)"
 	fi
@@ -3032,12 +3068,14 @@ Email_Recipients()
 {
 	case "$1" in
 	update)
-		while true; do
+		while true
+		do
 			ScriptHeader
 
 			printf "${BOLD}${UNDERLINE}Email Recipients Override List${CLEARFORMAT}\\n\\n"
 			NOTIFICATIONS_EMAIL_LIST="$(Email_Recipients check)"
-			if [ "$NOTIFICATIONS_EMAIL_LIST" = "" ]; then
+			if [ "$NOTIFICATIONS_EMAIL_LIST" = "" ]
+			then
 				NOTIFICATIONS_EMAIL_LIST="Generic To Address will be used"
 			fi
 			printf "Currently: ${SETTING}${NOTIFICATIONS_EMAIL_LIST}${CLEARFORMAT}\\n\\n"
@@ -3105,97 +3143,101 @@ Encode_Text()
 	} >> "$3"
 }
 
+##----------------------------------------##
+## Modified by Martinski W. [2025-Dec-08] ##
+##----------------------------------------##
 SendEmail()
 {
-	if ! Email_ConfExists; then
-		return 1
-	else
-		EMAILSUBJECT="$1"
-		EMAILCONTENTS="$2"
-		if [ -n "$3" ]; then
-			TO_ADDRESS="$3"
-		fi
-		if [ -z "$TO_ADDRESS" ]; then
-			Print_Output false "No email recipient specified" "$ERR"
-			return 1
-		fi
-
-		# html message to send #
-		{
-			echo "From: \"connmon\" <$FROM_ADDRESS>"
-			echo "To: \"$TO_ADDRESS\" <$TO_ADDRESS>"
-			echo "Subject: $EMAILSUBJECT"
-			echo "Date: $(/bin/date -R)"
-			echo "MIME-Version: 1.0"
-			echo "Content-Type: multipart/mixed; boundary=\"MULTIPART-MIXED-BOUNDARY\""
-			echo ""
-			echo "--MULTIPART-MIXED-BOUNDARY"
-			echo "Content-Type: multipart/related; boundary=\"MULTIPART-RELATED-BOUNDARY\""
-			echo ""
-			echo "--MULTIPART-RELATED-BOUNDARY"
-			echo "Content-Type: multipart/alternative; boundary=\"MULTIPART-ALTERNATIVE-BOUNDARY\""
-		} > /tmp/mail.txt
-
-		#echo "<html><body><p><img src=\"cid:connmonlogo.png\"></p>$2" > /tmp/message.html
-		echo "<html><body>$EMAILCONTENTS" > /tmp/message.html
-
-		echo "</body></html>" >> /tmp/message.html
-
-		message_base64="$(openssl base64 -A < /tmp/message.html)"
-		rm -f /tmp/message.html
-
-		{
-			echo ""
-			echo "--MULTIPART-ALTERNATIVE-BOUNDARY"
-			echo "Content-Type: text/html; charset=utf-8"
-			echo "Content-Transfer-Encoding: base64"
-			echo ""
-			echo "$message_base64"
-			echo ""
-			echo "--MULTIPART-ALTERNATIVE-BOUNDARY--"
-			echo ""
-		} >> /tmp/mail.txt
-
-		#image_base64="$(openssl base64 -A < "connmonlogo.png")"
-		#Encode_Image "connmonlogo.png" "$image_base64" /tmp/mail.txt
-
-		#Encode_Text vnstat.txt "$(cat "$VNSTAT_OUTPUT_FILE")" /tmp/mail.txt
-
-		{
-			echo "--MULTIPART-RELATED-BOUNDARY--"
-			echo ""
-			echo "--MULTIPART-MIXED-BOUNDARY--"
-		} >> /tmp/mail.txt
-
-		PASSWORD="$(Email_Decrypt_Password)"
-
-		curl -s --show-error --url "$PROTOCOL://$SMTP:$PORT" \
-		--mail-from "$FROM_ADDRESS" --mail-rcpt "$TO_ADDRESS" \
-		--upload-file /tmp/mail.txt \
-		--ssl-reqd \
-		--user "$USERNAME:$PASSWORD" $SSL_FLAG
-
-		if [ $? -eq 0 ]; then
-			echo ""
-			Print_Output false "Email sent successfully" "$PASS"
-			rm -f /tmp/mail.txt
-			PASSWORD=""
-			return 0
-		else
-			echo ""
-			Print_Output true "Email failed to send" "$ERR"
-			rm -f /tmp/mail.txt
-			PASSWORD=""
-			return 1
-		fi
+	if ! Email_ConfExists
+	then return 1
 	fi
+
+	local curlCode
+	EMAIL_SUBJECT="$1"
+	EMAIL_CONTENTS="$2"
+	if [ $# -gt 2 ] && [ -n "$3" ]
+	then
+		TO_ADDRESS="$3"
+	fi
+	if [ -z "$TO_ADDRESS" ]
+	then
+		Print_Output false "No email recipient specified" "$ERR"
+		return 1
+	fi
+
+	# html message to send #
+	{
+		echo "From: \"connmon\" <$FROM_ADDRESS>"
+		echo "To: \"$TO_ADDRESS\" <$TO_ADDRESS>"
+		echo "Subject: $EMAIL_SUBJECT"
+		echo "Date: $(/bin/date -R)"
+		echo "MIME-Version: 1.0"
+		echo "Content-Type: multipart/mixed; boundary=\"MULTIPART-MIXED-BOUNDARY\""
+		echo ""
+		echo "--MULTIPART-MIXED-BOUNDARY"
+		echo "Content-Type: multipart/related; boundary=\"MULTIPART-RELATED-BOUNDARY\""
+		echo ""
+		echo "--MULTIPART-RELATED-BOUNDARY"
+		echo "Content-Type: multipart/alternative; boundary=\"MULTIPART-ALTERNATIVE-BOUNDARY\""
+	} > /tmp/mail.txt
+
+	##echo "<html><body><p><img src=\"cid:connmonlogo.png\"></p>$2" > /tmp/message.html
+	echo "<html><body>$EMAIL_CONTENTS" > /tmp/message.html
+
+	echo "</body></html>" >> /tmp/message.html
+
+	message_base64="$(openssl base64 -A < /tmp/message.html)"
+	rm -f /tmp/message.html
+
+	{
+		echo ""
+		echo "--MULTIPART-ALTERNATIVE-BOUNDARY"
+		echo "Content-Type: text/html; charset=utf-8"
+		echo "Content-Transfer-Encoding: base64"
+		echo ""
+		echo "$message_base64"
+		echo ""
+		echo "--MULTIPART-ALTERNATIVE-BOUNDARY--"
+		echo ""
+	} >> /tmp/mail.txt
+
+	##image_base64="$(openssl base64 -A < "connmonlogo.png")"
+	##Encode_Image "connmonlogo.png" "$image_base64" /tmp/mail.txt
+	##Encode_Text vnstat.txt "$(cat "$VNSTAT_OUTPUT_FILE")" /tmp/mail.txt
+
+	{
+		echo "--MULTIPART-RELATED-BOUNDARY--"
+		echo ""
+		echo "--MULTIPART-MIXED-BOUNDARY--"
+	} >> /tmp/mail.txt
+
+	PASSWORD="$(Email_Decrypt_Password)"
+
+	curl -s --show-error --url "${PROTOCOL}://${SMTP}:$PORT" \
+	--mail-from "$FROM_ADDRESS" --mail-rcpt "$TO_ADDRESS" \
+	--upload-file /tmp/mail.txt --user "${USERNAME}:$PASSWORD" \
+	$SSL_FLAG --ssl-reqd --crlf
+	curlCode="$?"
+
+	"$isInteractive" && echo
+	if [ "$curlCode" -eq 0 ]
+	then
+		Print_Output false "Email sent successfully" "$PASS"
+	else
+		Print_Output true "Email failed to send [Code: $curlCode]" "$ERR"
+	fi
+
+	PASSWORD=""
+	rm -f /tmp/mail.txt
+	return "$curlCode"
 }
 
 Webhook_Targets()
 {
 	case "$1" in
 	update)
-		while true; do
+		while true
+		do
 			ScriptHeader
 
 			printf "${BOLD}${UNDERLINE}Discord Webhook List${CLEARFORMAT}\\n\\n"
@@ -3231,34 +3273,64 @@ Webhook_Targets()
 	esac
 }
 
+##----------------------------------------##
+## Modified by Martinski W. [2025-Dec-08] ##
+##----------------------------------------##
 SendWebhook()
 {
-	WEBHOOKCONTENT="$1"
-	WEBHOOKTARGET="$2"
-	if [ -z "$WEBHOOKTARGET" ]; then
+	local curlCode
+	WEBHOOK_CONTENT="$1"
+	WEBHOOK_TARGET="$2"
+	if [ -z "$WEBHOOK_TARGET" ]
+	then
 		Print_Output false "No Webhook URL specified" "$ERR"
 		return 1
 	fi
+	printf '' > "$curlOutLogFile"
+	printf '' > "$curlErrLogFile"
 
-	curl -fsL --retry 4 --retry-delay 5 --output /dev/null -H "Content-Type: application/json" \
--d '{"username":"'"$SCRIPT_NAME"'","content":"'"$WEBHOOKCONTENT"'"}' "$WEBHOOKTARGET"
+	curl -vSL --retry 4 --retry-delay 5 --connect-timeout 60 -o "$curlOutLogFile" \
+-H "Content-Type: application/json" \
+-d '{"username":"'"$SCRIPT_NAME"'","content":"'"$WEBHOOK_CONTENT"'"}' "$WEBHOOK_TARGET" >> "$curlErrLogFile" 2>&1
+	curlCode="$?"
 
-	if [ $? -eq 0 ]; then
-		echo ""
+	"$isInteractive" && echo
+	if [ "$curlCode" -eq 0 ] && \
+	   ! grep -qiE "$curlErr2RegExp" "$curlOutLogFile" && \
+	   ! grep -qiE "$curlErr2RegExp" "$curlErrLogFile"
+	then
 		Print_Output false "Webhook sent successfully" "$PASS"
-		return 0
+		##OFF## rm -f "$curlOutLogFile" "$curlErrLogFile" ##OFF##
 	else
-		echo ""
-		Print_Output true "Webhook failed to send" "$ERR"
-		return 1
+		[ "$curlCode" -eq 0 ] && curlCode=999
+		Print_Output true "Webhook failed to send [Code: $curlCode]" "$ERR"
+		if "$isInteractive" && \
+		   { [ -s "$curlOutLogFile" ] || [ -s "$curlErrLogFile" ] ; }
+		then
+			PressEnter ; echo
+			echo "$tmpCurlSEPstr"
+			if [ -s "$curlOutLogFile" ] && \
+			   grep -qiE "$curlErr3RegExp" "$curlOutLogFile"
+			then
+				cat "$curlOutLogFile" ; echo
+				echo "$tmpCurlSEPstr"
+			fi
+			if [ -s "$curlErrLogFile" ]
+			then
+				cat "$curlErrLogFile" ; echo
+				echo "$tmpCurlSEPstr"
+			fi
+		fi
 	fi
+	return "$curlCode"
 }
 
 Pushover_Devices()
 {
 	case "$1" in
 	update)
-		while true; do
+		while true
+		do
 			ScriptHeader
 
 			printf "${BOLD}${UNDERLINE}Pushover Device List${CLEARFORMAT}\\n\\n"
@@ -3294,104 +3366,177 @@ Pushover_Devices()
 	esac
 }
 
+##----------------------------------------##
+## Modified by Martinski W. [2025-Dec-08] ##
+##----------------------------------------##
 SendPushover()
 {
-	PUSHOVERCONTENT="$1"
+	local curlCode
+	PUSHOVER_MSG="$1"
 	PUSHOVER_API="$(Conf_Parameters check NOTIFICATIONS_PUSHOVER_API)"
 	PUSHOVER_USERKEY="$(Conf_Parameters check NOTIFICATIONS_PUSHOVER_USERKEY)"
-	if [ -z "$PUSHOVER_API" ] || [ -z "$PUSHOVER_USERKEY" ]; then
+	if [ -z "$PUSHOVER_API" ] || [ -z "$PUSHOVER_USERKEY" ]
+	then
 		Print_Output false "No Pushover API or UserKey specified" "$ERR"
 		return 1
 	fi
+	printf '' > "$curlOutLogFile"
+	printf '' > "$curlErrLogFile"
 
-	curl -fsL --retry 4 --retry-delay 5 --output /dev/null --form-string "token=$PUSHOVER_API" \
---form-string "user=$PUSHOVER_USERKEY" --form-string "message=$PUSHOVERCONTENT" https://api.pushover.net/1/messages.json
+	curl -vSL --retry 4 --retry-delay 5 --connect-timeout 60 -o "$curlOutLogFile" \
+--form-string "token=$PUSHOVER_API" \
+--form-string "user=$PUSHOVER_USERKEY" \
+--form-string "message=$PUSHOVER_MSG" https://api.pushover.net/1/messages.json >> "$curlErrLogFile" 2>&1
+	curlCode="$?"
 
-	if [ $? -eq 0 ]; then
-		echo ""
+	"$isInteractive" && echo
+	if [ "$curlCode" -eq 0 ] && \
+	   ! grep -qiE "$curlErr2RegExp" "$curlOutLogFile" && \
+	   ! grep -qiE "$curlErr2RegExp" "$curlErrLogFile"
+	then
 		Print_Output false "Pushover sent successfully" "$PASS"
-		return 0
+		##OFF## rm -f "$curlOutLogFile" "$curlErrLogFile" ##OFF##
 	else
-		echo ""
-		Print_Output true "Pushover failed to send" "$ERR"
-		return 1
+		[ "$curlCode" -eq 0 ] && curlCode=999
+		Print_Output true "Pushover failed to send [Code: $curlCode]" "$ERR"
+		if "$isInteractive" && \
+		   { [ -s "$curlOutLogFile" ] || [ -s "$curlErrLogFile" ] ; }
+		then
+			PressEnter ; echo
+			echo "$tmpCurlSEPstr"
+			if [ -s "$curlOutLogFile" ] && \
+			   grep -qiE "$curlErr3RegExp" "$curlOutLogFile"
+			then
+				cat "$curlOutLogFile" ; echo
+				echo "$tmpCurlSEPstr"
+			fi
+			if [ -s "$curlErrLogFile" ]
+			then
+				cat "$curlErrLogFile" ; echo
+				echo "$tmpCurlSEPstr"
+			fi
+		fi
 	fi
-}
-
-SendHealthcheckPing()
-{
-	NOTIFICATIONS_HEALTHCHECK_UUID="$(Conf_Parameters check NOTIFICATIONS_HEALTHCHECK_UUID)"
-	TESTFAIL=""
-	if [ "$1" = "Fail" ]; then
-		TESTFAIL="/fail"
-	fi
-	curl -fsL --retry 4 --retry-delay 5 --output /dev/null "https://hc-ping.com/${NOTIFICATIONS_HEALTHCHECK_UUID}${TESTFAIL}"
-	if [ $? -eq 0 ]; then
-		echo ""
-		Print_Output false "Healthcheck ping sent successfully" "$PASS"
-		return 0
-	else
-		echo ""
-		Print_Output true "Healthcheck ping failed to send" "$ERR"
-		return 1
-	fi
+	return "$curlCode"
 }
 
 ##----------------------------------------##
 ## Modified by Martinski W. [2025-Dec-08] ##
 ##----------------------------------------##
+SendHealthcheckPing()
+{
+	local curlCode
+	HEALTHCHECK_UUID="$(Conf_Parameters check NOTIFICATIONS_HEALTHCHECK_UUID)"
+	TEST_FAIL=""
+	if [ "$1" = "Fail" ]
+	then
+		TEST_FAIL="/fail"
+	fi
+	printf '' > "$curlOutLogFile"
+	printf '' > "$curlErrLogFile"
+
+	curl -vSL --retry 4 --retry-delay 5 --connect-timeout 60 -o "$curlOutLogFile" \
+"https://hc-ping.com/${HEALTHCHECK_UUID}$TEST_FAIL" >> "$curlErrLogFile" 2>&1
+	curlCode="$?"
+
+	"$isInteractive" && echo
+	if [ "$curlCode" -eq 0 ] && \
+	   ! grep -qiE "$curlErr2RegExp" "$curlOutLogFile" && \
+	   ! grep -qiE "$curlErr2RegExp" "$curlErrLogFile"
+	then
+		Print_Output false "Healthcheck ping sent successfully" "$PASS"
+		##OFF## rm -f "$curlOutLogFile" "$curlErrLogFile" ##OFF##
+	else
+		[ "$curlCode" -eq 0 ] && curlCode=999
+		Print_Output true "Healthcheck ping failed to send [Code: $curlCode]" "$ERR"
+		if "$isInteractive" && \
+		   { [ -s "$curlOutLogFile" ] || [ -s "$curlErrLogFile" ] ; }
+		then
+			PressEnter ; echo
+			echo "$tmpCurlSEPstr"
+			if [ -s "$curlOutLogFile" ] && \
+			   grep -qiE "$curlErr3RegExp" "$curlOutLogFile"
+			then
+				cat "$curlOutLogFile" ; echo
+				echo "$tmpCurlSEPstr"
+			fi
+			if [ -s "$curlErrLogFile" ]
+			then
+				cat "$curlErrLogFile" ; echo
+				echo "$tmpCurlSEPstr"
+			fi
+		fi
+	fi
+	return "$curlCode"
+}
+
+##----------------------------------------##
+## Modified by Martinski W. [2025-Dec-09] ##
+##----------------------------------------##
 SendToInfluxDB()
 {
-	local curlCode  tempLogFile="/tmp/var/tmp/temp_${SCRIPT_NAME}.LOG"
-
+	local curlCode
 	TIMESTAMP="$1"
 	PING="$2"
 	JITTER="$3"
 	LINEQUAL="$4"
-	NOTIFICATIONS_INFLUXDB_HOST="$(Conf_Parameters check NOTIFICATIONS_INFLUXDB_HOST)"
-	NOTIFICATIONS_INFLUXDB_PORT="$(Conf_Parameters check NOTIFICATIONS_INFLUXDB_PORT)"
-	NOTIFICATIONS_INFLUXDB_DB="$(Conf_Parameters check NOTIFICATIONS_INFLUXDB_DB)"
-	NOTIFICATIONS_INFLUXDB_VERSION="$(Conf_Parameters check NOTIFICATIONS_INFLUXDB_VERSION)"
-	NOTIFICATIONS_INFLUXDB_PROTO="http"
-	if [ "$NOTIFICATIONS_INFLUXDB_PORT" = "443" ]
-	then
-		NOTIFICATIONS_INFLUXDB_PROTO="https"
+	INFLUXDB_DB="$(Conf_Parameters check NOTIFICATIONS_INFLUXDB_DB)"
+	INFLUXDB_ORG=homenet  ##Should it be a variable or a constant??##
+	INFLUXDB_HOST="$(Conf_Parameters check NOTIFICATIONS_INFLUXDB_HOST)"
+	INFLUXDB_PORT="$(Conf_Parameters check NOTIFICATIONS_INFLUXDB_PORT)"
+	INFLUXDB_VERSION="$(Conf_Parameters check NOTIFICATIONS_INFLUXDB_VERSION)"
+	INFLUXDB_PROTO="http"
+	if [ "$INFLUXDB_PORT" = "443" ]
+	then INFLUXDB_PROTO="https"
 	fi
 
-	if [ "$NOTIFICATIONS_INFLUXDB_VERSION" = "1.8" ]
+	if [ "$INFLUXDB_VERSION" = "1.8" ]
 	then
 		INFLUX_AUTHHEADER="$(Conf_Parameters check NOTIFICATIONS_INFLUXDB_USERNAME):$(Conf_Parameters check NOTIFICATIONS_INFLUXDB_PASSWORD)"
-	elif [ "$NOTIFICATIONS_INFLUXDB_VERSION" = "2.0" ]
+	elif [ "$INFLUXDB_VERSION" = "2.0" ]
 	then
 		INFLUX_AUTHHEADER="$(Conf_Parameters check NOTIFICATIONS_INFLUXDB_APITOKEN)"
 	fi
-	date +'%Y-%b-%d %a %I:%M:%S %p %Z' > "$tempLogFile"
+	printf '' > "$curlOutLogFile"
+	printf '' > "$curlErrLogFile"
 
-	curl -v --retry 4 --retry-delay 5 --output /dev/null \
-    -XPOST "$NOTIFICATIONS_INFLUXDB_PROTO://$NOTIFICATIONS_INFLUXDB_HOST:$NOTIFICATIONS_INFLUXDB_PORT/api/v2/write?bucket=$NOTIFICATIONS_INFLUXDB_DB&precision=s" \
+	curl -vSL --retry 4 --retry-delay 5 --connect-timeout 60 -o "$curlOutLogFile" \
+    "${INFLUXDB_PROTO}://${INFLUXDB_HOST}:${INFLUXDB_PORT}/api/v2/write?org=${INFLUXDB_ORG}&bucket=${INFLUXDB_DB}&precision=s" \
     --header "Authorization: Token $INFLUX_AUTHHEADER" --header "Accept-Encoding: gzip" \
-    --data-raw "ping value=$PING $TIMESTAMP
-jitter value=$JITTER $TIMESTAMP
-linequality value=$LINEQUAL $TIMESTAMP" >> "$tempLogFile" 2>&1
+    --data-raw "ping value=$PING ${TIMESTAMP},
+jitter value=$JITTER ${TIMESTAMP},
+linequality value=$LINEQUAL $TIMESTAMP" >> "$curlErrLogFile" 2>&1
 	curlCode="$?"
 
-	if [ "$curlCode" -eq 0 ]
+	"$isInteractive" && echo
+	if [ "$curlCode" -eq 0 ] && \
+	   ! grep -qiE "$curlErr2RegExp" "$curlOutLogFile" && \
+	   ! grep -qiE "$curlErr2RegExp" "$curlErrLogFile"
 	then
-		echo
 		Print_Output false "Data sent to InfluxDB successfully" "$PASS"
-		##TEMP-OFF## rm -f "$tempLogFile" ##TEMP-OFF##
-		return 0
+		##OFF## rm -f "$curlOutLogFile" "$curlErrLogFile" ##OFF##
 	else
-		echo
+		[ "$curlCode" -eq 0 ] && curlCode=999
 		Print_Output true "Data failed to send to InfluxDB [Code: $curlCode]" "$ERR"
-		if "$isInteractive"
+		if "$isInteractive" && \
+		   { [ -s "$curlOutLogFile" ] || [ -s "$curlErrLogFile" ] ; }
 		then
-			echo "-------------------------------------------------------"
-			cat "$tempLogFile"
-			echo "-------------------------------------------------------"
+			PressEnter ; echo
+			echo "$tmpCurlSEPstr"
+			if [ -s "$curlOutLogFile" ] && \
+			   grep -qiE "$curlErr3RegExp" "$curlOutLogFile"
+			then
+				cat "$curlOutLogFile" ; echo
+				echo "$tmpCurlSEPstr"
+			fi
+			if [ -s "$curlErrLogFile" ]
+			then
+				cat "$curlErrLogFile" ; echo
+				echo "$tmpCurlSEPstr"
+			fi
 		fi
-		return 1
 	fi
+	return "$curlCode"
 }
 
 ##----------------------------------------##
