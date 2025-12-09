@@ -37,7 +37,7 @@
 ### Start of script variables ###
 readonly SCRIPT_NAME="connmon"
 readonly SCRIPT_VERSION="v3.0.10"
-readonly SCRIPT_VERSTAG="25120900"
+readonly SCRIPT_VERSTAG="25120908"
 SCRIPT_BRANCH="develop"
 SCRIPT_REPO="https://raw.githubusercontent.com/AMTM-OSR/$SCRIPT_NAME/$SCRIPT_BRANCH"
 readonly SCRIPT_DIR="/jffs/addons/$SCRIPT_NAME.d"
@@ -3471,7 +3471,7 @@ SendHealthcheckPing()
 }
 
 ##----------------------------------------##
-## Modified by Martinski W. [2025-Dec-08] ##
+## Modified by Martinski W. [2025-Dec-09] ##
 ##----------------------------------------##
 SendToInfluxDB()
 {
@@ -3481,6 +3481,7 @@ SendToInfluxDB()
 	JITTER="$3"
 	LINEQUAL="$4"
 	INFLUXDB_DB="$(Conf_Parameters check NOTIFICATIONS_INFLUXDB_DB)"
+	INFLUXDB_ORG=homenet  ##Should it be a variable or a constant??##
 	INFLUXDB_HOST="$(Conf_Parameters check NOTIFICATIONS_INFLUXDB_HOST)"
 	INFLUXDB_PORT="$(Conf_Parameters check NOTIFICATIONS_INFLUXDB_PORT)"
 	INFLUXDB_VERSION="$(Conf_Parameters check NOTIFICATIONS_INFLUXDB_VERSION)"
@@ -3500,10 +3501,10 @@ SendToInfluxDB()
 	printf '' > "$curlErrLogFile"
 
 	curl -vSL --retry 4 --retry-delay 5 --connect-timeout 60 -o "$curlOutLogFile" \
-    "${INFLUXDB_PROTO}://${INFLUXDB_HOST}:${INFLUXDB_PORT}/api/v2/write?bucket=${INFLUXDB_DB}&precision=s" \
+    "${INFLUXDB_PROTO}://${INFLUXDB_HOST}:${INFLUXDB_PORT}/api/v2/write?org=${INFLUXDB_ORG}&bucket=${INFLUXDB_DB}&precision=s" \
     --header "Authorization: Token $INFLUX_AUTHHEADER" --header "Accept-Encoding: gzip" \
-    --data-raw "ping value=$PING $TIMESTAMP
-jitter value=$JITTER $TIMESTAMP
+    --data-raw "ping value=$PING ${TIMESTAMP},
+jitter value=$JITTER ${TIMESTAMP},
 linequality value=$LINEQUAL $TIMESTAMP" >> "$curlErrLogFile" 2>&1
 	curlCode="$?"
 
