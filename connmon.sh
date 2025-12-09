@@ -37,7 +37,7 @@
 ### Start of script variables ###
 readonly SCRIPT_NAME="connmon"
 readonly SCRIPT_VERSION="v3.0.10"
-readonly SCRIPT_VERSTAG="25120908"
+readonly SCRIPT_VERSTAG="25120912"
 SCRIPT_BRANCH="develop"
 SCRIPT_REPO="https://raw.githubusercontent.com/AMTM-OSR/$SCRIPT_NAME/$SCRIPT_BRANCH"
 readonly SCRIPT_DIR="/jffs/addons/$SCRIPT_NAME.d"
@@ -69,8 +69,8 @@ readonly branchxStr_TAG="[Branch: $SCRIPT_BRANCH]"
 readonly versionDev_TAG="${SCRIPT_VERSION}_${SCRIPT_VERSTAG}"
 readonly versionMod_TAG="$SCRIPT_VERSION on $ROUTER_MODEL"
 readonly dateTimeLogFormat='%Y-%b-%d %a %I:%M:%S %p %Z'
-readonly curlErr1RegExp="invalid|error"
-readonly curlErr2RegExp="404: Not Found|400 Bad Request"
+readonly curlErr1RegExp="invalid|unauthorized|error"
+readonly curlErr2RegExp="404: Not Found|400 Bad Request|401 Unauthorized"
 readonly curlErr3RegExp="$curlErr1RegExp|$curlErr2RegExp"
 readonly curlOutLogFile="/tmp/var/tmp/temp_${SCRIPT_NAME}_curl_OUT.LOG"
 readonly curlErrLogFile="/tmp/var/tmp/temp_${SCRIPT_NAME}_curl_ERR.LOG"
@@ -662,7 +662,7 @@ _GetConfigParam_()
 }
 
 ##----------------------------------------##
-## Modified by Martinski W. [2025-Nov-26] ##
+## Modified by Martinski W. [2025-Dec-09] ##
 ##----------------------------------------##
 Conf_Exists()
 {
@@ -760,6 +760,7 @@ Conf_Exists()
 				echo "NOTIFICATIONS_INFLUXDB_HOST="
 				echo "NOTIFICATIONS_INFLUXDB_PORT=8086"
 				echo "NOTIFICATIONS_INFLUXDB_DB=connmon"
+				echo "NOTIFICATIONS_INFLUXDB_ORG=homenet"
 				echo "NOTIFICATIONS_INFLUXDB_VERSION=1.8"
 				echo "NOTIFICATIONS_INFLUXDB_USERNAME="
 				echo "NOTIFICATIONS_INFLUXDB_PASSWORD="
@@ -771,6 +772,12 @@ Conf_Exists()
 			sedNum="$(grep -n 'NOTIFICATIONS_PINGTEST=' "$SCRIPT_CONF" | cut -d':' -f1)"
 			[ -n "$sedNum" ] && sedNum="$((sedNum + 1))" && \
 			sed -i "$sedNum i NOTIFICATIONS_PINGTEST_FAILED=None" "$SCRIPT_CONF"
+		fi
+		if ! grep -q "^NOTIFICATIONS_INFLUXDB_ORG=" "$SCRIPT_CONF"
+		then
+			sedNum="$(grep -n 'NOTIFICATIONS_INFLUXDB_DB=' "$SCRIPT_CONF" | cut -d':' -f1)"
+			[ -n "$sedNum" ] && sedNum="$((sedNum + 1))" && \
+			sed -i "$sedNum i NOTIFICATIONS_INFLUXDB_ORG=homenet" "$SCRIPT_CONF"
 		fi
 		return 0
 	else
@@ -808,6 +815,7 @@ Conf_Exists()
 		   echo "NOTIFICATIONS_INFLUXDB_HOST="
 		   echo "NOTIFICATIONS_INFLUXDB_PORT=8086"
 		   echo "NOTIFICATIONS_INFLUXDB_DB=connmon"
+		   echo "NOTIFICATIONS_INFLUXDB_ORG=homenet"
 		   echo "NOTIFICATIONS_INFLUXDB_VERSION=1.8"
 		   echo "NOTIFICATIONS_INFLUXDB_USERNAME="
 		   echo "NOTIFICATIONS_INFLUXDB_PASSWORD="
@@ -3480,8 +3488,8 @@ SendToInfluxDB()
 	PING="$2"
 	JITTER="$3"
 	LINEQUAL="$4"
-	INFLUXDB_DB="$(Conf_Parameters check NOTIFICATIONS_INFLUXDB_DB)"
-	INFLUXDB_ORG=homenet  ##Should it be a variable or a constant??##
+	INFLUXDB_BID="$(Conf_Parameters check NOTIFICATIONS_INFLUXDB_DB)"
+	INFLUXDB_ORG="$(Conf_Parameters check NOTIFICATIONS_INFLUXDB_ORG)"
 	INFLUXDB_HOST="$(Conf_Parameters check NOTIFICATIONS_INFLUXDB_HOST)"
 	INFLUXDB_PORT="$(Conf_Parameters check NOTIFICATIONS_INFLUXDB_PORT)"
 	INFLUXDB_VERSION="$(Conf_Parameters check NOTIFICATIONS_INFLUXDB_VERSION)"
@@ -3501,11 +3509,9 @@ SendToInfluxDB()
 	printf '' > "$curlErrLogFile"
 
 	curl -vSL --retry 4 --retry-delay 5 --connect-timeout 60 -o "$curlOutLogFile" \
-    "${INFLUXDB_PROTO}://${INFLUXDB_HOST}:${INFLUXDB_PORT}/api/v2/write?org=${INFLUXDB_ORG}&bucket=${INFLUXDB_DB}&precision=s" \
+    "${INFLUXDB_PROTO}://${INFLUXDB_HOST}:${INFLUXDB_PORT}/api/v2/write?org=${INFLUXDB_ORG}&bucket=${INFLUXDB_BID}&precision=s" \
     --header "Authorization: Token $INFLUX_AUTHHEADER" --header "Accept-Encoding: gzip" \
-    --data-raw "ping value=$PING ${TIMESTAMP},
-jitter value=$JITTER ${TIMESTAMP},
-linequality value=$LINEQUAL $TIMESTAMP" >> "$curlErrLogFile" 2>&1
+    --data-raw "pingTest,ping=$PING ${TIMESTAMP},jitter=$JITTER ${TIMESTAMP},linequality=$LINEQUAL $TIMESTAMP" >> "$curlErrLogFile" 2>&1
 	curlCode="$?"
 
 	"$isInteractive" && echo
@@ -3560,7 +3566,7 @@ ToggleNotificationTypes()
 }
 
 ##----------------------------------------##
-## Modified by Martinski W. [2025-Dec-07] ##
+## Modified by Martinski W. [2025-Dec-09] ##
 ##----------------------------------------##
 Conf_Parameters()
 {
@@ -3601,8 +3607,11 @@ Conf_Parameters()
 				"InfluxDB Port")
 					sed -i 's/^NOTIFICATIONS_INFLUXDB_PORT=.*$/NOTIFICATIONS_INFLUXDB_PORT='"$3"'/' "$SCRIPT_CONF"
 				;;
-				"InfluxDB Database")
+				"InfluxDB Database ID")
 					sed -i 's/^NOTIFICATIONS_INFLUXDB_DB=.*$/NOTIFICATIONS_INFLUXDB_DB='"$3"'/' "$SCRIPT_CONF"
+				;;
+				"InfluxDB Organization")
+					sed -i 's/^NOTIFICATIONS_INFLUXDB_ORG=.*$/NOTIFICATIONS_INFLUXDB_ORG='"$3"'/' "$SCRIPT_CONF"
 				;;
 				"InfluxDB Version")
 					sed -i 's/^NOTIFICATIONS_INFLUXDB_VERSION=.*$/NOTIFICATIONS_INFLUXDB_VERSION='"$3"'/' "$SCRIPT_CONF"
@@ -4354,7 +4363,7 @@ Menu_HealthcheckNotifications()
 }
 
 ##----------------------------------------##
-## Modified by Martinski W. [2025-Dec-07] ##
+## Modified by Martinski W. [2025-Dec-09] ##
 ##----------------------------------------##
 Menu_InfluxDB()
 {
@@ -4370,11 +4379,12 @@ Menu_InfluxDB()
 		printf "  ${BOLD}${GRNct}${UNDERLINE}InfluxDB Configuration${CLRct}\n\n"
 		printf "c1.    Set InfluxDB Host\n       Currently: ${SETTING}%s${CLEARFORMAT}\n\n" "$(Conf_Parameters check NOTIFICATIONS_INFLUXDB_HOST)"
 		printf "c2.    Set InfluxDB Port\n       Currently: ${SETTING}%s${CLEARFORMAT}\n\n" "$(Conf_Parameters check NOTIFICATIONS_INFLUXDB_PORT)"
-		printf "c3.    Set InfluxDB Database\n       Currently: ${SETTING}%s${CLEARFORMAT}\n\n" "$(Conf_Parameters check NOTIFICATIONS_INFLUXDB_DB)"
-		printf "c4.    Set InfluxDB Version\n       Currently: ${SETTING}%s${CLEARFORMAT}\n\n" "$(Conf_Parameters check NOTIFICATIONS_INFLUXDB_VERSION)"
-		printf "c5.    Set InfluxDB Username (v1.8+ only)\\n       Currently: ${SETTING}%s${CLEARFORMAT}\n\n" "$(Conf_Parameters check NOTIFICATIONS_INFLUXDB_USERNAME)"
-		printf "c6.    Set InfluxDB Password (v1.8+ only)\n\n"
-		printf "c7.    Set InfluxDB API Token (v2.x only)\n       Currently: ${SETTING}%s${CLEARFORMAT}\n\n" "$(Conf_Parameters check NOTIFICATIONS_INFLUXDB_APITOKEN)"
+		printf "c3.    Set InfluxDB Database ID\n       Currently: ${SETTING}%s${CLEARFORMAT}\n\n" "$(Conf_Parameters check NOTIFICATIONS_INFLUXDB_DB)"
+		printf "c4.    Set InfluxDB Organization\n       Currently: ${SETTING}%s${CLEARFORMAT}\n\n" "$(Conf_Parameters check NOTIFICATIONS_INFLUXDB_ORG)"
+		printf "c5.    Set InfluxDB Version\n       Currently: ${SETTING}%s${CLEARFORMAT}\n\n" "$(Conf_Parameters check NOTIFICATIONS_INFLUXDB_VERSION)"
+		printf "c6.    Set InfluxDB Username (v1.8+ only)\\n       Currently: ${SETTING}%s${CLEARFORMAT}\n\n" "$(Conf_Parameters check NOTIFICATIONS_INFLUXDB_USERNAME)"
+		printf "c7.    Set InfluxDB Password (v1.8+ only)\n\n"
+		printf "c8.    Set InfluxDB API Token (v2.x only)\n       Currently: ${SETTING}%s${CLEARFORMAT}\n\n" "$(Conf_Parameters check NOTIFICATIONS_INFLUXDB_APITOKEN)"
 		printf "cs.    Send test data to InfluxDB\n\n"
 		printf " e.    Go back\n\n"
 		printf "${BOLD}##############################################################${CLEARFORMAT}\n"
@@ -4398,22 +4408,25 @@ Menu_InfluxDB()
 				Notification_Number "InfluxDB Port"
 			;;
 			c3)
-				Notification_String "InfluxDB Database"
+				Notification_String "InfluxDB Database ID"
 			;;
 			c4)
+				Notification_String "InfluxDB Organization"
+			;;
+			c5)
 				if [ "$(Conf_Parameters check NOTIFICATIONS_INFLUXDB_VERSION)" = "1.8" ]; then
 					Conf_Parameters update "InfluxDB Version" "2.0"
 				else
 					Conf_Parameters update "InfluxDB Version" "1.8"
 				fi
 			;;
-			c5)
+			c6)
 				Notification_String "InfluxDB Username"
 			;;
-			c6)
+			c7)
 				Notification_String "InfluxDB Password"
 			;;
-			c7)
+			c8)
 				Notification_String "InfluxDB API Token"
 			;;
 			cs)
@@ -6195,7 +6208,7 @@ case "$1" in
 			if Email_ConfExists
 			then
 				rm -f "$SCRIPT_WEB_DIR/password.htm"
-				sleep 3
+				sleep 1
 				Email_Decrypt_Password > "$SCRIPT_WEB_DIR/password.htm"
 			fi
 		elif [ "$2" = "start" ] && [ "$3" = "${SCRIPT_NAME}deleteemailpassword" ]
@@ -6204,7 +6217,7 @@ case "$1" in
 		elif [ "$2" = "start" ] && [ "$3" = "${SCRIPT_NAME}customactionlist" ]
 		then
 			rm -f "$SCRIPT_STORAGE_DIR/.customactionlist"
-			sleep 3
+			sleep 1
 			CustomAction_List silent
 		elif [ "$2" = "start" ] && [ "$3" = "${SCRIPT_NAME}TestEmail" ]
 		then
