@@ -33,7 +33,7 @@ p{font-weight:bolder}thead.collapsible-jquery{color:#fff;padding:0;width:100%;bo
 <script>
 
 /**----------------------------------------**/
-/** Modified by Martinski W. [2025-Dec-07] **/
+/** Modified by Martinski W. [2025-Dec-09] **/
 /**----------------------------------------**/
 
 var customSettings;
@@ -1646,36 +1646,41 @@ function getCookie(e,t){if(null!==cookie.get("conn_"+e)){if("string"===t)return 
 																		data-lpignore="true" />
 																</td>
 															</tr>
-															<tr class="even" id="rowinfluxdbdb">
-																<td class="settingname">InfluxDB Database</td>
-																<td class="settingvalue">
-																	<input autocorrect="off" autocapitalize="off"
-																		type="text" maxlength="255"
-																		style="text-align:left;padding-left:5px;"
-																		class="input_32_table removespacing"
-																		name="connmon_notifications_influxdb_db"
-																		value="connmon"
-																		onkeypress="return validator.isString(this,event);"
-																		data-lpignore="true" />
-																</td>
-															</tr>
-															<tr class="even" id="rowinfluxdbversion">
-																<td class="settingname">InfluxDB version</td>
-																<td class="settingvalue">
-																	<input type="radio"
-																		name="connmon_notifications_influxdb_version"
-																		id="connmon_notifications_influxdb_version_20"
-																		class="input" value="2.0" checked>
-																	<label
-																		for="connmon_notifications_influxdb_20">2.0</label>
-																	<input type="radio"
-																		name="connmon_notifications_influxdb_version"
-																		id="connmon_notifications_influxdb_version_18"
-																		class="input" value="1.8">
-																	<label
-																		for="connmon_notifications_influxdb_18">1.8</label>
-																</td>
-															</tr>
+<tr class="even" id="rowinfluxdbID">
+  <td class="settingname">InfluxDB Database ID</td>
+  <td class="settingvalue">
+    <input autocorrect="off" autocapitalize="off"
+     type="text" maxlength="255"
+     style="text-align:left;padding-left:5px;"
+     class="input_32_table removespacing"
+     name="connmon_notifications_influxdb_db" value="connmon"
+     onkeypress="return validator.isString(this,event);"
+     data-lpignore="true" />
+  </td>
+</tr>
+<tr class="even" id="rowinfluxdbORG">
+  <td class="settingname">InfluxDB Organization</td>
+  <td class="settingvalue">
+    <input autocorrect="off" autocapitalize="off"
+     type="text" maxlength="255"
+     style="text-align:left;padding-left:5px;"
+     class="input_32_table removespacing"
+     name="connmon_notifications_influxdb_org" value="homenet"
+     onkeypress="return validator.isString(this,event);"
+     data-lpignore="true" />
+  </td>
+</tr>
+<tr class="even" id="rowinfluxdbversion">
+  <td class="settingname">InfluxDB Version</td>
+  <td class="settingvalue">
+  <input type="radio" name="connmon_notifications_influxdb_version"
+    id="connmon_notifications_influxdb_version_20" class="input" value="2.0" checked>
+    <label for="connmon_notifications_influxdb_20">2.0</label>
+  <input type="radio" name="connmon_notifications_influxdb_version"
+    id="connmon_notifications_influxdb_version_18" class="input" value="1.8">
+    <label for="connmon_notifications_influxdb_18">1.8</label>
+  </td>
+</tr>
 															<tr class="even" id="rowinfluxdbusername">
 																<td class="settingname">InfluxDB Username<br /><span
 																		class="settingname">(v1.8+ only)</span></td>
