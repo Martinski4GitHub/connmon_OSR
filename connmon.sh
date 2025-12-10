@@ -37,7 +37,7 @@
 ### Start of script variables ###
 readonly SCRIPT_NAME="connmon"
 readonly SCRIPT_VERSION="v3.0.10"
-readonly SCRIPT_VERSTAG="25120912"
+readonly SCRIPT_VERSTAG="25120920"
 SCRIPT_BRANCH="develop"
 SCRIPT_REPO="https://raw.githubusercontent.com/AMTM-OSR/$SCRIPT_NAME/$SCRIPT_BRANCH"
 readonly SCRIPT_DIR="/jffs/addons/$SCRIPT_NAME.d"
@@ -3483,7 +3483,7 @@ SendHealthcheckPing()
 ##----------------------------------------##
 SendToInfluxDB()
 {
-	local curlCode
+	local curlCode  dataPoint
 	TIMESTAMP="$1"
 	PING="$2"
 	JITTER="$3"
@@ -3508,10 +3508,12 @@ SendToInfluxDB()
 	printf '' > "$curlOutLogFile"
 	printf '' > "$curlErrLogFile"
 
+	dataPoint="ping=${PING},jitter=${JITTER},linequality=${LINEQUAL},source=$SCRIPT_NAME"
+
 	curl -vSL --retry 4 --retry-delay 5 --connect-timeout 60 -o "$curlOutLogFile" \
-    "${INFLUXDB_PROTO}://${INFLUXDB_HOST}:${INFLUXDB_PORT}/api/v2/write?org=${INFLUXDB_ORG}&bucket=${INFLUXDB_BID}&precision=s" \
-    --header "Authorization: Token $INFLUX_AUTHHEADER" --header "Accept-Encoding: gzip" \
-    --data-raw "pingTest,ping=$PING ${TIMESTAMP},jitter=$JITTER ${TIMESTAMP},linequality=$LINEQUAL $TIMESTAMP" >> "$curlErrLogFile" 2>&1
+"${INFLUXDB_PROTO}://${INFLUXDB_HOST}:${INFLUXDB_PORT}/api/v2/write?org=${INFLUXDB_ORG}&bucket=${INFLUXDB_BID}&precision=s" \
+--header "Authorization: Token $INFLUX_AUTHHEADER" --header "Accept-Encoding: gzip" \
+--data-raw "PingTest,$dataPoint router=\"${ROUTER_MODEL}\" $TIMESTAMP" >> "$curlErrLogFile" 2>&1
 	curlCode="$?"
 
 	"$isInteractive" && echo
