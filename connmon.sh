@@ -11,7 +11,7 @@
 ##      Forked from https://github.com/jackyaz/connmon      ##
 ##                                                          ##
 ##############################################################
-# Last Modified: 2025-Dec-09
+# Last Modified: 2025-Dec-10
 #-------------------------------------------------------------
 
 ##############        Shellcheck directives      #############
@@ -37,7 +37,7 @@
 ### Start of script variables ###
 readonly SCRIPT_NAME="connmon"
 readonly SCRIPT_VERSION="v3.0.10"
-readonly SCRIPT_VERSTAG="25120920"
+readonly SCRIPT_VERSTAG="25121020"
 SCRIPT_BRANCH="develop"
 SCRIPT_REPO="https://raw.githubusercontent.com/AMTM-OSR/$SCRIPT_NAME/$SCRIPT_BRANCH"
 readonly SCRIPT_DIR="/jffs/addons/$SCRIPT_NAME.d"
@@ -68,7 +68,6 @@ readonly ENDIN_MenuAddOnsTag="/\*\*ENDIN:_AddOns_\*\*/"
 readonly branchxStr_TAG="[Branch: $SCRIPT_BRANCH]"
 readonly versionDev_TAG="${SCRIPT_VERSION}_${SCRIPT_VERSTAG}"
 readonly versionMod_TAG="$SCRIPT_VERSION on $ROUTER_MODEL"
-readonly dateTimeLogFormat='%Y-%b-%d %a %I:%M:%S %p %Z'
 readonly curlErr1RegExp="invalid|unauthorized|error"
 readonly curlErr2RegExp="404: Not Found|400 Bad Request|401 Unauthorized"
 readonly curlErr3RegExp="$curlErr1RegExp|$curlErr2RegExp"
@@ -662,11 +661,11 @@ _GetConfigParam_()
 }
 
 ##----------------------------------------##
-## Modified by Martinski W. [2025-Dec-09] ##
+## Modified by Martinski W. [2025-Dec-10] ##
 ##----------------------------------------##
 Conf_Exists()
 {
-	local PINGFREQUENCY  AUTOMATEDopt  delCRON=false
+	local PINGFREQUENCY  AUTOMATEDopt  delCRON=false  sedNum  portNum
 
 	if [ -f "$SCRIPT_CONF" ]
 	then
@@ -759,6 +758,7 @@ Conf_Exists()
 				echo "NOTIFICATIONS_PUSHOVER_USERKEY="
 				echo "NOTIFICATIONS_INFLUXDB_HOST="
 				echo "NOTIFICATIONS_INFLUXDB_PORT=8086"
+				echo "NOTIFICATIONS_INFLUXDB_PROTO=http"
 				echo "NOTIFICATIONS_INFLUXDB_DB=connmon"
 				echo "NOTIFICATIONS_INFLUXDB_ORG=homenet"
 				echo "NOTIFICATIONS_INFLUXDB_VERSION=1.8"
@@ -769,15 +769,23 @@ Conf_Exists()
 		fi
 		if ! grep -q "^NOTIFICATIONS_PINGTEST_FAILED=" "$SCRIPT_CONF"
 		then
-			sedNum="$(grep -n 'NOTIFICATIONS_PINGTEST=' "$SCRIPT_CONF" | cut -d':' -f1)"
+			sedNum="$(grep -n '^NOTIFICATIONS_PINGTEST=' "$SCRIPT_CONF" | cut -d':' -f1)"
 			[ -n "$sedNum" ] && sedNum="$((sedNum + 1))" && \
 			sed -i "$sedNum i NOTIFICATIONS_PINGTEST_FAILED=None" "$SCRIPT_CONF"
 		fi
 		if ! grep -q "^NOTIFICATIONS_INFLUXDB_ORG=" "$SCRIPT_CONF"
 		then
-			sedNum="$(grep -n 'NOTIFICATIONS_INFLUXDB_DB=' "$SCRIPT_CONF" | cut -d':' -f1)"
+			sedNum="$(grep -n '^NOTIFICATIONS_INFLUXDB_DB=' "$SCRIPT_CONF" | cut -d':' -f1)"
 			[ -n "$sedNum" ] && sedNum="$((sedNum + 1))" && \
 			sed -i "$sedNum i NOTIFICATIONS_INFLUXDB_ORG=homenet" "$SCRIPT_CONF"
+		fi
+		if ! grep -q "^NOTIFICATIONS_INFLUXDB_PROTO=" "$SCRIPT_CONF"
+		then
+			sedNum="$(grep -n '^NOTIFICATIONS_INFLUXDB_PORT=' "$SCRIPT_CONF" | cut -d':' -f1)"
+			portNum="$(grep '^NOTIFICATIONS_INFLUXDB_PORT=' "$SCRIPT_CONF" | cut -d'=' -f2)"
+			[ "$portNum" = "443" ] && protoStr="https" || protoStr="http"
+			[ -n "$sedNum" ] && sedNum="$((sedNum + 1))" && \
+			sed -i "$sedNum i NOTIFICATIONS_INFLUXDB_PROTO=$protoStr" "$SCRIPT_CONF"
 		fi
 		return 0
 	else
@@ -814,6 +822,7 @@ Conf_Exists()
 		   echo "NOTIFICATIONS_PUSHOVER_USERKEY="
 		   echo "NOTIFICATIONS_INFLUXDB_HOST="
 		   echo "NOTIFICATIONS_INFLUXDB_PORT=8086"
+		   echo "NOTIFICATIONS_INFLUXDB_PROTO=http"
 		   echo "NOTIFICATIONS_INFLUXDB_DB=connmon"
 		   echo "NOTIFICATIONS_INFLUXDB_ORG=homenet"
 		   echo "NOTIFICATIONS_INFLUXDB_VERSION=1.8"
@@ -2204,7 +2213,7 @@ _Trim_Database_()
 }
 
 ##----------------------------------------##
-## Modified by Martinski W. [2025-Nov-14] ##
+## Modified by Martinski W. [2025-Dec-10] ##
 ##----------------------------------------##
 Run_PingTest()
 {
@@ -2377,7 +2386,6 @@ Run_PingTest()
 		echo 'var connmonstatus = "Error";' > "$SCRIPT_WEB_DIR/detect_connmon.js"
 		TriggerNotifications PingTestFailed "$timenowfriendly" "$fullPingTarget"
 		rm -f "$pingFile"
-		##*OFF*## return 1 ##*OFF*##
 	fi
 
 	Process_Upgrade
@@ -2411,21 +2419,21 @@ Run_PingTest()
 		printf "\nPing %s ms - Jitter %s ms - Line Quality %s %%\n" "$pingAvrge" "$jitterVal" "$lineQualt"
 	} > "$resultFile"
 
-	TriggerNotifications PingTestOK "$timenowfriendly" "$pingAvrge ms" "$jitterVal ms" "$lineQualt %" "$timenow"
+	TriggerNotifications PingTestOK "$timenowfriendly" "$pingAvrge ms" "$jitterVal ms" "$lineQualt %" "$timenow" "$fullPingTarget"
 
 	if [ "$(echo "$pingAvrge" "$(Conf_Parameters check NOTIFICATIONS_PINGTHRESHOLD_VALUE)" | awk '{print ($1 > $2)}')" -eq 1 ]
 	then
-		TriggerNotifications PingThreshold "$timenowfriendly" "$pingAvrge ms" "$(Conf_Parameters check NOTIFICATIONS_PINGTHRESHOLD_VALUE) ms"
+		TriggerNotifications PingThreshold "$timenowfriendly" "$pingAvrge ms" "$(Conf_Parameters check NOTIFICATIONS_PINGTHRESHOLD_VALUE) ms" "$fullPingTarget"
 	fi
 
 	if [ "$(echo "$jitterVal" "$(Conf_Parameters check NOTIFICATIONS_JITTERTHRESHOLD_VALUE)" | awk '{print ($1 > $2)}')" -eq 1 ]
 	then
-		TriggerNotifications JitterThreshold "$timenowfriendly" "$jitterVal ms" "$(Conf_Parameters check NOTIFICATIONS_JITTERTHRESHOLD_VALUE) ms"
+		TriggerNotifications JitterThreshold "$timenowfriendly" "$jitterVal ms" "$(Conf_Parameters check NOTIFICATIONS_JITTERTHRESHOLD_VALUE) ms" "$fullPingTarget"
 	fi
 
 	if [ "$(echo "$lineQualt" "$(Conf_Parameters check NOTIFICATIONS_LINEQUALITYTHRESHOLD_VALUE)" | awk '{print ($1 < $2)}')" -eq 1 ]
 	then
-		TriggerNotifications LineQualityThreshold "$timenowfriendly" "$lineQualt %" "$(Conf_Parameters check NOTIFICATIONS_LINEQUALITYTHRESHOLD_VALUE) %"
+		TriggerNotifications LineQualityThreshold "$timenowfriendly" "$lineQualt %" "$(Conf_Parameters check NOTIFICATIONS_LINEQUALITYTHRESHOLD_VALUE) %" "$fullPingTarget"
 	fi
 	echo 'var connmonstatus = "Done";' > "$SCRIPT_WEB_DIR/detect_connmon.js"
 }
@@ -3018,7 +3026,7 @@ Email_Password()
 	PASSWORD=""
 	while true
 	do
-		printf "\\n${BOLD}Enter Password:${CLEARFORMAT}  "
+		printf "\n${BOLD}Enter Password:${CLEARFORMAT}  "
 		read -r PASSWORD
 		if [ "$PASSWORD" = "e" ]
 		then
@@ -3248,13 +3256,13 @@ Webhook_Targets()
 		do
 			ScriptHeader
 
-			printf "${BOLD}${UNDERLINE}Discord Webhook List${CLEARFORMAT}\\n\\n"
+			printf "${BOLD}${UNDERLINE}Discord Webhook List${CLEARFORMAT}\n\n"
 			NOTIFICATIONS_WEBHOOK_LIST="$(Webhook_Targets check | sed 's~,~\n~g')"
-			printf "Currently: ${SETTING}${NOTIFICATIONS_WEBHOOK_LIST}${CLEARFORMAT}\\n\\n"
-			printf "Available options:\\n"
-			printf "1.    Update list\\n"
-			printf "2.    Clear list\\n"
-			printf "e.    Go back\\n\\n"
+			printf "Currently: ${SETTING}${NOTIFICATIONS_WEBHOOK_LIST}${CLEARFORMAT}\n\n"
+			printf "Available options:\n"
+			printf "1.    Update list\n"
+			printf "2.    Clear list\n"
+			printf "e.    Go back\n\n"
 			printf "Choose an option:  "
 			read -r webhooktargetmenu
 			case "$webhooktargetmenu" in
@@ -3268,7 +3276,7 @@ Webhook_Targets()
 					break
 				;;
 				*)
-					printf "\\n${BOLD}${ERR}Please choose a valid option${CLEARFORMAT}\\n\\n"
+					printf "\n${BOLD}${ERR}Please choose a valid option${CLEARFORMAT}\n\n"
 					PressEnter
 				;;
 			esac
@@ -3479,7 +3487,7 @@ SendHealthcheckPing()
 }
 
 ##----------------------------------------##
-## Modified by Martinski W. [2025-Dec-09] ##
+## Modified by Martinski W. [2025-Dec-10] ##
 ##----------------------------------------##
 SendToInfluxDB()
 {
@@ -3488,15 +3496,13 @@ SendToInfluxDB()
 	PING="$2"
 	JITTER="$3"
 	LINEQUAL="$4"
+	PING_TARGET="$5"
 	INFLUXDB_BID="$(Conf_Parameters check NOTIFICATIONS_INFLUXDB_DB)"
 	INFLUXDB_ORG="$(Conf_Parameters check NOTIFICATIONS_INFLUXDB_ORG)"
 	INFLUXDB_HOST="$(Conf_Parameters check NOTIFICATIONS_INFLUXDB_HOST)"
 	INFLUXDB_PORT="$(Conf_Parameters check NOTIFICATIONS_INFLUXDB_PORT)"
+	INFLUXDB_PROTO="$(Conf_Parameters check NOTIFICATIONS_INFLUXDB_PROTO)"
 	INFLUXDB_VERSION="$(Conf_Parameters check NOTIFICATIONS_INFLUXDB_VERSION)"
-	INFLUXDB_PROTO="http"
-	if [ "$INFLUXDB_PORT" = "443" ]
-	then INFLUXDB_PROTO="https"
-	fi
 
 	if [ "$INFLUXDB_VERSION" = "1.8" ]
 	then
@@ -3508,12 +3514,12 @@ SendToInfluxDB()
 	printf '' > "$curlOutLogFile"
 	printf '' > "$curlErrLogFile"
 
-	dataPoint="ping=${PING},jitter=${JITTER},linequality=${LINEQUAL},source=$SCRIPT_NAME"
+	dataPoint="PingAvrg=${PING},Jitter=${JITTER},LineQuality=${LINEQUAL},Source=$SCRIPT_NAME"
 
 	curl -vSL --retry 4 --retry-delay 5 --connect-timeout 60 -o "$curlOutLogFile" \
 "${INFLUXDB_PROTO}://${INFLUXDB_HOST}:${INFLUXDB_PORT}/api/v2/write?org=${INFLUXDB_ORG}&bucket=${INFLUXDB_BID}&precision=s" \
 --header "Authorization: Token $INFLUX_AUTHHEADER" --header "Accept-Encoding: gzip" \
---data-raw "PingTest,$dataPoint router=\"${ROUTER_MODEL}\" $TIMESTAMP" >> "$curlErrLogFile" 2>&1
+--data-raw "PingTest,$dataPoint PingServer=\"${PING_TARGET}\",Router=\"${ROUTER_MODEL}\" $TIMESTAMP" >> "$curlErrLogFile" 2>&1
 	curlCode="$?"
 
 	"$isInteractive" && echo
@@ -3568,7 +3574,7 @@ ToggleNotificationTypes()
 }
 
 ##----------------------------------------##
-## Modified by Martinski W. [2025-Dec-09] ##
+## Modified by Martinski W. [2025-Dec-10] ##
 ##----------------------------------------##
 Conf_Parameters()
 {
@@ -3584,7 +3590,7 @@ Conf_Parameters()
 				"LineQualityThreshold")
 					sed -i 's/^NOTIFICATIONS_LINEQUALITYTHRESHOLD_VALUE=.*$/NOTIFICATIONS_LINEQUALITYTHRESHOLD_VALUE='"$3"'/' "$SCRIPT_CONF"
 				;;
-				"HealthcheckUUID")
+				"Healthcheck UUID")
 					sed -i 's/^NOTIFICATIONS_HEALTHCHECK_UUID=.*$/NOTIFICATIONS_HEALTHCHECK_UUID='"$3"'/' "$SCRIPT_CONF"
 				;;
 				"Webhook Target")
@@ -3608,6 +3614,9 @@ Conf_Parameters()
 				;;
 				"InfluxDB Port")
 					sed -i 's/^NOTIFICATIONS_INFLUXDB_PORT=.*$/NOTIFICATIONS_INFLUXDB_PORT='"$3"'/' "$SCRIPT_CONF"
+				;;
+				"InfluxDB Protocol")
+					sed -i 's/^NOTIFICATIONS_INFLUXDB_PROTO=.*$/NOTIFICATIONS_INFLUXDB_PROTO='"$3"'/' "$SCRIPT_CONF"
 				;;
 				"InfluxDB Database ID")
 					sed -i 's/^NOTIFICATIONS_INFLUXDB_DB=.*$/NOTIFICATIONS_INFLUXDB_DB='"$3"'/' "$SCRIPT_CONF"
@@ -3758,7 +3767,7 @@ Notification_Float()
 }
 
 ##----------------------------------------##
-## Modified by Martinski W. [2025-Nov-14] ##
+## Modified by Martinski W. [2025-Dec-10] ##
 ##----------------------------------------##
 TriggerNotifications()
 {
@@ -3772,6 +3781,7 @@ TriggerNotifications()
 		JITTER="$4"
 		LINEQUAL="$5"
 		TIMESTAMP="$6"
+		PING_TARGET="$7"
 	elif [ "$TRIGGERTYPE" = "PingTestFailed" ]
 	then
 		PING=0
@@ -3782,14 +3792,17 @@ TriggerNotifications()
 	then
 		PING="$3"
 		THRESHOLD="$4"
+		PING_TARGET="$5"
 	elif [ "$TRIGGERTYPE" = "JitterThreshold" ]
 	then
 		JITTER="$3"
 		THRESHOLD="$4"
+		PING_TARGET="$5"
 	elif [ "$TRIGGERTYPE" = "LineQualityThreshold" ]
 	then
 		LINEQUAL="$3"
 		THRESHOLD="$4"
+		PING_TARGET="$5"
 	fi
 
 	NOTIFICATIONMETHODS="$(NotificationMethods check "$TRIGGERTYPE")"
@@ -3917,60 +3930,74 @@ TriggerNotifications()
 	then
 		NOTIFICATIONS_HEALTHCHECK_UUID="$(Conf_Parameters check NOTIFICATIONS_HEALTHCHECK_UUID)"
 		TESTFAIL=""
-		if [ "$(echo "$LINEQUAL" | cut -f1 -d' ' | cut -f1 -d'.')" -eq 0 ]
-		then
-			SendHealthcheckPing "Fail"
-		else
-			SendHealthcheckPing "Pass"
+		if [ "$(echo "$LINEQUAL" | cut -d' ' -f1 | cut -d'.' -f1)" -eq 0 ]
+		then SendHealthcheckPing "Fail"
+		else SendHealthcheckPing "Pass"
 		fi
 	fi
 
 	if ToggleNotificationTypes check NOTIFICATIONS_INFLUXDB && [ "$TRIGGERTYPE" = "PingTestOK" ]
 	then
-		SendToInfluxDB "$TIMESTAMP" "$(echo "$PING" | cut -f1 -d' ')" "$(echo "$JITTER" | cut -f1 -d' ')" "$(echo "$LINEQUAL" | cut -f1 -d' ')"
+		PING="$(echo "$PING" | cut -d' ' -f1)"
+		JITTER="$(echo "$JITTER" | cut -d' ' -f1)"
+		LINEQUAL="$(echo "$LINEQUAL" | cut -d' ' -f1)"
+		SendToInfluxDB "$TIMESTAMP" "$PING" "$JITTER" "$LINEQUAL" "$PING_TARGET"
 	fi
 }
 
+##----------------------------------------##
+## Modified by Martinski W. [2025-Dec-10] ##
+##----------------------------------------##
 Menu_EmailNotifications()
 {
+	local notificationsEMAIL  notificationsEMAIL_LIST  SSL_FlagStr
+
 	while true
 	do
 		Email_ConfExists
 		ScriptHeader
-		NOTIFICATIONS_EMAIL=""
-		if ToggleNotificationTypes check NOTIFICATIONS_EMAIL
-		then NOTIFICATIONS_EMAIL="${PASS}Enabled"
-		else NOTIFICATIONS_EMAIL="${ERR}Disabled"
-		fi
-		NOTIFICATIONS_EMAIL_LIST="$(Email_Recipients check)"
-		if [ "$NOTIFICATIONS_EMAIL_LIST" = "" ]; then
-			NOTIFICATIONS_EMAIL_LIST="Generic To Address will be used"
-		fi
-		printf "1.    Toggle email notifications (subject to type configuration)\\n      Currently: ${BOLD}${NOTIFICATIONS_EMAIL}${CLEARFORMAT}\\n\\n"
-		printf "2.    Set override list of email addresses for %s\\n      Currently: ${SETTING}${NOTIFICATIONS_EMAIL_LIST}${CLEARFORMAT}\\n\\n" "$SCRIPT_NAME"
 
-		printf "\\n${BOLD}${UNDERLINE}Generic Email Configuration${CLEARFORMAT}\\n"
+		if ToggleNotificationTypes check NOTIFICATIONS_EMAIL
+		then notificationsEMAIL="${PASS}Enabled"
+		else notificationsEMAIL="${ERR}Disabled"
+		fi
+		notificationsEMAIL_LIST="$(Email_Recipients check)"
+		if [ -z "$notificationsEMAIL_LIST" ]
+		then
+			notificationsEMAIL_LIST="Generic To Address will be used"
+		fi
+		if [ -z "$SSL_FLAG" ]
+		then SSL_FlagStr="[Secure]"
+		else SSL_FlagStr="$SSL_FLAG"
+		fi
+
+		printf "  ${GRNct}1${CLRct}. Toggle email notifications (subject to type configuration)\n"
+		printf "     Currently: ${BOLD}${notificationsEMAIL}${CLRct}\n\n"
+		printf "  ${GRNct}2${CLRct}. Set override list of email addresses for %s\n" "$SCRIPT_NAME"
+		printf "     Currently: ${SETTING}${notificationsEMAIL_LIST}${CLRct}\n"
+
+		printf "\n  ${BOLD}${GRNct}${UNDERLINE}Generic Email Configuration${CLRct}\n\n"
 		Email_Header
-		printf "c1.    Set From Address          Currently: ${SETTING}%s${CLEARFORMAT}\\n" "$FROM_ADDRESS"
-		printf "c2.    Set To Address            Currently: ${SETTING}%s${CLEARFORMAT}\\n" "$TO_ADDRESS"
-		printf "c3.    Set To name               Currently: ${SETTING}%s${CLEARFORMAT}\\n" "$TO_NAME"
-		printf "c4.    Set Username              Currently: ${SETTING}%s${CLEARFORMAT}\\n" "$USERNAME"
-		printf "c5.    Set Password\\n"
-		printf "c6.    Set Friendly router name  Currently: ${SETTING}%s${CLEARFORMAT}\\n" "$FRIENDLY_ROUTER_NAME"
-		printf "c7.    Set SMTP address          Currently: ${SETTING}%s${CLEARFORMAT}\\n" "$SMTP"
-		printf "c8.    Set SMTP port             Currently: ${SETTING}%s${CLEARFORMAT}\\n" "$PORT"
-		printf "c9.    Set SMTP protocol         Currently: ${SETTING}%s${CLEARFORMAT}\\n" "$PROTOCOL"
-		printf "c10.   Set SSL requirement       Currently: ${SETTING}%s${CLEARFORMAT}\\n\\n" "$SSL_FLAG"
-		printf "cs.    Send a test email\\n\\n"
-		printf "e.     Go back\n\n"
-		printf "${BOLD}##############################################################${CLEARFORMAT}\n"
-		printf "\n"
+		printf "  ${GRNct}c1${CLRct}. Set From Address          Currently: ${SETTING}%s${CLRct}\n" "$FROM_ADDRESS"
+		printf "  ${GRNct}c2${CLRct}. Set To Address            Currently: ${SETTING}%s${CLRct}\n" "$TO_ADDRESS"
+		printf "  ${GRNct}c3${CLRct}. Set To Name               Currently: ${SETTING}%s${CLRct}\n" "$TO_NAME"
+		printf "  ${GRNct}c4${CLRct}. Set Username              Currently: ${SETTING}%s${CLRct}\n" "$USERNAME"
+		printf "  ${GRNct}c5${CLRct}. Set Password\n"
+		printf "  ${GRNct}c6${CLRct}. Set Friendly Router Name  Currently: ${SETTING}%s${CLRct}\n" "$FRIENDLY_ROUTER_NAME"
+		printf "  ${GRNct}c7${CLRct}. Set SMTP Address          Currently: ${SETTING}%s${CLRct}\n" "$SMTP"
+		printf "  ${GRNct}c8${CLRct}. Set SMTP Port             Currently: ${SETTING}%s${CLRct}\n" "$PORT"
+		printf "  ${GRNct}c9${CLRct}. Set SMTP Protocol         Currently: ${SETTING}%s${CLRct}\n" "$PROTOCOL"
+		printf " ${GRNct}c10${CLRct}. Set SSL Requirement       Currently: ${SETTING}%s${CLRct}\n\n" "$SSL_FlagStr"
+		printf "  ${GRNct}cs${CLRct}. Send a test email\n\n"
+		printf "   ${GRNct}e${CLRct}. Go back\n\n"
+		printf "${BOLD}##############################################################${CLRct}\n\n"
 
 		printf "Choose an option:  "
 		read -r emailmenu
 		case "$emailmenu" in
 			1)
-				if ToggleNotificationTypes check NOTIFICATIONS_EMAIL; then
+				if ToggleNotificationTypes check NOTIFICATIONS_EMAIL
+				then
 					ToggleNotificationTypes disable NOTIFICATIONS_EMAIL
 				else
 					ToggleNotificationTypes enable NOTIFICATIONS_EMAIL
@@ -4010,12 +4037,12 @@ Menu_EmailNotifications()
 				Email_SSL
 			;;
 			cs)
-				NOTIFICATIONS_EMAIL_LIST="$(Email_Recipients check)"
-				if [ -z "$NOTIFICATIONS_EMAIL_LIST" ]
+				notificationsEMAIL_LIST="$(Email_Recipients check)"
+				if [ -z "$notificationsEMAIL_LIST" ]
 				then
 					SendEmail "Test email - $(/bin/date +"%c")" "This is a test email!"
 				else
-					for EMAIL in $NOTIFICATIONS_EMAIL_LIST
+					for EMAIL in $notificationsEMAIL_LIST
 					do
 						SendEmail "Test email - $(/bin/date +"%c")" "This is a test email!" "$EMAIL"
 					done
@@ -4027,36 +4054,47 @@ Menu_EmailNotifications()
 				break
 			;;
 			*)
-				printf "\n${BOLD}${ERR}Please choose a valid option${CLEARFORMAT}\n\n"
+				printf "\n${BOLD}${ERR}Please choose a valid option${CLRct}\n\n"
 				PressEnter
 			;;
 		esac
 	done
 }
 
+##----------------------------------------##
+## Modified by Martinski W. [2025-Dec-10] ##
+##----------------------------------------##
 Menu_WebhookNotifications()
 {
+	local notificationsWEBHOOK  notificationsWEBHOOK_LIST
+
 	while true
 	do
 		ScriptHeader
-		NOTIFICATIONS_WEBHOOK=""
 		if ToggleNotificationTypes check NOTIFICATIONS_WEBHOOK
-		then NOTIFICATIONS_WEBHOOK="${PASS}Enabled"
-		else NOTIFICATIONS_WEBHOOK="${ERR}Disabled"
+		then notificationsWEBHOOK="${PASS}Enabled"
+		else notificationsWEBHOOK="${ERR}Disabled"
 		fi
-		NOTIFICATIONS_WEBHOOK_LIST="$(Webhook_Targets check | sed 's~,~\n~g')"
-		printf "1.     Toggle Discord webhook notifications (subject to type configuration)\\n       Currently: ${BOLD}${NOTIFICATIONS_WEBHOOK}${CLEARFORMAT}\\n\\n"
-		printf "2.     Set list of Discord webhook URLs for %s\\n       Current webhooks:\\n       ${SETTING}${NOTIFICATIONS_WEBHOOK_LIST}${CLEARFORMAT}\\n\\n" "$SCRIPT_NAME"
-		printf "cs.    Send a test webhook notification\\n\\n"
-		printf "e.     Go back\n\n"
-		printf "${BOLD}##############################################################${CLEARFORMAT}\n"
-		printf "\n"
+		notificationsWEBHOOK_LIST="$(Webhook_Targets check | sed 's~,~\n~g')"
+		if [ -z "$notificationsWEBHOOK_LIST" ]
+		then notificationsWEBHOOK_LIST="${ERR}[None specified]"
+		fi
+
+		printf "  ${GRNct}1${CLRct}. Toggle Discord webhook notifications (subject to type configuration)\n"
+		printf "     Currently: ${BOLD}${notificationsWEBHOOK}${CLRct}\n\n"
+		printf "  ${GRNct}2${CLRct}. Set list of Discord webhook URLs for %s\n" "$SCRIPT_NAME"
+		printf "     Current webhooks:\n"
+		printf "     ${SETTING}${notificationsWEBHOOK_LIST}${CLRct}\n\n"
+		printf " ${GRNct}cs${CLRct}. Send a test webhook notification\n\n"
+		printf "  ${GRNct}e${CLRct}. Go back\n\n"
+		printf "${BOLD}##############################################################${CLRct}\n\n"
 
 		printf "Choose an option:  "
 		read -r webhookmenu
 		case "$webhookmenu" in
 			1)
-				if ToggleNotificationTypes check NOTIFICATIONS_WEBHOOK; then
+				if ToggleNotificationTypes check NOTIFICATIONS_WEBHOOK
+				then
 					ToggleNotificationTypes disable NOTIFICATIONS_WEBHOOK
 				else
 					ToggleNotificationTypes enable NOTIFICATIONS_WEBHOOK
@@ -4066,14 +4104,14 @@ Menu_WebhookNotifications()
 				Webhook_Targets update
 			;;
 			cs)
-				NOTIFICATIONS_WEBHOOK_LIST="$(Webhook_Targets check)"
-				if [ -z "$NOTIFICATIONS_WEBHOOK_LIST" ]
+				notificationsWEBHOOK_LIST="$(Webhook_Targets check)"
+				if [ -z "$notificationsWEBHOOK_LIST" ]
 				then
 					printf "\n"
-					Print_Output false "No Webhook URL specified" "$ERR"
+					Print_Output false "No Webhook URLs specified" "$ERR"
 				fi
 				IFS=$','
-				for WEBHOOK in $NOTIFICATIONS_WEBHOOK_LIST
+				for WEBHOOK in $notificationsWEBHOOK_LIST
 				do
 					SendWebhook "$(/bin/date +"%c")\n\nThis is a test webhook message!" "$WEBHOOK"
 				done
@@ -4085,7 +4123,7 @@ Menu_WebhookNotifications()
 				break
 			;;
 			*)
-				printf "\n${BOLD}${ERR}Please choose a valid option${CLEARFORMAT}\n\n"
+				printf "\n${BOLD}${ERR}Please choose a valid option${CLRct}\n\n"
 				PressEnter
 			;;
 		esac
@@ -4093,47 +4131,67 @@ Menu_WebhookNotifications()
 }
 
 ##----------------------------------------##
-## Modified by Martinski W. [2025-Dec-07] ##
+## Modified by Martinski W. [2025-Dec-10] ##
 ##----------------------------------------##
 Menu_PushoverNotifications()
 {
+	local notificationsPUSHOVER  notificationsPUSHOVER_LIST
+	local pushoverUSER_KEY  pushoverAPI_TOKEN
+
 	while true
 	do
 		ScriptHeader
-		NOTIFICATIONS_PUSHOVER=""
 		if ToggleNotificationTypes check NOTIFICATIONS_PUSHOVER
-		then NOTIFICATIONS_PUSHOVER="${PASS}Enabled"
-		else NOTIFICATIONS_PUSHOVER="${ERR}Disabled"
+		then notificationsPUSHOVER="${PASS}Enabled"
+		else notificationsPUSHOVER="${ERR}Disabled"
 		fi
-		NOTIFICATIONS_PUSHOVER_LIST="$(Pushover_Devices check)"
-		if [ -z "$NOTIFICATIONS_PUSHOVER_LIST" ]; then
-			NOTIFICATIONS_PUSHOVER_LIST="All devices"
+
+		notificationsPUSHOVER_LIST="$(Pushover_Devices check)"
+		if [ -z "$notificationsPUSHOVER_LIST" ]
+		then notificationsPUSHOVER_LIST="All devices"
 		fi
-		printf " 1.    Toggle Pushover notifications (subject to type configuration)\n       Currently: ${BOLD}${NOTIFICATIONS_PUSHOVER}${CLRct}\n\n"
-		printf "  ${BOLD}${GRNct}${UNDERLINE}Pushover Configuration${CLRct}\n\n"
-		printf "c1.    Set Pushover API Token\n       Currently: ${SETTING}%s${CLEARFORMAT}\n\n" "$(Conf_Parameters check NOTIFICATIONS_PUSHOVER_API)"
-		printf "c2.    Set Pushover User Key\n       Currently: ${SETTING}%s${CLEARFORMAT}\n\n" "$(Conf_Parameters check NOTIFICATIONS_PUSHOVER_USERKEY)"
-		printf "c3.    Set list of Pushover devices for %s\n       Current devices: ${SETTING}${NOTIFICATIONS_PUSHOVER_LIST}${CLEARFORMAT}\n\n" "$SCRIPT_NAME"
-		printf "cs.    Send a test pushover notification\n\n"
-		printf " e.    Go back\n\n"
-		printf "${BOLD}##############################################################${CLEARFORMAT}\n"
-		printf "\n"
+
+		pushoverUSER_KEY="$(Conf_Parameters check NOTIFICATIONS_PUSHOVER_USERKEY)"
+		if [ -z "$pushoverUSER_KEY" ]
+		then pushoverUSER_KEY="${ERR}[NONE defined]"
+		else pushoverUSER_KEY="${SETTING}$pushoverUSER_KEY"
+		fi
+
+		pushoverAPI_TOKEN="$(Conf_Parameters check NOTIFICATIONS_PUSHOVER_API)"
+		if [ -z "$pushoverAPI_TOKEN" ]
+		then pushoverAPI_TOKEN="${ERR}[NONE defined]"
+		else pushoverAPI_TOKEN="${SETTING}$pushoverAPI_TOKEN"
+		fi
+
+		printf "  ${GRNct}1${CLRct}. Toggle Pushover notifications (subject to type configuration)\n"
+		printf "     Currently: ${BOLD}${notificationsPUSHOVER}${CLRct}\n\n"
+		printf "     ${BOLD}${GRNct}${UNDERLINE}Pushover Configuration${CLRct}\n\n"
+		printf " ${GRNct}c1${CLRct}. Set Pushover User Key\n"
+		printf "     Currently: ${pushoverUSER_KEY}${CLRct}\n\n"
+		printf " ${GRNct}c2${CLRct}. Set Pushover API Token\n"
+		printf "     Currently: ${pushoverAPI_TOKEN}${CLRct}\n\n"
+		printf " ${GRNct}c3${CLRct}. Set list of Pushover devices for %s\n" "$SCRIPT_NAME"
+		printf "     Current devices: ${SETTING}${notificationsPUSHOVER_LIST}${CLRct}\n\n"
+		printf " ${GRNct}cs${CLRct}. Send a test Pushover notification\n\n"
+		printf "  ${GRNct}e${CLRct}. Go back\n\n"
+		printf "${BOLD}##############################################################${CLRct}\n\n"
 
 		printf "Choose an option:  "
-		read -r pushovermenu
-		case "$pushovermenu" in
+		read -r pushoverOption
+		case "$pushoverOption" in
 			1)
-				if ToggleNotificationTypes check NOTIFICATIONS_PUSHOVER; then
+				if ToggleNotificationTypes check NOTIFICATIONS_PUSHOVER
+				then
 					ToggleNotificationTypes disable NOTIFICATIONS_PUSHOVER
 				else
 					ToggleNotificationTypes enable NOTIFICATIONS_PUSHOVER
 				fi
 			;;
 			c1)
-				Notification_String "Pushover API Token"
+				Notification_String "Pushover User Key"
 			;;
 			c2)
-				Notification_String "Pushover User Key"
+				Notification_String "Pushover API Token"
 			;;
 			c3)
 				Pushover_Devices update
@@ -4147,7 +4205,7 @@ Menu_PushoverNotifications()
 				break
 			;;
 			*)
-				printf "\n${BOLD}${ERR}Please choose a valid option${CLEARFORMAT}\n\n"
+				printf "\n${BOLD}${ERR}Please choose a valid option${CLRct}\n\n"
 				PressEnter
 			;;
 		esac
@@ -4161,24 +4219,24 @@ CustomAction_Info()
 {
 	if [ $# -eq 0 ] || [ -z "$1" ]
 	then
-		printf "\n${BOLD}${UNDERLINE}Custom user scripts are passed arguments, which change depending on the type of trigger.${CLEARFORMAT}\n\n"
-		printf "${BOLD}${GRNct}Trigger Event            Argument #1           Argument #2        Argument #3   Argument #4          Argument #5${CLEARFORMAT}\n"
-		printf "${BOLD}${GRNct}-----------------------  --------------------  -----------------  ------------  -------------------  ------------ ${CLEARFORMAT}\n"
-		printf "${BOLD}Ping Test Success${CLEARFORMAT}"'        PingTestOK            "Date/Time Stamp"  "Ping ms"     "Jitter ms"          "Latency %%"'"\n"
-		printf "${BOLD}Ping Test Failure${CLEARFORMAT}"'        PingTestFailed        "Date/Time Stamp"  "PingTarget" '"\n"
-		printf "${BOLD}Ping Thresholds${CLEARFORMAT}"'          PingThreshold         "Date/Time Stamp"  "Ping ms"     "ThresholdValue ms"'"\n"
-		printf "${BOLD}Jitter Thresholds${CLEARFORMAT}"'        JitterThreshold       "Date/Time Stamp"  "Jitter ms"   "ThresholdValue ms"'"\n"
-		printf "${BOLD}Line Quality Thresholds${CLEARFORMAT}"'  LineQualityThreshold  "Date/Time Stamp"  "Latency %%"   "ThresholdValue %%"'"\n"
+		printf "\n${BOLD}${UNDERLINE}Custom user scripts are passed arguments, which change depending on the type of trigger.${CLRct}\n\n"
+		printf "${BOLD}${GRNct}Trigger Event            Argument #1           Argument #2        Argument #3   Argument #4          Argument #5${CLRct}\n"
+		printf "${BOLD}${GRNct}-----------------------  --------------------  -----------------  ------------  -------------------  ------------ ${CLRct}\n"
+		printf "${BOLD}Ping Test Success${CLRct}"'        PingTestOK            "Date/Time Stamp"  "Ping ms"     "Jitter ms"          "Latency %%"'"\n"
+		printf "${BOLD}Ping Test Failure${CLRct}"'        PingTestFailed        "Date/Time Stamp"  "PingTarget" '"\n"
+		printf "${BOLD}Ping Thresholds${CLRct}"'          PingThreshold         "Date/Time Stamp"  "Ping ms"     "ThresholdValue ms"'"\n"
+		printf "${BOLD}Jitter Thresholds${CLRct}"'        JitterThreshold       "Date/Time Stamp"  "Jitter ms"   "ThresholdValue ms"'"\n"
+		printf "${BOLD}Line Quality Thresholds${CLRct}"'  LineQualityThreshold  "Date/Time Stamp"  "Latency %%"   "ThresholdValue %%"'"\n"
 		printf "\nA great example of a custom script would be to leverage the Apprise library:\n"
-		printf "${BOLD}https://github.com/caronc/apprise${CLEARFORMAT}\n"
+		printf "${BOLD}https://github.com/caronc/apprise${CLRct}\n"
 		printf "This library provides easy integration with many notification schemes.\n"
-		printf "See ${BOLD}https://github.com/caronc/apprise#popular-notification-services${CLEARFORMAT}\n"
+		printf "See ${BOLD}https://github.com/caronc/apprise#popular-notification-services${CLRct}\n"
 		printf "You can install apprise on your router by running:\n\n"
-		printf "${BOLD}opkg install python3 python3-pip && /opt/bin/python3 -m pip install --upgrade pip${CLEARFORMAT}\n\n"
+		printf "${BOLD}opkg install python3 python3-pip && /opt/bin/python3 -m pip install --upgrade pip${CLRct}\n\n"
 		printf "Apprise can then be leveraged at the command line as shown here:\n"
-		printf "${BOLD}https://github.com/caronc/apprise#command-line${CLEARFORMAT}\n\n"
-		printf "e.     Go back\n\n"
-		printf "${BOLD}##############################################################${CLEARFORMAT}\n\n"
+		printf "${BOLD}https://github.com/caronc/apprise#command-line${CLRct}\n\n"
+		printf " ${GRNct}e${CLRct}. Go back\n\n"
+		printf "${BOLD}##############################################################${CLRct}\n\n"
 	fi
 
 	{
@@ -4246,22 +4304,24 @@ CustomAction_List()
 ##----------------------------------------##
 Menu_CustomActions()
 {
+	local notificationsCUSTOM
+
 	while true
 	do
 		ScriptHeader
-		NOTIFICATIONS_CUSTOM=""
 		if ToggleNotificationTypes check NOTIFICATIONS_CUSTOM
-		then NOTIFICATIONS_CUSTOM="${PASS}Enabled"
-		else NOTIFICATIONS_CUSTOM="${ERR}Disabled"
+		then notificationsCUSTOM="${PASS}Enabled"
+		else notificationsCUSTOM="${ERR}Disabled"
 		fi
-		printf "1.    Toggle custom actions and user scripts (subject to type configuration)\n"
-		printf "      Currently: ${BOLD}${NOTIFICATIONS_CUSTOM}${CLEARFORMAT}\n\n"
+
+		printf " ${GRNct}1${CLRct}. Toggle custom actions and user scripts (subject to type configuration)\n"
+		printf "    Currently: ${BOLD}${notificationsCUSTOM}${CLRct}\n\n"
 		printf "Custom user scripts that will be run:\n"
 		printf "-------------------------------------\n"
 
 		if [ -z "$(ls -1A "$USER_SCRIPT_DIR"/*.sh 2>/dev/null)" ]
 		then
-			printf "\n${SETTING}No custom user scripts found in '${USER_SCRIPT_DIR}' directory.${CLEARFORMAT}\n"
+			printf "\n${SETTING}No custom user scripts found in '${USER_SCRIPT_DIR}' directory.${CLRct}\n"
 		else
 			CustomAction_List
 		fi
@@ -4281,7 +4341,7 @@ Menu_CustomActions()
 			cs)
 				if [ -z "$(ls -1A "$USER_SCRIPT_DIR"/*.sh 2>/dev/null)" ]
 				then
-					printf "\n${SETTING}No custom user scripts found in '${USER_SCRIPT_DIR}' directory.${CLEARFORMAT}\n\n"
+					printf "\n${SETTING}No custom user scripts found in '${USER_SCRIPT_DIR}' directory.${CLRct}\n\n"
 					PressEnter
 				else
 					shFileCount=0
@@ -4297,7 +4357,7 @@ Menu_CustomActions()
 						fi
 					done
 					[ "$shFileCount" -eq 0 ] && \
-					printf "\n${SETTING}No custom user scripts found in '${USER_SCRIPT_DIR}' directory.${CLEARFORMAT}\n\n"
+					printf "\n${SETTING}No custom user scripts found in '${USER_SCRIPT_DIR}' directory.${CLRct}\n\n"
 					PressEnter
 				fi
 			;;
@@ -4305,7 +4365,7 @@ Menu_CustomActions()
 				break
 			;;
 			*)
-				printf "\n${BOLD}${ERR}Please choose a valid option${CLEARFORMAT}\n\n"
+				printf "\n${BOLD}${ERR}Please choose a valid option${CLRct}\n\n"
 				PressEnter
 			;;
 		esac
@@ -4313,30 +4373,46 @@ Menu_CustomActions()
 }
 
 ##----------------------------------------##
-## Modified by Martinski W. [2025-Dec-07] ##
+## Modified by Martinski W. [2025-Dec-10] ##
 ##----------------------------------------##
 Menu_HealthcheckNotifications()
 {
+	local notificationsHEALTHCHECK  HEALTHCHECK_UUID  HEALTHCHECK_CRON
+
 	while true
 	do
 		ScriptHeader
-		NOTIFICATIONS_HEALTHCHECK=""
 		if ToggleNotificationTypes check NOTIFICATIONS_HEALTHCHECK
-		then NOTIFICATIONS_HEALTHCHECK="${PASS}Enabled"
-		else NOTIFICATIONS_HEALTHCHECK="${ERR}Disabled"
+		then notificationsHEALTHCHECK="${PASS}Enabled"
+		else notificationsHEALTHCHECK="${ERR}Disabled"
 		fi
-		printf " 1.    Toggle healthchecks.io\n       Currently: ${BOLD}${NOTIFICATIONS_HEALTHCHECK}${CLRct}\n\n"
-		printf "  ${BOLD}${GRNct}${UNDERLINE}Healthcheck Configuration${CLRct}\n\n"
-		printf "c1.    Set Healthcheck UUID\n       Currently: ${SETTING}%s${CLEARFORMAT}\n\n" "$(Conf_Parameters check NOTIFICATIONS_HEALTHCHECK_UUID)"
-		printf "Cron schedule for Healthchecks.io configuration: ${SETTING}%s${CLEARFORMAT}\n\n" "$(cru l | grep "$SCRIPT_NAME" | cut -f1-5 -d' ')"
-		printf "cs.    Send a test healthcheck notification\n\n"
-		printf " e.    Go back\n\n"
-		printf "${BOLD}##############################################################${CLEARFORMAT}\n"
-		printf "\n"
+
+		HEALTHCHECK_UUID="$(Conf_Parameters check NOTIFICATIONS_HEALTHCHECK_UUID)"
+		if [ -z "$HEALTHCHECK_UUID" ]
+		then HEALTHCHECK_UUID="${ERR}[NONE defined]"
+		else HEALTHCHECK_UUID="${SETTING}$HEALTHCHECK_UUID"
+		fi
+
+		HEALTHCHECK_CRON="$(cru l | grep -E "#${SCRIPT_NAME}_generate#$" | cut -d' ' -f1-5)"
+		if [ -z "$HEALTHCHECK_CRON" ]
+		then HEALTHCHECK_CRON="${ERR}[NONE found]"
+		else HEALTHCHECK_CRON="${SETTING}$HEALTHCHECK_CRON"
+		fi
+
+		printf "  ${GRNct}1${CLRct}. Toggle Healthchecks.io\n"
+		printf "     Currently: ${BOLD}${notificationsHEALTHCHECK}${CLRct}\n\n"
+		printf "     ${BOLD}${GRNct}${UNDERLINE}Healthcheck Configuration${CLRct}\n\n"
+		printf " ${GRNct}c1${CLRct}. Set Healthcheck UUID\n"
+		printf "     Currently: ${HEALTHCHECK_UUID}${CLRct}\n\n"
+		printf "     Cron schedule for Healthchecks.io configuration:\n"
+		printf "     ${HEALTHCHECK_CRON}${CLRct}\n\n"
+		printf " ${GRNct}cs${CLRct}. Send a test Healthcheck notification\n\n"
+		printf "  ${GRNct}e${CLRct}. Go back\n\n"
+		printf "${BOLD}##############################################################${CLRct}\n\n"
 
 		printf "Choose an option:  "
-		read -r healthcheckmenu
-		case "$healthcheckmenu" in
+		read -r healthcheckOption
+		case "$healthcheckOption" in
 			1)
 				if ToggleNotificationTypes check NOTIFICATIONS_HEALTHCHECK
 				then
@@ -4346,7 +4422,7 @@ Menu_HealthcheckNotifications()
 				fi
 			;;
 			c1)
-				Notification_String HealthcheckUUID
+				Notification_String "Healthcheck UUID"
 			;;
 			cs)
 				SendHealthcheckPing "Pass"
@@ -4357,7 +4433,7 @@ Menu_HealthcheckNotifications()
 				break
 			;;
 			*)
-				printf "\n${BOLD}${ERR}Please choose a valid option${CLEARFORMAT}\n\n"
+				printf "\n${BOLD}${ERR}Please choose a valid option${CLRct}\n\n"
 				PressEnter
 			;;
 		esac
@@ -4365,36 +4441,48 @@ Menu_HealthcheckNotifications()
 }
 
 ##----------------------------------------##
-## Modified by Martinski W. [2025-Dec-09] ##
+## Modified by Martinski W. [2025-Dec-10] ##
 ##----------------------------------------##
 Menu_InfluxDB()
 {
+	local notificationsINFLUXDB  INFLUXDB_PROTO
+
 	while true
 	do
 		ScriptHeader
-		NOTIFICATIONS_INFLUXDB=""
 		if ToggleNotificationTypes check NOTIFICATIONS_INFLUXDB
-		then NOTIFICATIONS_INFLUXDB="${PASS}Enabled"
-		else NOTIFICATIONS_INFLUXDB="${ERR}Disabled"
+		then notificationsINFLUXDB="${PASS}Enabled"
+		else notificationsINFLUXDB="${ERR}Disabled"
 		fi
-		printf " 1.    Toggle InfluxDB exporting\n       Currently: ${BOLD}${NOTIFICATIONS_INFLUXDB}${CLRct}\n\n"
-		printf "  ${BOLD}${GRNct}${UNDERLINE}InfluxDB Configuration${CLRct}\n\n"
-		printf "c1.    Set InfluxDB Host\n       Currently: ${SETTING}%s${CLEARFORMAT}\n\n" "$(Conf_Parameters check NOTIFICATIONS_INFLUXDB_HOST)"
-		printf "c2.    Set InfluxDB Port\n       Currently: ${SETTING}%s${CLEARFORMAT}\n\n" "$(Conf_Parameters check NOTIFICATIONS_INFLUXDB_PORT)"
-		printf "c3.    Set InfluxDB Database ID\n       Currently: ${SETTING}%s${CLEARFORMAT}\n\n" "$(Conf_Parameters check NOTIFICATIONS_INFLUXDB_DB)"
-		printf "c4.    Set InfluxDB Organization\n       Currently: ${SETTING}%s${CLEARFORMAT}\n\n" "$(Conf_Parameters check NOTIFICATIONS_INFLUXDB_ORG)"
-		printf "c5.    Set InfluxDB Version\n       Currently: ${SETTING}%s${CLEARFORMAT}\n\n" "$(Conf_Parameters check NOTIFICATIONS_INFLUXDB_VERSION)"
-		printf "c6.    Set InfluxDB Username (v1.8+ only)\\n       Currently: ${SETTING}%s${CLEARFORMAT}\n\n" "$(Conf_Parameters check NOTIFICATIONS_INFLUXDB_USERNAME)"
-		printf "c7.    Set InfluxDB Password (v1.8+ only)\n\n"
-		printf "c8.    Set InfluxDB API Token (v2.x only)\n       Currently: ${SETTING}%s${CLEARFORMAT}\n\n" "$(Conf_Parameters check NOTIFICATIONS_INFLUXDB_APITOKEN)"
-		printf "cs.    Send test data to InfluxDB\n\n"
-		printf " e.    Go back\n\n"
-		printf "${BOLD}##############################################################${CLEARFORMAT}\n"
-		printf "\n"
+		INFLUXDB_PROTO="$(Conf_Parameters check NOTIFICATIONS_INFLUXDB_PROTO | tr 'a-z' 'A-Z')"
+
+		printf "   ${GRNct}1${CLRct}. Toggle InfluxDB Exporting\n"
+		printf "      Currently: ${BOLD}${notificationsINFLUXDB}${CLRct}\n\n"
+		printf "      ${BOLD}${GRNct}${UNDERLINE}InfluxDB Configuration${CLRct}\n\n"
+		printf "  ${GRNct}c1${CLRct}. Set InfluxDB Host\n"
+		printf "      Currently: ${SETTING}%s${CLRct}\n\n" "$(Conf_Parameters check NOTIFICATIONS_INFLUXDB_HOST)"
+		printf "  ${GRNct}c2${CLRct}. Set InfluxDB Port\n"
+		printf "      Currently: ${SETTING}%s${CLRct}\n\n" "$(Conf_Parameters check NOTIFICATIONS_INFLUXDB_PORT)"
+		printf "  ${GRNct}c3${CLRct}. Set InfluxDB Protocol\n"
+		printf "      Currently: ${SETTING}%s${CLRct}\n\n" "$INFLUXDB_PROTO"
+		printf "  ${GRNct}c4${CLRct}. Set InfluxDB Database ID\n"
+		printf "      Currently: ${SETTING}%s${CLRct}\n\n" "$(Conf_Parameters check NOTIFICATIONS_INFLUXDB_DB)"
+		printf "  ${GRNct}c5${CLRct}. Set InfluxDB Organization\n"
+		printf "      Currently: ${SETTING}%s${CLRct}\n\n" "$(Conf_Parameters check NOTIFICATIONS_INFLUXDB_ORG)"
+		printf "  ${GRNct}c6${CLRct}. Set InfluxDB Version\n"
+		printf "      Currently: ${SETTING}%s${CLRct}\n\n" "$(Conf_Parameters check NOTIFICATIONS_INFLUXDB_VERSION)"
+		printf "  ${GRNct}c7${CLRct}. Set InfluxDB Username (v1.8+ only)\n"
+		printf "      Currently: ${SETTING}%s${CLRct}\n\n" "$(Conf_Parameters check NOTIFICATIONS_INFLUXDB_USERNAME)"
+		printf "  ${GRNct}c8${CLRct}. Set InfluxDB Password (v1.8+ only)\n\n"
+		printf "  ${GRNct}c9${CLRct}. Set InfluxDB API Token (v2.x only)\n"
+		printf "      Currently: ${SETTING}%s${CLRct}\n\n" "$(Conf_Parameters check NOTIFICATIONS_INFLUXDB_APITOKEN)"
+		printf "  ${GRNct}cs${CLRct}. Send test data to InfluxDB\n\n"
+		printf "   ${GRNct}e${CLRct}. Go back\n\n"
+		printf "${BOLD}##############################################################${CLRct}\n\n"
 
 		printf "Choose an option:  "
-		read -r healthcheckmenu
-		case "$healthcheckmenu" in
+		read -r influxdbOption
+		case "$influxdbOption" in
 			1)
 				if ToggleNotificationTypes check NOTIFICATIONS_INFLUXDB
 				then
@@ -4410,29 +4498,34 @@ Menu_InfluxDB()
 				Notification_Number "InfluxDB Port"
 			;;
 			c3)
-				Notification_String "InfluxDB Database ID"
-			;;
-			c4)
-				Notification_String "InfluxDB Organization"
-			;;
-			c5)
-				if [ "$(Conf_Parameters check NOTIFICATIONS_INFLUXDB_VERSION)" = "1.8" ]; then
-					Conf_Parameters update "InfluxDB Version" "2.0"
-				else
-					Conf_Parameters update "InfluxDB Version" "1.8"
+				if [ "$(Conf_Parameters check NOTIFICATIONS_INFLUXDB_PROTO)" = "https" ]
+				then Conf_Parameters update "InfluxDB Protocol" "http"
+				else Conf_Parameters update "InfluxDB Protocol" "https"
 				fi
 			;;
+			c4)
+				Notification_String "InfluxDB Database ID"
+			;;
+			c5)
+				Notification_String "InfluxDB Organization"
+			;;
 			c6)
-				Notification_String "InfluxDB Username"
+				if [ "$(Conf_Parameters check NOTIFICATIONS_INFLUXDB_VERSION)" = "1.8" ]
+				then Conf_Parameters update "InfluxDB Version" "2.0"
+				else Conf_Parameters update "InfluxDB Version" "1.8"
+				fi
 			;;
 			c7)
-				Notification_String "InfluxDB Password"
+				Notification_String "InfluxDB Username"
 			;;
 			c8)
+				Notification_String "InfluxDB Password"
+			;;
+			c9)
 				Notification_String "InfluxDB API Token"
 			;;
 			cs)
-				SendToInfluxDB "$(/bin/date +%s)" 30 15 90
+				SendToInfluxDB "$(/bin/date +%s)" 30 15 90 '8.8.8.8'
 				echo
 				PressEnter
 			;;
@@ -4440,7 +4533,7 @@ Menu_InfluxDB()
 				break
 			;;
 			*)
-				printf "\n${BOLD}${ERR}Please choose a valid option${CLEARFORMAT}\n\n"
+				printf "\n${BOLD}${ERR}Please choose a valid option${CLRct}\n\n"
 				PressEnter
 			;;
 		esac
@@ -6121,7 +6214,7 @@ then
 fi
 
 ##----------------------------------------##
-## Modified by Martinski W. [2025-Jun-20] ##
+## Modified by Martinski W. [2025-Dec-10] ##
 ##----------------------------------------##
 case "$1" in
 	install)
@@ -6327,7 +6420,7 @@ case "$1" in
 		then
 			rm -f "$SCRIPT_WEB_DIR/detect_test.js"
 			echo 'var teststatus = "InProgress";' > "$SCRIPT_WEB_DIR/detect_test.js"
-			if SendToInfluxDB "$(/bin/date +%s)" 30 15 90
+			if SendToInfluxDB "$(/bin/date +%s)" 30 15 90 '8.8.8.8'
 			then
 				echo 'var teststatus = "Success";' > "$SCRIPT_WEB_DIR/detect_test.js"
 			else
