@@ -33,7 +33,7 @@ p{font-weight:bolder}thead.collapsible-jquery{color:#fff;padding:0;width:100%;bo
 <script>
 
 /**----------------------------------------**/
-/** Modified by Martinski W. [2025-Dec-09] **/
+/** Modified by Martinski W. [2025-Dec-10] **/
 /**----------------------------------------**/
 
 var customSettings;
@@ -1598,7 +1598,7 @@ function getCookie(e,t){if(null!==cookie.get("conn_"+e)){if("string"===t)return 
 																</tr>
 															</thead>
 															<tr class="even" id="rowinfluxdb">
-																<td class="settingname">InfluxDB exporting</td>
+																<td class="settingname">InfluxDB Exporting</td>
 																<td class="settingvalue">
 																	<input type="radio"
 																		name="connmon_notifications_influxdb"
@@ -1620,32 +1620,38 @@ function getCookie(e,t){if(null!==cookie.get("conn_"+e)){if("string"===t)return 
 																		src="images/InternetScan.gif" />
 																</td>
 															</tr>
-															<tr class="even" id="rowinfluxdbhost">
-																<td class="settingname">InfluxDB Host</td>
-																<td class="settingvalue">
-																	<input autocorrect="off" autocapitalize="off"
-																		type="text" maxlength="255"
-																		style="text-align:left;padding-left:5px;"
-																		class="input_32_table removespacing"
-																		name="connmon_notifications_influxdb_host"
-																		value=""
-																		onkeypress="return validator.isString(this,event);"
-																		onblur="validateDomainOrIP(this)"
-																		onkeyup="validateDomainOrIP(this)"
-																		data-lpignore="true" />
-																</td>
-															</tr>
-															<tr class="even" id="rowinfluxdbport">
-																<td class="settingname">InfluxDB Port</td>
-																<td class="settingvalue">
-																	<input autocomplete="off" type="text" maxlength="5"
-																		class="input_6_table removespacing"
-																		name="connmon_notifications_influxdb_port"
-																		value="8086"
-																		onkeypress="return validator.isNumber(this,event)"
-																		data-lpignore="true" />
-																</td>
-															</tr>
+<tr class="even" id="rowinfluxdbhost">
+  <td class="settingname">InfluxDB Host</td>
+  <td class="settingvalue">
+    <input autocorrect="off" autocapitalize="off"
+     type="text" maxlength="255"
+     style="text-align:left;padding-left:5px;"
+     class="input_32_table removespacing"
+     name="connmon_notifications_influxdb_host" value=""
+     onkeypress="return validator.isString(this,event);"
+     onblur="validateDomainOrIP(this)"
+     onkeyup="validateDomainOrIP(this)"
+     data-lpignore="true" />
+  </td>
+</tr>
+<tr class="even" id="rowinfluxdbport">
+  <td class="settingname">InfluxDB Port</td>
+  <td class="settingvalue">
+    <input autocomplete="off" type="text" maxlength="5"
+     class="input_6_table removespacing"
+     name="connmon_notifications_influxdb_port" value="8086"
+     onkeypress="return validator.isNumber(this,event)"
+     data-lpignore="true" />
+    <input type="radio" name="connmon_notifications_influxdb_proto"
+     style="margin-left:20px; margin-right:1px; margin-top:-1px; vertical-align:middle;"
+     id="connmon_notifications_influxdb_proto_http" class="input" value="http" checked>
+    <label for="connmon_notifications_influxdb_proto_http" style="vertical-align:middle;">HTTP</label>
+    <input type="radio" name="connmon_notifications_influxdb_proto"
+     style="margin-left:3px; margin-right:1px; margin-top:-1px; vertical-align:middle;"
+     id="connmon_notifications_influxdb_proto_https" class="input" value="https">
+    <label for="connmon_notifications_influxdb_proto_https" style="vertical-align:middle;">HTTPS</label>
+  </td>
+</tr>
 <tr class="even" id="rowinfluxdbID">
   <td class="settingname">InfluxDB Database ID</td>
   <td class="settingvalue">
@@ -1681,38 +1687,32 @@ function getCookie(e,t){if(null!==cookie.get("conn_"+e)){if("string"===t)return 
     <label for="connmon_notifications_influxdb_18">1.8</label>
   </td>
 </tr>
-															<tr class="even" id="rowinfluxdbusername">
-																<td class="settingname">InfluxDB Username<br /><span
-																		class="settingname">(v1.8+ only)</span></td>
-																<td class="settingvalue">
-																	<input autocorrect="off" autocapitalize="off"
-																		type="text" maxlength="255"
-																		style="text-align:left;padding-left:5px;"
-																		class="input_32_table removespacing"
-																		name="connmon_notifications_influxdb_username"
-																		value=""
-																		onkeypress="return validator.isString(this,event);"
-																		data-lpignore="true" />
-																</td>
-															</tr>
-															<tr class="even" id="rowinfluxdbpassword">
-																<td class="settingname">InfluxDB Password<br /><span
-																		class="settingname">(v1.8+ only)</span></td>
-																<td class="settingvalue">
-																	<input autocomplete="off" autocapitalize="off"
-																		type="password" class="input_30_table"
-																		onchange=""
-																		name="connmon_notifications_influxdb_password"
-																		id="connmon_notifications_influxdb_password">&nbsp;&nbsp;&nbsp;<input
-																		type="checkbox"
-																		name="show_pass_influxdb_password"
-																		onclick="passChecked(document.form.connmon_notifications_influxdb_password,document.form.show_pass_influxdb_password)"
-																		style="vertical-align:middle;"><label
-																		for="connmon_notifications_influxdb_password"
-																		style="vertical-align:middle;margin-right:10px;margin-bottom:5px;">Show
-																		password?</label>
-																</td>
-															</tr>
+<tr class="even" id="rowinfluxdbusername">
+  <td class="settingname">InfluxDB Username<br /><span class="settingname">(v1.8+ only)</span></td>
+  <td class="settingvalue">
+    <input autocorrect="off" autocapitalize="off"
+     type="text" maxlength="255"
+     style="text-align:left;padding-left:5px;"
+     class="input_32_table removespacing"
+     name="connmon_notifications_influxdb_username" value=""
+     onkeypress="return validator.isString(this,event);"
+     data-lpignore="true" />
+</td>
+</tr>
+<tr class="even" id="rowinfluxdbpassword">
+  <td class="settingname">InfluxDB Password<br /><span class="settingname">(v1.8+ only)</span></td>
+  <td class="settingvalue">
+    <input autocomplete="off" autocapitalize="off"
+     type="password" class="input_30_table" onchange=""
+     name="connmon_notifications_influxdb_password"
+     id="connmon_notifications_influxdb_password">&nbsp;
+     <input type="checkbox"
+        name="show_pass_influxdb_password"
+        onclick="passChecked(document.form.connmon_notifications_influxdb_password,document.form.show_pass_influxdb_password)"
+        style="vertical-align:middle;"><label for="connmon_notifications_influxdb_password"
+           style="vertical-align:middle;margin-right:10px;margin-bottom:5px;">Show password?</label>
+  </td>
+</tr>
 <tr class="even" id="rowinfluxdbapitoken">
   <td class="settingname">InfluxDB API Token<br /><span class="settingname">(v2.x only)</span></td>
   <td class="settingvalue">
