@@ -11,7 +11,7 @@
 ##      Forked from https://github.com/jackyaz/connmon      ##
 ##                                                          ##
 ##############################################################
-# Last Modified: 2025-Dec-10
+# Last Modified: 2025-Dec-11
 #-------------------------------------------------------------
 
 ##############        Shellcheck directives      #############
@@ -37,7 +37,7 @@
 ### Start of script variables ###
 readonly SCRIPT_NAME="connmon"
 readonly SCRIPT_VERSION="v3.0.10"
-readonly SCRIPT_VERSTAG="25121020"
+readonly SCRIPT_VERSTAG="25121108"
 SCRIPT_BRANCH="develop"
 SCRIPT_REPO="https://raw.githubusercontent.com/AMTM-OSR/$SCRIPT_NAME/$SCRIPT_BRANCH"
 readonly SCRIPT_DIR="/jffs/addons/$SCRIPT_NAME.d"
@@ -3487,7 +3487,7 @@ SendHealthcheckPing()
 }
 
 ##----------------------------------------##
-## Modified by Martinski W. [2025-Dec-10] ##
+## Modified by Martinski W. [2025-Dec-11] ##
 ##----------------------------------------##
 SendToInfluxDB()
 {
@@ -3514,12 +3514,12 @@ SendToInfluxDB()
 	printf '' > "$curlOutLogFile"
 	printf '' > "$curlErrLogFile"
 
-	dataPoint="PingAvrg=${PING},Jitter=${JITTER},LineQuality=${LINEQUAL},Source=$SCRIPT_NAME"
+	dataPoint="Jitter=${JITTER},LineQuality=${LINEQUAL},PingAvrg=${PING},PingServer=\"${PING_TARGET}\",Source=$SCRIPT_NAME"
 
 	curl -vSL --retry 4 --retry-delay 5 --connect-timeout 60 -o "$curlOutLogFile" \
 "${INFLUXDB_PROTO}://${INFLUXDB_HOST}:${INFLUXDB_PORT}/api/v2/write?org=${INFLUXDB_ORG}&bucket=${INFLUXDB_BID}&precision=s" \
 --header "Authorization: Token $INFLUX_AUTHHEADER" --header "Accept-Encoding: gzip" \
---data-raw "PingTest,$dataPoint PingServer=\"${PING_TARGET}\",Router=\"${ROUTER_MODEL}\" $TIMESTAMP" >> "$curlErrLogFile" 2>&1
+--data-raw "PingTest,$dataPoint Router=\"${ROUTER_MODEL}\" $TIMESTAMP" >> "$curlErrLogFile" 2>&1
 	curlCode="$?"
 
 	"$isInteractive" && echo
