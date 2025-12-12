@@ -37,7 +37,7 @@
 ### Start of script variables ###
 readonly SCRIPT_NAME="connmon"
 readonly SCRIPT_VERSION="v3.0.10"
-readonly SCRIPT_VERSTAG="25121108"
+readonly SCRIPT_VERSTAG="25121122"
 SCRIPT_BRANCH="develop"
 SCRIPT_REPO="https://raw.githubusercontent.com/AMTM-OSR/$SCRIPT_NAME/$SCRIPT_BRANCH"
 readonly SCRIPT_DIR="/jffs/addons/$SCRIPT_NAME.d"
@@ -761,7 +761,7 @@ Conf_Exists()
 				echo "NOTIFICATIONS_INFLUXDB_PROTO=http"
 				echo "NOTIFICATIONS_INFLUXDB_DB=connmon"
 				echo "NOTIFICATIONS_INFLUXDB_ORG=homenet"
-				echo "NOTIFICATIONS_INFLUXDB_VERSION=1.8"
+				echo "NOTIFICATIONS_INFLUXDB_VERSION=2.0"
 				echo "NOTIFICATIONS_INFLUXDB_USERNAME="
 				echo "NOTIFICATIONS_INFLUXDB_PASSWORD="
 				echo "NOTIFICATIONS_INFLUXDB_APITOKEN="
@@ -825,7 +825,7 @@ Conf_Exists()
 		   echo "NOTIFICATIONS_INFLUXDB_PROTO=http"
 		   echo "NOTIFICATIONS_INFLUXDB_DB=connmon"
 		   echo "NOTIFICATIONS_INFLUXDB_ORG=homenet"
-		   echo "NOTIFICATIONS_INFLUXDB_VERSION=1.8"
+		   echo "NOTIFICATIONS_INFLUXDB_VERSION=2.0"
 		   echo "NOTIFICATIONS_INFLUXDB_USERNAME="
 		   echo "NOTIFICATIONS_INFLUXDB_PASSWORD="
 		   echo "NOTIFICATIONS_INFLUXDB_APITOKEN="
@@ -3299,7 +3299,7 @@ SendWebhook()
 	WEBHOOK_TARGET="$2"
 	if [ -z "$WEBHOOK_TARGET" ]
 	then
-		Print_Output false "No Webhook URL specified" "$ERR"
+		Print_Output false "No Webhook URL target specified" "$ERR"
 		return 1
 	fi
 	printf '' > "$curlOutLogFile"
@@ -3491,7 +3491,8 @@ SendHealthcheckPing()
 ##----------------------------------------##
 SendToInfluxDB()
 {
-	local curlCode  dataPoint
+	local curlCode  dataTags  dataFields  pingTARGET  routerID
+
 	TIMESTAMP="$1"
 	PING="$2"
 	JITTER="$3"
@@ -3514,12 +3515,23 @@ SendToInfluxDB()
 	printf '' > "$curlOutLogFile"
 	printf '' > "$curlErrLogFile"
 
-	dataPoint="Jitter=${JITTER},LineQuality=${LINEQUAL},PingAvrg=${PING},PingServer=\"${PING_TARGET}\",Source=$SCRIPT_NAME"
+	if ! echo "$PING_TARGET" | grep -qE '[ ]+'
+	then pingTARGET="$PING_TARGET"
+	then pingTARGET="$(echo "$PING_TARGET" | sed 's/ /\\ /')"
+	fi
+
+	if ! echo "$ROUTER_MODEL" | grep -qE '[ ]+'
+	then routerID="$ROUTER_MODEL"
+	then routerID="$(echo "$ROUTER_MODEL" | sed 's/ /_/g')"
+	fi
+
+	dataTags="Jitter=${JITTER},LineQuality=${LINEQUAL},PingAvrg=${PING},PingServer=${pingTARGET},Source=$SCRIPT_NAME"
+	dataFields="Router=\"${ROUTER_MODEL}\""
 
 	curl -vSL --retry 4 --retry-delay 5 --connect-timeout 60 -o "$curlOutLogFile" \
 "${INFLUXDB_PROTO}://${INFLUXDB_HOST}:${INFLUXDB_PORT}/api/v2/write?org=${INFLUXDB_ORG}&bucket=${INFLUXDB_BID}&precision=s" \
 --header "Authorization: Token $INFLUX_AUTHHEADER" --header "Accept-Encoding: gzip" \
---data-raw "PingTest,$dataPoint Router=\"${ROUTER_MODEL}\" $TIMESTAMP" >> "$curlErrLogFile" 2>&1
+--data-raw "PingTest,$dataTags $dataFields $TIMESTAMP" >> "$curlErrLogFile" 2>&1
 	curlCode="$?"
 
 	"$isInteractive" && echo
@@ -3767,10 +3779,12 @@ Notification_Float()
 }
 
 ##----------------------------------------##
-## Modified by Martinski W. [2025-Dec-10] ##
+## Modified by Martinski W. [2025-Dec-11] ##
 ##----------------------------------------##
 TriggerNotifications()
 {
+	local noteStr
+
 	TRIGGERTYPE="$1"
 	DATETIME="$2"
 	PING_TARGET=""
@@ -3819,38 +3833,48 @@ TriggerNotifications()
 				then
 					if [ "$TRIGGERTYPE" = "PingTestOK" ]
 					then
-						SendEmail "Ping test result from $SCRIPT_NAME - $DATETIME" "<p>Ping: $PING<br />Jitter: $JITTER<br />Line Quality: $LINEQUAL</p>"
+						noteStr="<p>Ping: ${PING}<br/>Jitter: ${JITTER}<br/>Line Quality: ${LINEQUAL}<br/>Ping Server: ${PING_TARGET}<br/>Router: ${ROUTER_MODEL}</p>"
+						SendEmail "Ping test result from $SCRIPT_NAME - $DATETIME" "$noteStr"
 					elif [ "$TRIGGERTYPE" = "PingTestFailed" ]
 					then
-						SendEmail "Ping test failure alert from $SCRIPT_NAME - $DATETIME" "<p>Ping test to '$PING_TARGET' failed.</p>"
+						noteStr="<p>Ping test to server '${PING_TARGET}' failed.<br/>Router: ${ROUTER_MODEL}</p>"
+						SendEmail "Ping test failure alert from $SCRIPT_NAME - $DATETIME" "$noteStr"
 					elif [ "$TRIGGERTYPE" = "PingThreshold" ]
 					then
-						SendEmail "Ping threshold alert from $SCRIPT_NAME - $DATETIME" "<p>Ping $PING exceeds threshold of $THRESHOLD</p>"
+						noteStr="<p>Ping $PING exceeds threshold of ${THRESHOLD}<br/>Ping Server: ${PING_TARGET}<br/>Router: ${ROUTER_MODEL}</p>"
+						SendEmail "Ping threshold alert from $SCRIPT_NAME - $DATETIME" "$noteStr"
 					elif [ "$TRIGGERTYPE" = "JitterThreshold" ]
 					then
-						SendEmail "Jitter threshold alert from $SCRIPT_NAME - $DATETIME" "<p>Jitter $JITTER exceeds threshold of $THRESHOLD</p>"
+						noteStr="<p>Jitter $JITTER exceeds threshold of ${THRESHOLD}<br/>Ping Server: ${PING_TARGET}<br/>Router: ${ROUTER_MODEL}</p>"
+						SendEmail "Jitter threshold alert from $SCRIPT_NAME - $DATETIME" "$noteStr"
 					elif [ "$TRIGGERTYPE" = "LineQualityThreshold" ]
 					then
-						SendEmail "Line quality threshold alert from $SCRIPT_NAME - $DATETIME" "<p>Line quality $LINEQUAL exceeds threshold of $THRESHOLD</p>"
+						noteStr="<p>Line quality $LINEQUAL exceeds threshold of ${THRESHOLD}<br/>Ping Server: ${PING_TARGET}<br/>Router: ${ROUTER_MODEL}</p>"
+						SendEmail "Line quality threshold alert from $SCRIPT_NAME - $DATETIME" "$noteStr"
 					fi
 				else
 					for EMAIL in $NOTIFICATIONS_EMAIL_LIST
 					do
 						if [ "$TRIGGERTYPE" = "PingTestOK" ]
 						then
-							SendEmail "Ping test result from $SCRIPT_NAME - $DATETIME" "<p>Ping: $PING<br />Jitter: $JITTER<br />Line Quality: $LINEQUAL</p>" "$EMAIL"
+							noteStr="<p>Ping: ${PING}<br/>Jitter: ${JITTER}<br/>Line Quality: ${LINEQUAL}<br/>Ping Server: ${PING_TARGET}<br/>Router: ${ROUTER_MODEL}</p>"
+							SendEmail "Ping test result from $SCRIPT_NAME - $DATETIME" "$noteStr" "$EMAIL"
 						elif [ "$TRIGGERTYPE" = "PingTestFailed" ]
 						then
-							SendEmail "Ping test failure alert from $SCRIPT_NAME - $DATETIME" "<p>Ping test to '$PING_TARGET' failed.</p>" "$EMAIL"
+							noteStr="<p>Ping test to server '${PING_TARGET}' failed.<br/>Router: ${ROUTER_MODEL}</p>"
+							SendEmail "Ping test failure alert from $SCRIPT_NAME - $DATETIME" "$noteStr" "$EMAIL"
 						elif [ "$TRIGGERTYPE" = "PingThreshold" ]
 						then
-							SendEmail "Ping threshold alert from $SCRIPT_NAME - $DATETIME" "<p>Ping $PING exceeds threshold of $THRESHOLD</p>" "$EMAIL"
+							noteStr="<p>Ping $PING exceeds threshold of ${THRESHOLD}<br/>Ping Server: ${PING_TARGET}<br/>Router: ${ROUTER_MODEL}</p>"
+							SendEmail "Ping threshold alert from $SCRIPT_NAME - $DATETIME" "$noteStr" "$EMAIL"
 						elif [ "$TRIGGERTYPE" = "JitterThreshold" ]
 						then
-							SendEmail "Jitter threshold alert from $SCRIPT_NAME - $DATETIME" "<p>Jitter $JITTER exceeds threshold of $THRESHOLD</p>" "$EMAIL"
+							noteStr="<p>Jitter $JITTER exceeds threshold of ${THRESHOLD}<br/>Ping Server: ${PING_TARGET}<br/>Router: ${ROUTER_MODEL}</p>"
+							SendEmail "Jitter threshold alert from $SCRIPT_NAME - $DATETIME" "$noteStr" "$EMAIL"
 						elif [ "$TRIGGERTYPE" = "LineQualityThreshold" ]
 						then
-							SendEmail "Line quality threshold alert from $SCRIPT_NAME - $DATETIME" "<p>Line quality $LINEQUAL exceeds threshold of $THRESHOLD</p>" "$EMAIL"
+							noteStr="<p>Line quality $LINEQUAL exceeds threshold of ${THRESHOLD}<br/>Ping Server: ${PING_TARGET}<br/>Router: ${ROUTER_MODEL}</p>"
+							SendEmail "Line quality threshold alert from $SCRIPT_NAME - $DATETIME" "$noteStr" "$EMAIL"
 						fi
 					done
 				fi
@@ -3861,38 +3885,48 @@ TriggerNotifications()
 				do
 					if [ "$TRIGGERTYPE" = "PingTestOK" ]
 					then
-						SendWebhook "Ping test result from $SCRIPT_NAME - $DATETIME\n\nPing: $PING\nJitter: $JITTER\nLine Quality: $LINEQUAL" "$WEBHOOK"
+						noteStr="Ping: ${PING}\nJitter: ${JITTER}\nLine Quality: ${LINEQUAL}\nPing Server: ${PING_TARGET}\nRouter: $ROUTER_MODEL"
+						SendWebhook "Ping test result from $SCRIPT_NAME - $DATETIME\n\n$noteStr" "$WEBHOOK"
 					elif [ "$TRIGGERTYPE" = "PingTestFailed" ]
 					then
-						SendWebhook "Ping test failure alert from $SCRIPT_NAME - $DATETIME\n\nPing test to $PING_TARGET failed." "$WEBHOOK"
+						noteStr="Ping test to server ${PING_TARGET} failed.\nRouter: $ROUTER_MODEL"
+						SendWebhook "Ping test failure alert from $SCRIPT_NAME - $DATETIME\n\n$noteStr" "$WEBHOOK"
 					elif [ "$TRIGGERTYPE" = "PingThreshold" ]
 					then
-						SendWebhook "Ping threshold alert from $SCRIPT_NAME - $DATETIME\n\nPing $PING exceeds threshold of $THRESHOLD" "$WEBHOOK"
+						noteStr="Ping $PING exceeds threshold of ${THRESHOLD}\nPing Server: ${PING_TARGET}\nRouter: $ROUTER_MODEL"
+						SendWebhook "Ping threshold alert from $SCRIPT_NAME - $DATETIME\n\n$noteStr" "$WEBHOOK"
 					elif [ "$TRIGGERTYPE" = "JitterThreshold" ]
 					then
-						SendWebhook "Jitter threshold alert from $SCRIPT_NAME - $DATETIME\n\nJitter $JITTER exceeds threshold of $THRESHOLD" "$WEBHOOK"
+						noteStr="Jitter $JITTER exceeds threshold of ${THRESHOLD}\nPing Server: ${PING_TARGET}\nRouter: $ROUTER_MODEL"
+						SendWebhook "Jitter threshold alert from $SCRIPT_NAME - $DATETIME\n\n$noteStr" "$WEBHOOK"
 					elif [ "$TRIGGERTYPE" = "LineQualityThreshold" ]
 					then
-						SendWebhook "Line quality threshold alert from $SCRIPT_NAME - $DATETIME\n\nLine quality $LINEQUAL exceeds threshold of $THRESHOLD" "$WEBHOOK"
+						noteStr="Line quality $LINEQUAL exceeds threshold of ${THRESHOLD}\nPing Server: ${PING_TARGET}\nRouter: $ROUTER_MODEL"
+						SendWebhook "Line quality threshold alert from $SCRIPT_NAME - $DATETIME\n\n$noteStr" "$WEBHOOK"
 					fi
 				done
 			elif [ "$NOTIFICATIONMETHOD" = "Pushover" ]
 			then
 				if [ "$TRIGGERTYPE" = "PingTestOK" ]
 				then
-					SendPushover "Ping test result from $SCRIPT_NAME - $DATETIME"$'\n'$'\n'"Ping: $PING"$'\n'"Jitter: $JITTER"$'\n'"Line Quality: $LINEQUAL"
+					noteStr="Ping: $PING"$'\n'"Jitter: $JITTER"$'\n'"Line Quality: $LINEQUAL"$'\n'"Ping Server: $PING_TARGET"$'\n'"Router: $ROUTER_MODEL"
+					SendPushover "Ping test result from $SCRIPT_NAME - $DATETIME"$'\n'$'\n'"$noteStr"
 				elif [ "$TRIGGERTYPE" = "PingTestFailed" ]
 				then
-					SendPushover "Ping test failure alert from $SCRIPT_NAME - $DATETIME"$'\n'$'\n'"Ping test to $PING_TARGET failed."
+					noteStr="Ping test to server ${PING_TARGET} failed."$'\n'"Router: $ROUTER_MODEL"
+					SendPushover "Ping test failure alert from $SCRIPT_NAME - $DATETIME"$'\n'$'\n'"$noteStr"
 				elif [ "$TRIGGERTYPE" = "PingThreshold" ]
 				then
-					SendPushover "Ping threshold alert from $SCRIPT_NAME - $DATETIME"$'\n'$'\n'"Ping $PING exceeds threshold of $THRESHOLD"
+					noteStr="Ping $PING exceeds threshold of $THRESHOLD"$'\n'"Ping Server: $PING_TARGET"$'\n'"Router: $ROUTER_MODEL"
+					SendPushover "Ping threshold alert from $SCRIPT_NAME - $DATETIME"$'\n'$'\n'"$noteStr"
 				elif [ "$TRIGGERTYPE" = "JitterThreshold" ]
 				then
-					SendPushover "Jitter threshold alert from $SCRIPT_NAME - $DATETIME"$'\n'$'\n'"Jitter $JITTER exceeds threshold of $THRESHOLD"
+					noteStr="Jitter $JITTER exceeds threshold of $THRESHOLD"$'\n'"Ping Server: $PING_TARGET"$'\n'"Router: $ROUTER_MODEL"
+					SendPushover "Jitter threshold alert from $SCRIPT_NAME - $DATETIME"$'\n'$'\n'"$noteStr"
 				elif [ "$TRIGGERTYPE" = "LineQualityThreshold" ]
 				then
-					SendPushover "Line quality threshold alert from $SCRIPT_NAME - $DATETIME"$'\n'$'\n'"Line quality $LINEQUAL exceeds threshold of $THRESHOLD"
+					noteStr="Line quality $LINEQUAL exceeds threshold of $THRESHOLD"$'\n'"Ping Server: $PING_TARGET"$'\n'"Router: $ROUTER_MODEL"
+					SendPushover "Line quality threshold alert from $SCRIPT_NAME - $DATETIME"$'\n'$'\n'"$noteStr"
 				fi
 			elif [ "$NOTIFICATIONMETHOD" = "Custom" ]
 			then
@@ -3905,19 +3939,19 @@ TriggerNotifications()
 						Print_Output true "Executing custom user script: $shFile" "$PASS"
 						if [ "$TRIGGERTYPE" = "PingTestOK" ]
 						then
-							sh "$shFile" "$TRIGGERTYPE" "$DATETIME" "$PING" "$JITTER" "$LINEQUAL"
+							sh "$shFile" "$TRIGGERTYPE" "$DATETIME" "$PING" "$JITTER" "$LINEQUAL" "$PING_TARGET"
 						elif [ "$TRIGGERTYPE" = "PingTestFailed" ]
 						then
 							sh "$shFile" "$TRIGGERTYPE" "$DATETIME" "$PING_TARGET"
 						elif [ "$TRIGGERTYPE" = "PingThreshold" ]
 						then
-							sh "$shFile" "$TRIGGERTYPE" "$DATETIME" "$PING" "$THRESHOLD"
+							sh "$shFile" "$TRIGGERTYPE" "$DATETIME" "$PING" "$THRESHOLD" "$PING_TARGET"
 						elif [ "$TRIGGERTYPE" = "JitterThreshold" ]
 						then
-							sh "$shFile" "$TRIGGERTYPE" "$DATETIME" "$JITTER" "$THRESHOLD"
+							sh "$shFile" "$TRIGGERTYPE" "$DATETIME" "$JITTER" "$THRESHOLD" "$PING_TARGET"
 						elif [ "$TRIGGERTYPE" = "LineQualityThreshold" ]
 						then
-							sh "$shFile" "$TRIGGERTYPE" "$DATETIME" "$LINEQUAL" "$THRESHOLD"
+							sh "$shFile" "$TRIGGERTYPE" "$DATETIME" "$LINEQUAL" "$THRESHOLD" "$PING_TARGET"
 						fi
 					fi
 				done
@@ -3946,11 +3980,11 @@ TriggerNotifications()
 }
 
 ##----------------------------------------##
-## Modified by Martinski W. [2025-Dec-10] ##
+## Modified by Martinski W. [2025-Dec-11] ##
 ##----------------------------------------##
 Menu_EmailNotifications()
 {
-	local notificationsEMAIL  notificationsEMAIL_LIST  SSL_FlagStr
+	local notificationsEMAIL  notificationsEMAIL_LIST  SSL_FlagStr  noteStr
 
 	while true
 	do
@@ -4037,14 +4071,15 @@ Menu_EmailNotifications()
 				Email_SSL
 			;;
 			cs)
+				noteStr="<p>This is a test email!<br/>Router: ${ROUTER_MODEL}</p>"
 				notificationsEMAIL_LIST="$(Email_Recipients check)"
 				if [ -z "$notificationsEMAIL_LIST" ]
 				then
-					SendEmail "Test email - $(/bin/date +"%c")" "This is a test email!"
+					SendEmail "Test email from $SCRIPT_NAME - $(/bin/date +"%c")" "$noteStr"
 				else
 					for EMAIL in $notificationsEMAIL_LIST
 					do
-						SendEmail "Test email - $(/bin/date +"%c")" "This is a test email!" "$EMAIL"
+						SendEmail "Test email from $SCRIPT_NAME - $(/bin/date +"%c")" "$noteStr" "$EMAIL"
 					done
 				fi
 				printf "\n"
@@ -4062,11 +4097,11 @@ Menu_EmailNotifications()
 }
 
 ##----------------------------------------##
-## Modified by Martinski W. [2025-Dec-10] ##
+## Modified by Martinski W. [2025-Dec-11] ##
 ##----------------------------------------##
 Menu_WebhookNotifications()
 {
-	local notificationsWEBHOOK  notificationsWEBHOOK_LIST
+	local notificationsWEBHOOK  notificationsWEBHOOK_LIST  noteStr
 
 	while true
 	do
@@ -4111,9 +4146,10 @@ Menu_WebhookNotifications()
 					Print_Output false "No Webhook URLs specified" "$ERR"
 				fi
 				IFS=$','
+				noteStr="This is a test Webhook message!\nRouter: $ROUTER_MODEL"
 				for WEBHOOK in $notificationsWEBHOOK_LIST
 				do
-					SendWebhook "$(/bin/date +"%c")\n\nThis is a test webhook message!" "$WEBHOOK"
+					SendWebhook "Test message from $SCRIPT_NAME - $(/bin/date +"%c")\n\n$noteStr" "$WEBHOOK"
 				done
 				unset IFS
 				printf "\n"
@@ -4131,12 +4167,12 @@ Menu_WebhookNotifications()
 }
 
 ##----------------------------------------##
-## Modified by Martinski W. [2025-Dec-10] ##
+## Modified by Martinski W. [2025-Dec-11] ##
 ##----------------------------------------##
 Menu_PushoverNotifications()
 {
 	local notificationsPUSHOVER  notificationsPUSHOVER_LIST
-	local pushoverUSER_KEY  pushoverAPI_TOKEN
+	local pushoverUSER_KEY  pushoverAPI_TOKEN  noteStr
 
 	while true
 	do
@@ -4197,7 +4233,8 @@ Menu_PushoverNotifications()
 				Pushover_Devices update
 			;;
 			cs)
-				SendPushover "$(/bin/date +"%c")"$'\n'$'\n'"This is a test pushover message!"
+				noteStr="This is a test Pushover message!"$'\n'"Router: $ROUTER_MODEL"
+				SendPushover "Test message from $SCRIPT_NAME - $(/bin/date +"%c")"$'\n'$'\n'"$noteStr"
 				printf "\n"
 				PressEnter
 			;;
@@ -4353,7 +4390,7 @@ Menu_CustomActions()
 							shFileCount="$((shFileCount + 1))"
 							echo
 							Print_Output false "Executing custom user script: $shFile" "$PASS"
-							sh "$shFile" PingTestOK "$(/bin/date +%c)" "30 ms" "15 ms" "90%"
+							sh "$shFile" PingTestOK "$(/bin/date +%c)" '30 ms' '15 ms' '90%' '8.8.8.8'
 						fi
 					done
 					[ "$shFileCount" -eq 0 ] && \
@@ -6214,7 +6251,7 @@ then
 fi
 
 ##----------------------------------------##
-## Modified by Martinski W. [2025-Dec-10] ##
+## Modified by Martinski W. [2025-Dec-11] ##
 ##----------------------------------------##
 case "$1" in
 	install)
@@ -6318,10 +6355,11 @@ case "$1" in
 		then
 			rm -f "$SCRIPT_WEB_DIR/detect_test.js"
 			echo 'var teststatus = "InProgress";' > "$SCRIPT_WEB_DIR/detect_test.js"
+			noteStr="<p>This is a test email!<br/>Router: ${ROUTER_MODEL}</p>"
 			NOTIFICATIONS_EMAIL_LIST="$(Email_Recipients check)"
 			if [ -z "$NOTIFICATIONS_EMAIL_LIST" ]
 			then
-				if SendEmail "Test email - $(/bin/date +"%c")" "This is a test email!"
+				if SendEmail "Test email from $SCRIPT_NAME - $(/bin/date +"%c")" "$noteStr"
 				then
 					echo 'var teststatus = "Success";' > "$SCRIPT_WEB_DIR/detect_test.js"
 				else
@@ -6332,7 +6370,7 @@ case "$1" in
 				success=true
 				for EMAIL in $NOTIFICATIONS_EMAIL_LIST
 				do
-					if ! SendEmail "Test email - $(/bin/date +"%c")" "This is a test email!" "$EMAIL"
+					if ! SendEmail "Test email from $SCRIPT_NAME - $(/bin/date +"%c")" "$noteStr" "$EMAIL"
 					then
 						success=false
 					fi
@@ -6356,9 +6394,10 @@ case "$1" in
 			fi
 			IFS=$','
 			success=true
+			noteStr="This is a test Webhook message!\nRouter: $ROUTER_MODEL"
 			for WEBHOOK in $NOTIFICATIONS_WEBHOOK_LIST
 			do
-				if ! SendWebhook "$(/bin/date +"%c")\n\nThis is a test webhook message!" "$WEBHOOK"
+				if ! SendWebhook "Test message from $SCRIPT_NAME - $(/bin/date +"%c")\n\n$noteStr" "$WEBHOOK"
 				then
 					success=false
 				fi
@@ -6374,7 +6413,8 @@ case "$1" in
 		then
 			rm -f "$SCRIPT_WEB_DIR/detect_test.js"
 			echo 'var teststatus = "InProgress";' > "$SCRIPT_WEB_DIR/detect_test.js"
-			if SendPushover "$(/bin/date +"%c")"$'\n'$'\n'"This is a test pushover message!"
+			noteStr="This is a test Pushover message!"$'\n'"Router: $ROUTER_MODEL"
+			if SendPushover "Test message from $SCRIPT_NAME - $(/bin/date +"%c")"$'\n'$'\n'"$noteStr"
 			then
 				echo 'var teststatus = "Success";' > "$SCRIPT_WEB_DIR/detect_test.js"
 			else
@@ -6396,7 +6436,7 @@ case "$1" in
 					if [ -s "$shFile" ]
 					then
 						shFileCount="$((shFileCount + 1))"
-						sh "$shFile" PingTestOK "$(/bin/date +%c)" "30 ms" "15 ms" "90%"
+						sh "$shFile" PingTestOK "$(/bin/date +%c)" '30 ms' '15 ms' '90%' '8.8.8.8'
 					fi
 				done
 				if [ "$shFileCount" -eq 0 ]
