@@ -11,7 +11,7 @@
 ##      Forked from https://github.com/jackyaz/connmon      ##
 ##                                                          ##
 ##############################################################
-# Last Modified: 2025-Dec-11
+# Last Modified: 2025-Dec-12
 #-------------------------------------------------------------
 
 ##############        Shellcheck directives      #############
@@ -37,7 +37,7 @@
 ### Start of script variables ###
 readonly SCRIPT_NAME="connmon"
 readonly SCRIPT_VERSION="v3.0.10"
-readonly SCRIPT_VERSTAG="25121122"
+readonly SCRIPT_VERSTAG="25121123"
 SCRIPT_BRANCH="develop"
 SCRIPT_REPO="https://raw.githubusercontent.com/AMTM-OSR/$SCRIPT_NAME/$SCRIPT_BRANCH"
 readonly SCRIPT_DIR="/jffs/addons/$SCRIPT_NAME.d"
@@ -3517,12 +3517,12 @@ SendToInfluxDB()
 
 	if ! echo "$PING_TARGET" | grep -qE '[ ]+'
 	then pingTARGET="$PING_TARGET"
-	then pingTARGET="$(echo "$PING_TARGET" | sed 's/ /\\ /')"
+	else pingTARGET="$(echo "$PING_TARGET" | sed 's/ /\\ /')"
 	fi
 
 	if ! echo "$ROUTER_MODEL" | grep -qE '[ ]+'
 	then routerID="$ROUTER_MODEL"
-	then routerID="$(echo "$ROUTER_MODEL" | sed 's/ /_/g')"
+	else routerID="$(echo "$ROUTER_MODEL" | sed 's/ /_/g')"
 	fi
 
 	dataTags="Jitter=${JITTER},LineQuality=${LINEQUAL},PingAvrg=${PING},PingServer=${pingTARGET},Source=$SCRIPT_NAME"
