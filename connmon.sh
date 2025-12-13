@@ -37,7 +37,7 @@
 ### Start of script variables ###
 readonly SCRIPT_NAME="connmon"
 readonly SCRIPT_VERSION="v3.0.10"
-readonly SCRIPT_VERSTAG="25121123"
+readonly SCRIPT_VERSTAG="25121222"
 SCRIPT_BRANCH="develop"
 SCRIPT_REPO="https://raw.githubusercontent.com/AMTM-OSR/$SCRIPT_NAME/$SCRIPT_BRANCH"
 readonly SCRIPT_DIR="/jffs/addons/$SCRIPT_NAME.d"
@@ -466,21 +466,21 @@ Validate_Domain()
 }
 
 ##----------------------------------------##
-## Modified by Martinski W. [2025-Dec-07] ##
+## Modified by Martinski W. [2025-Dec-12] ##
 ##----------------------------------------##
 Conf_FromSettings()
 {
 	SETTINGSFILE="/jffs/addons/custom_settings.txt"
-	TMPFILE="/tmp/connmon_settings.txt"
+	TEMP_FILE="/tmp/connmon_settings.txt"
 
 	if [ -f "$SETTINGSFILE" ]
 	then
-		if [ "$(grep "^connmon_" $SETTINGSFILE | grep -v "version" -c)" -gt 0 ]
+		if [ "$(grep "^connmon_" $SETTINGSFILE | grep -Ecv '_version_[ls]')" -gt 0 ]
 		then
 			Print_Output true "Updated settings from WebUI found, merging into $SCRIPT_CONF" "$PASS"
 			cp -a "$SCRIPT_CONF" "${SCRIPT_CONF}.bak"
-			grep "^connmon_" "$SETTINGSFILE" | grep -v "version" > "$TMPFILE"
-			sed -i "s/^connmon_//g;s/ /=/g" "$TMPFILE"
+			grep "^connmon_" "$SETTINGSFILE" | grep -Ev '_version_[ls]' > "$TEMP_FILE"
+			sed -i "s/^connmon_//g;s/ /=/g" "$TEMP_FILE"
 			while IFS='' read -r line || [ -n "$line" ]
 			do
 				SETTINGNAME="$(echo "$line" | cut -d'=' -f1 | awk '{print toupper($1)}')"
@@ -492,13 +492,13 @@ Conf_FromSettings()
 					SETTINGVALUE="$(echo "$SETTINGVALUE" | sed 's~||||~,~g')"
 				fi
 				sed -i "s~$SETTINGNAME=.*~$SETTINGNAME=$SETTINGVALUE~" "$SCRIPT_CONF"
-			done < "$TMPFILE"
+			done < "$TEMP_FILE"
 
-			grep '^connmon_version' "$SETTINGSFILE" > "$TMPFILE"
+			grep -E '^connmon_version_[ls]' "$SETTINGSFILE" > "$TEMP_FILE"
 			sed -i "\\~connmon_~d" "$SETTINGSFILE"
 			mv -f "$SETTINGSFILE" "${SETTINGSFILE}.bak"
-			cat "${SETTINGSFILE}.bak" "$TMPFILE" > "$SETTINGSFILE"
-			rm -f "$TMPFILE"
+			cat "${SETTINGSFILE}.bak" "$TEMP_FILE" > "$SETTINGSFILE"
+			rm -f "$TEMP_FILE"
 			rm -f "${SETTINGSFILE}.bak"
 
 			if diff -U0 "$SCRIPT_CONF" "${SCRIPT_CONF}.bak" | grep -qE "[-+]STORAGELOCATION="
@@ -3487,7 +3487,7 @@ SendHealthcheckPing()
 }
 
 ##----------------------------------------##
-## Modified by Martinski W. [2025-Dec-11] ##
+## Modified by Martinski W. [2025-Dec-12] ##
 ##----------------------------------------##
 SendToInfluxDB()
 {
@@ -3525,8 +3525,9 @@ SendToInfluxDB()
 	else routerID="$(echo "$ROUTER_MODEL" | sed 's/ /_/g')"
 	fi
 
-	dataTags="Jitter=${JITTER},LineQuality=${LINEQUAL},PingAvrg=${PING},PingServer=${pingTARGET},Source=$SCRIPT_NAME"
-	dataFields="Router=\"${ROUTER_MODEL}\""
+	## Variable ping test results are assigned to InfluxDB data "fields" ##
+	dataTags="Router=${routerID},Source=${SCRIPT_NAME}"
+	dataFields="Jitter=${JITTER},LineQuality=${LINEQUAL},PingAvrg=${PING},PingServer=\"${PING_TARGET}\""
 
 	curl -vSL --retry 4 --retry-delay 5 --connect-timeout 60 -o "$curlOutLogFile" \
 "${INFLUXDB_PROTO}://${INFLUXDB_HOST}:${INFLUXDB_PORT}/api/v2/write?org=${INFLUXDB_ORG}&bucket=${INFLUXDB_BID}&precision=s" \
