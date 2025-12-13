@@ -1,5 +1,5 @@
 /**----------------------------**/
-/** Last Modified: 2025-Dec-07 **/
+/** Last Modified: 2025-Dec-12 **/
 /**----------------------------**/
 
 iziToast.settings({
@@ -1123,7 +1123,7 @@ function parseLastXData(data)
 }
 
 /**----------------------------------------**/
-/** Modified by Martinski W. [2025-Nov-14] **/
+/** Modified by Martinski W. [2025-Dec-12] **/
 /**----------------------------------------**/
 $.fn.serializeObject = function()
 {
@@ -1133,13 +1133,13 @@ $.fn.serializeObject = function()
 	{
 		if (o[this.name] !== undefined &&
 		    this.name.indexOf('connmon') !== -1 &&
-		    this.name.indexOf('version') === -1 &&
 		    this.name.indexOf('ipaddr') === -1 &&
 		    this.name.indexOf('domain') === -1 &&
 		    this.name.indexOf('schdays') === -1 &&
 		    this.name.indexOf('pushover_list') === -1 &&
 		    this.name.indexOf('pushover_list') === -1 &&
 		    this.name.indexOf('webhook_list') === -1 &&
+		    this.name.indexOf('connmon_version_') === -1 &&
 		    this.name !== 'connmon_notifications_pingtest' &&
 		    this.name !== 'connmon_notifications_pingtest_failed' &&
 		    this.name !== 'connmon_notifications_pingthreshold' &&
@@ -1152,13 +1152,13 @@ $.fn.serializeObject = function()
 			o[this.name].push(this.value || '');
 		}
 		else if (this.name.indexOf('connmon') !== -1 &&
-		         this.name.indexOf('version') === -1 &&
 		         this.name.indexOf('ipaddr') === -1 &&
 		         this.name.indexOf('domain') === -1 &&
 		         this.name.indexOf('schdays') === -1 &&
 		         this.name.indexOf('pushover_list') === -1 &&
 		         this.name.indexOf('pushover_list') === -1 &&
 		         this.name.indexOf('webhook_list') === -1 &&
+		         this.name.indexOf('connmon_version_') === -1 &&
 		         this.name !== 'connmon_notifications_pingtest' &&
 		         this.name !== 'connmon_notifications_pingtest_failed' &&
 		         this.name !== 'connmon_notifications_pingthreshold' &&
@@ -1304,13 +1304,15 @@ $.fn.serializeObjectEmail = function()
 	var o = customSettings;
 	var a = this.serializeArray();
 	$.each(a, function () {
-		if (o[this.name] !== undefined && this.name.indexOf('email_') !== -1 && this.name.indexOf('show_pass') === -1) {
+		if (o[this.name] !== undefined && this.name.indexOf('email_') !== -1 && this.name.indexOf('show_pass') === -1)
+		{
 			if (!o[this.name].push) {
 				o[this.name] = [o[this.name]];
 			}
 			o[this.name].push(this.value || '');
 		}
-		else if (this.name.indexOf('email_') !== -1 && this.name.indexOf('show_pass') === -1) {
+		else if (this.name.indexOf('email_') !== -1 && this.name.indexOf('show_pass') === -1)
+		{
 			o[this.name] = this.value || '';
 		}
 	});
@@ -1742,7 +1744,8 @@ function getEmailInfo() {
 	});
 }
 
-function getChangelogFile() {
+function getChangelogFile()
+{
 	$.ajax({
 		url: '/ext/connmon/changelog.htm',
 		dataType: 'text',
@@ -1756,7 +1759,8 @@ function getChangelogFile() {
 	});
 }
 
-function getVersionNumber(versiontype) {
+function getVersionNumber(versiontype)
+{
 	var versionprop;
 	if (versiontype === 'local') {
 		versionprop = customSettings.connmon_version_local;
@@ -1773,7 +1777,8 @@ function getVersionNumber(versiontype) {
 	}
 }
 
-function getVersionChangelogFile() {
+function getVersionChangelogFile()
+{
 	$.ajax({
 		url: '/ext/connmon/detect_changelog.js',
 		dataType: 'script',
@@ -1789,7 +1794,8 @@ function getVersionChangelogFile() {
 	});
 }
 
-function buildLastXTableNoData() {
+function buildLastXTableNoData()
+{
 	var tablehtml = '<table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3" class="sortTable">';
 	tablehtml += '<tr>';
 	tablehtml += '<td colspan="6" class="nodata">';
@@ -2066,7 +2072,8 @@ function saveConfig(section)
 		default:
 			var disabledfields = $('#' + section).find('[disabled]');
 			disabledfields.prop('disabled', false);
-			document.getElementById('amng_custom').value = JSON.stringify($('#' + section).find('input,select,textarea').serializeObject());
+			var updateSettings = JSON.stringify($('#' + section).find('input,select,textarea').serializeObject());
+			document.getElementById('amng_custom').value = updateSettings;
 			document.formScriptActions.action_script.value = 'start_addon_settings;start_connmonconfig';
 			document.formScriptActions.submit();
 			disabledfields.prop('disabled', true);
