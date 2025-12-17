@@ -11,7 +11,7 @@
 ##      Forked from https://github.com/jackyaz/connmon      ##
 ##                                                          ##
 ##############################################################
-# Last Modified: 2025-Dec-12
+# Last Modified: 2025-Dec-16
 #-------------------------------------------------------------
 
 ##############        Shellcheck directives      #############
@@ -37,7 +37,7 @@
 ### Start of script variables ###
 readonly SCRIPT_NAME="connmon"
 readonly SCRIPT_VERSION="v3.0.10"
-readonly SCRIPT_VERSTAG="25121222"
+readonly SCRIPT_VERSTAG="25121620"
 SCRIPT_BRANCH="develop"
 SCRIPT_REPO="https://raw.githubusercontent.com/AMTM-OSR/$SCRIPT_NAME/$SCRIPT_BRANCH"
 readonly SCRIPT_DIR="/jffs/addons/$SCRIPT_NAME.d"
@@ -106,9 +106,10 @@ readonly ERR="\\e[31m"
 readonly WARN="\\e[33m"
 readonly PASS="\\e[32m"
 readonly BOLD="\\e[1m"
-readonly SETTING="${BOLD}\\e[36m"
-readonly UNDERLINE="\\e[4m"
-readonly CLEARFORMAT="\\e[0m"
+readonly SETTING="${BOLD}\e[36m"
+readonly UNDERLINE="\e[4m"
+readonly CLEARFORMAT="\e[0m"
+readonly BOLDUNDERLN="\e[1;4m"
 
 ##----------------------------------------##
 ## Modified by Martinski W. [2025-Feb-10] ##
@@ -123,6 +124,7 @@ readonly PassBGRNct="\e[30;102m"
 readonly WarnBYLWct="\e[30;103m"
 readonly WarnIMGNct="\e[45m"
 readonly WarnBMGNct="\e[30;105m"
+readonly menuSepStr="${BOLD}##############################################################${CLRct}"
 isInteractive=false
 [ -t 0 ] && ! tty | grep -qwi "NOT" && isInteractive=true
 
@@ -835,7 +837,7 @@ Conf_Exists()
 }
 
 ##----------------------------------------##
-## Modified by Martinski W. [2025-Jun-06] ##
+## Modified by Martinski W. [2025-Dec-15] ##
 ##----------------------------------------##
 PingServer()
 {
@@ -845,21 +847,21 @@ PingServer()
 			while true
 			do
 				ScriptHeader
-				printf "\n${BOLD}Current ping destination: ${GRNct}%s${CLEARFORMAT}\n\n" "$(PingServer check)"
+				printf " ${BOLD}Current ping server destination: ${GRNct}%s${CLRct}\n\n" "$(PingServer check)"
 				if "$exitOK"
 				then PressEnter ; break
 				fi
-				printf "1.   Enter IP Address\n"
-				printf "2.   Enter Domain Name\n"
-				printf "e.   Return to Main Menu\n"
-				printf "\n${BOLD}Choose an option:${CLEARFORMAT}  "
+				printf "  ${GRNct}1${CLRct}. Enter IP Address\n"
+				printf "  ${GRNct}2${CLRct}. Enter Domain Name\n"
+				printf "  ${GRNct}e${CLRct}. Go back\n"
+				printf "\n${BOLD}Choose an option:${CLRct}  "
 				read -r pingoption
 
 				case "$pingoption" in
 					1)
 						while true
 						do
-							printf "\n${BOLD}Please enter an IP address (e=Exit):${CLEARFORMAT}  "
+							printf "\n${BOLD}Please enter an IP address (e=Exit):${CLRct}  "
 							read -r ipoption
 							if [ "$ipoption" = "e" ]
 							then
@@ -874,7 +876,7 @@ PingServer()
 					2)
 						while true
 						do
-							printf "\n${BOLD}Please enter a domain name (e=Exit):${CLEARFORMAT}  "
+							printf "\n${BOLD}Please enter a domain name (e=Exit):${CLRct}  "
 							read -r domainoption
 							if [ "$domainoption" = "e" ]
 							then
@@ -889,7 +891,7 @@ PingServer()
 					e) break
 					;;
 					*)
-						printf "\n${BOLD}${ERR}Please choose a valid option.${CLEARFORMAT}\n\n"
+						printf "\n${BOLD}${ERR}Please choose a valid option.${CLRct}\n\n"
 						PressEnter
 					;;
 				esac
@@ -916,8 +918,9 @@ PingDuration()
 			while true
 			do
 				ScriptHeader
-				printf "${BOLD}Current number of seconds for ping tests: ${GRNct}${pingSecs}${CLRct}\n"
-				printf "\n${BOLD}Please enter the maximum number of seconds\nto run the ping tests [${MINvalue}-${MAXvalue}] (e=Exit):${CLEARFORMAT}  "
+				printf " ${BOLD}Current number of seconds for ping tests: ${GRNct}${pingSecs}${CLRct}\n\n"
+				printf " ${BOLD}Please enter the maximum number of seconds\n"
+				printf " to run the ping tests [${GRNct}${MINvalue}-${MAXvalue}${CLRct}] (e=Exit):${CLRct}  "
 				read -r pingdur_choice
 				if [ -z "$pingdur_choice" ] && \
 				   echo "$pingSecs" | grep -qE "^([1-9][0-9])$" && \
@@ -931,11 +934,11 @@ PingDuration()
 					break
 				elif ! Validate_Number "$pingdur_choice"
 				then
-					printf "\n${ERR}Please enter a valid number [${MINvalue}-${MAXvalue}].${CLEARFORMAT}\n"
+					printf "\n${ERR}Please enter a valid number [${MINvalue}-${MAXvalue}].${CLRct}\n"
 					PressEnter
 				elif [ "$pingdur_choice" -lt "$MINvalue" ] || [ "$pingdur_choice" -gt "$MAXvalue" ]
 				then
-					printf "\n${ERR}Please enter a number between ${MINvalue} and ${MAXvalue}.${CLEARFORMAT}\n"
+					printf "\n${ERR}Please enter a number between ${MINvalue} and ${MAXvalue}.${CLRct}\n"
 					PressEnter
 				else
 					pingSecs="$pingdur_choice"
@@ -972,8 +975,9 @@ DaysToKeep()
 			while true
 			do
 				ScriptHeader
-				printf "${BOLD}Current number of days to keep data: ${GRNct}${daysToKeep}${CLRct}\n\n"
-				printf "${BOLD}Please enter the maximum number of days\nto keep the data for [${MINvalue}-${MAXvalue}] (e=Exit):${CLEARFORMAT}  "
+				printf " ${BOLD}Current number of days to keep data: ${GRNct}${daysToKeep}${CLRct}\n\n"
+				printf " ${BOLD}Please enter the maximum number of days\n"
+				printf " to keep the data for [${GRNct}${MINvalue}-${MAXvalue}${CLRct}] (e=Exit):${CLRct}  "
 				read -r daystokeep_choice
 				if [ -z "$daystokeep_choice" ] && \
 				   echo "$daysToKeep" | grep -qE "^([1-9][0-9]{1,2})$" && \
@@ -987,11 +991,11 @@ DaysToKeep()
 					break
 				elif ! Validate_Number "$daystokeep_choice"
 				then
-					printf "\n${ERR}Please enter a valid number [${MINvalue}-${MAXvalue}].${CLEARFORMAT}\n"
+					printf "\n${ERR}Please enter a valid number [${MINvalue}-${MAXvalue}].${CLRct}\n"
 					PressEnter
 				elif [ "$daystokeep_choice" -lt "$MINvalue" ] || [ "$daystokeep_choice" -gt "$MAXvalue" ]
 				then
-					printf "\n${ERR}Please enter a number between ${MINvalue} and ${MAXvalue}.${CLEARFORMAT}\n"
+					printf "\n${ERR}Please enter a number between ${MINvalue} and ${MAXvalue}.${CLRct}\n"
 					PressEnter
 				else
 					daysToKeep="$daystokeep_choice"
@@ -1028,8 +1032,9 @@ LastXResults()
 			while true
 			do
 				ScriptHeader
-				printf "${BOLD}Current number of results to display: ${GRNct}${lastXResults}${CLRct}\n\n"
-				printf "${BOLD}Please enter the maximum number of results\nto display in the WebUI [${MINvalue}-${MAXvalue}] (e=Exit):${CLEARFORMAT}  "
+				printf " ${BOLD}Current number of results to display: ${GRNct}${lastXResults}${CLRct}\n\n"
+				printf " ${BOLD}Please enter the maximum number of results\n"
+				printf " to display in the WebUI [${GRNct}${MINvalue}-${MAXvalue}${CLRct}] (e=Exit):${CLRct}  "
 				read -r lastx_choice
 				if [ -z "$lastx_choice" ] && \
 				   echo "$lastXResults" | grep -qE "^([1-9][0-9]{0,2})$" && \
@@ -1043,11 +1048,11 @@ LastXResults()
 					break
 				elif ! Validate_Number "$lastx_choice"
 				then
-					printf "\n${ERR}Please enter a valid number [${MINvalue}-${MAXvalue}].${CLEARFORMAT}\n"
+					printf "\n${ERR}Please enter a valid number [${MINvalue}-${MAXvalue}].${CLRct}\n"
 					PressEnter
 				elif [ "$lastx_choice" -lt "$MINvalue" ] || [ "$lastx_choice" -gt "$MAXvalue" ]
 				then
-					printf "\n${ERR}Please enter a number between ${MINvalue} and ${MAXvalue}.${CLEARFORMAT}\n"
+					printf "\n${ERR}Please enter a number between ${MINvalue} and ${MAXvalue}.${CLRct}\n"
 					PressEnter
 				else
 					lastXResults="$lastx_choice"
@@ -3525,7 +3530,7 @@ SendToInfluxDB()
 	else routerID="$(echo "$ROUTER_MODEL" | sed 's/ /_/g')"
 	fi
 
-	## Variable ping test results are assigned to InfluxDB data "fields" ##
+	## Variable ping test results are assigned to InfluxDB "data fields" ##
 	dataTags="Router=${routerID},Source=${SCRIPT_NAME}"
 	dataFields="Jitter=${JITTER},LineQuality=${LINEQUAL},PingAvrg=${PING},PingServer=\"${PING_TARGET}\""
 
@@ -4024,8 +4029,8 @@ Menu_EmailNotifications()
 		printf "  ${GRNct}c9${CLRct}. Set SMTP Protocol         Currently: ${SETTING}%s${CLRct}\n" "$PROTOCOL"
 		printf " ${GRNct}c10${CLRct}. Set SSL Requirement       Currently: ${SETTING}%s${CLRct}\n\n" "$SSL_FlagStr"
 		printf "  ${GRNct}cs${CLRct}. Send a test email\n\n"
-		printf "   ${GRNct}e${CLRct}. Go back\n\n"
-		printf "${BOLD}##############################################################${CLRct}\n\n"
+		printf "   ${GRNct}e${CLRct}. Go back\n"
+		printf "\n${menuSepStr}\n\n"
 
 		printf "Choose an option:  "
 		read -r emailmenu
@@ -4122,8 +4127,8 @@ Menu_WebhookNotifications()
 		printf "     Current webhooks:\n"
 		printf "     ${SETTING}${notificationsWEBHOOK_LIST}${CLRct}\n\n"
 		printf " ${GRNct}cs${CLRct}. Send a test webhook notification\n\n"
-		printf "  ${GRNct}e${CLRct}. Go back\n\n"
-		printf "${BOLD}##############################################################${CLRct}\n\n"
+		printf "  ${GRNct}e${CLRct}. Go back\n"
+		printf "\n${menuSepStr}\n\n"
 
 		printf "Choose an option:  "
 		read -r webhookmenu
@@ -4210,8 +4215,8 @@ Menu_PushoverNotifications()
 		printf " ${GRNct}c3${CLRct}. Set list of Pushover devices for %s\n" "$SCRIPT_NAME"
 		printf "     Current devices: ${SETTING}${notificationsPUSHOVER_LIST}${CLRct}\n\n"
 		printf " ${GRNct}cs${CLRct}. Send a test Pushover notification\n\n"
-		printf "  ${GRNct}e${CLRct}. Go back\n\n"
-		printf "${BOLD}##############################################################${CLRct}\n\n"
+		printf "  ${GRNct}e${CLRct}. Go back\n"
+		printf "\n${menuSepStr}\n\n"
 
 		printf "Choose an option:  "
 		read -r pushoverOption
@@ -4273,8 +4278,8 @@ CustomAction_Info()
 		printf "${BOLD}opkg install python3 python3-pip && /opt/bin/python3 -m pip install --upgrade pip${CLRct}\n\n"
 		printf "Apprise can then be leveraged at the command line as shown here:\n"
 		printf "${BOLD}https://github.com/caronc/apprise#command-line${CLRct}\n\n"
-		printf " ${GRNct}e${CLRct}. Go back\n\n"
-		printf "${BOLD}##############################################################${CLRct}\n\n"
+		printf " ${GRNct}e${CLRct}. Go back\n"
+		printf "\n${menuSepStr}\n\n"
 	fi
 
 	{
@@ -4445,8 +4450,8 @@ Menu_HealthcheckNotifications()
 		printf "     Cron schedule for Healthchecks.io configuration:\n"
 		printf "     ${HEALTHCHECK_CRON}${CLRct}\n\n"
 		printf " ${GRNct}cs${CLRct}. Send a test Healthcheck notification\n\n"
-		printf "  ${GRNct}e${CLRct}. Go back\n\n"
-		printf "${BOLD}##############################################################${CLRct}\n\n"
+		printf "  ${GRNct}e${CLRct}. Go back\n"
+		printf "\n${menuSepStr}\n\n"
 
 		printf "Choose an option:  "
 		read -r healthcheckOption
@@ -4515,8 +4520,8 @@ Menu_InfluxDB()
 		printf "  ${GRNct}c9${CLRct}. Set InfluxDB API Token (v2.x only)\n"
 		printf "      Currently: ${SETTING}%s${CLRct}\n\n" "$(Conf_Parameters check NOTIFICATIONS_INFLUXDB_APITOKEN)"
 		printf "  ${GRNct}cs${CLRct}. Send test data to InfluxDB\n\n"
-		printf "   ${GRNct}e${CLRct}. Go back\n\n"
-		printf "${BOLD}##############################################################${CLRct}\n\n"
+		printf "   ${GRNct}e${CLRct}. Go back\n"
+		printf "\n${menuSepStr}\n\n"
 
 		printf "Choose an option:  "
 		read -r influxdbOption
@@ -4579,7 +4584,7 @@ Menu_InfluxDB()
 }
 
 ##----------------------------------------##
-## Modified by Martinski W. [2025-Nov-14] ##
+## Modified by Martinski W. [2025-Dec-15] ##
 ##----------------------------------------##
 Menu_Notifications()
 {
@@ -4587,61 +4592,60 @@ Menu_Notifications()
 	do
 		ScriptHeader
 		printf "  ${BOLD}${GRNct}${UNDERLINE}Notification Types${CLRct}\n\n"
-		printf "  1.  Ping test success\n"
-		printf "      Current methods: ${SETTING}$(NotificationMethods check PingTestOK)${CLEARFORMAT}\n\n"
-		printf "  2.  Ping test failure\n"
-		printf "      Current methods: ${SETTING}$(NotificationMethods check PingTestFailed)${CLEARFORMAT}\n\n"
-		printf "  3.  Ping threshold (values above this will trigger an alert)\n"
-		printf "      Current threshold: ${SETTING}$(Conf_Parameters check NOTIFICATIONS_PINGTHRESHOLD_VALUE) ms${CLEARFORMAT}\n"
-		printf "      Current methods: ${SETTING}$(NotificationMethods check PingThreshold)${CLEARFORMAT}\n\n"
-		printf "  4.  Jitter threshold (values above this will trigger an alert)\n"
-		printf "      Current threshold: ${SETTING}$(Conf_Parameters check NOTIFICATIONS_JITTERTHRESHOLD_VALUE) ms${CLEARFORMAT}\n"
-		printf "      Current methods: ${SETTING}$(NotificationMethods check JitterThreshold)${CLEARFORMAT}\n\n"
-		printf "  5.  Line Quality threshold (values below this will trigger an alert)\n"
-		printf "      Current threshold: ${SETTING}$(Conf_Parameters check NOTIFICATIONS_LINEQUALITYTHRESHOLD_VALUE) %%${CLEARFORMAT}\n"
-		printf "      Current methods: ${SETTING}$(NotificationMethods check LineQualityThreshold)${CLEARFORMAT}\n\n"
+		printf "   ${GRNct}1${CLRct}. Ping test success\n"
+		printf "      Current methods: ${SETTING}$(NotificationMethods check PingTestOK)${CLRct}\n\n"
+		printf "   ${GRNct}2${CLRct}. Ping test failure\n"
+		printf "      Current methods: ${SETTING}$(NotificationMethods check PingTestFailed)${CLRct}\n\n"
+		printf "   ${GRNct}3${CLRct}. Ping threshold (values above this will trigger an alert)\n"
+		printf "      Current threshold: ${SETTING}$(Conf_Parameters check NOTIFICATIONS_PINGTHRESHOLD_VALUE) ms${CLRct}\n"
+		printf "      Current methods: ${SETTING}$(NotificationMethods check PingThreshold)${CLRct}\n\n"
+		printf "   ${GRNct}4${CLRct}. Jitter threshold (values above this will trigger an alert)\n"
+		printf "      Current threshold: ${SETTING}$(Conf_Parameters check NOTIFICATIONS_JITTERTHRESHOLD_VALUE) ms${CLRct}\n"
+		printf "      Current methods: ${SETTING}$(NotificationMethods check JitterThreshold)${CLRct}\n\n"
+		printf "   ${GRNct}5${CLRct}. Line Quality threshold (values below this will trigger an alert)\n"
+		printf "      Current threshold: ${SETTING}$(Conf_Parameters check NOTIFICATIONS_LINEQUALITYTHRESHOLD_VALUE) %%${CLRct}\n"
+		printf "      Current methods: ${SETTING}$(NotificationMethods check LineQualityThreshold)${CLRct}\n\n"
 
-		printf "\n  ${BOLD}${GRNct}${UNDERLINE}Notification Methods and Integrations${CLEARFORMAT}\n\n"
+		printf "\n  ${BOLD}${GRNct}${UNDERLINE}Notification Methods and Integrations${CLRct}\n\n"
 		NOTIFICATION_SETTING=""
 		if ToggleNotificationTypes check NOTIFICATIONS_EMAIL
 		then NOTIFICATION_SETTING="${PASS}Enabled"
 		else NOTIFICATION_SETTING="${ERR}Disabled"
 		fi
-		printf " em.  Email (shared with other addons/scripts e.g. Diversion)\n"
-		printf "      Currently: ${BOLD}${NOTIFICATION_SETTING}${CLEARFORMAT}\n\n"
+		printf "  ${GRNct}em${CLRct}. Email (shared with other addons/scripts e.g. Diversion)\n"
+		printf "      Currently: ${BOLD}${NOTIFICATION_SETTING}${CLRct}\n\n"
 		if ToggleNotificationTypes check NOTIFICATIONS_WEBHOOK
 		then NOTIFICATION_SETTING="${PASS}Enabled"
 		else NOTIFICATION_SETTING="${ERR}Disabled"
 		fi
-		printf " wb.  Discord webhook\n"
-		printf "      Currently: ${BOLD}${NOTIFICATION_SETTING}${CLEARFORMAT}\\n\\n"
+		printf "  ${GRNct}wb${CLRct}. Discord webhook\n"
+		printf "      Currently: ${BOLD}${NOTIFICATION_SETTING}${CLRct}\n\n"
 		if ToggleNotificationTypes check NOTIFICATIONS_PUSHOVER
 		then NOTIFICATION_SETTING="${PASS}Enabled"
 		else NOTIFICATION_SETTING="${ERR}Disabled"
 		fi
-		printf " po.  Pushover\n"
-		printf "      Currently: ${BOLD}${NOTIFICATION_SETTING}${CLEARFORMAT}\\n\\n"
+		printf "  ${GRNct}po${CLRct}. Pushover\n"
+		printf "      Currently: ${BOLD}${NOTIFICATION_SETTING}${CLRct}\n\n"
 		if ToggleNotificationTypes check NOTIFICATIONS_CUSTOM
 		then NOTIFICATION_SETTING="${PASS}Enabled"
 		else NOTIFICATION_SETTING="${ERR}Disabled"
 		fi
-		printf " ca.  Custom actions and user scripts\n"
-		printf "      Currently: ${BOLD}${NOTIFICATION_SETTING}${CLEARFORMAT}\\n\\n"
+		printf "  ${GRNct}ca${CLRct}. Custom actions and user scripts\n"
+		printf "      Currently: ${BOLD}${NOTIFICATION_SETTING}${CLRct}\n\n"
 		if ToggleNotificationTypes check NOTIFICATIONS_HEALTHCHECK
 		then NOTIFICATION_SETTING="${PASS}Enabled"
 		else NOTIFICATION_SETTING="${ERR}Disabled"
 		fi
-		printf " hc.  Healthchecks.io\n"
-		printf "      Currently: ${BOLD}${NOTIFICATION_SETTING}${CLEARFORMAT}\\n\\n"
+		printf "  ${GRNct}hc${CLRct}. Healthchecks.io\n"
+		printf "      Currently: ${BOLD}${NOTIFICATION_SETTING}${CLRct}\n\n"
 		if ToggleNotificationTypes check NOTIFICATIONS_INFLUXDB
 		then NOTIFICATION_SETTING="${PASS}Enabled"
 		else NOTIFICATION_SETTING="${ERR}Disabled"
 		fi
-		printf " id.  InfluxDB exporting\n"
-		printf "      Currently: ${BOLD}${NOTIFICATION_SETTING}${CLEARFORMAT}\\n\\n"
-		printf "  e.  Go back\n\n"
-		printf "${BOLD}##############################################################${CLEARFORMAT}\n"
-		printf "\n"
+		printf "  ${GRNct}id${CLRct}. InfluxDB exporting\n"
+		printf "      Currently: ${BOLD}${NOTIFICATION_SETTING}${CLRct}\n\n"
+		printf "   ${GRNct}e${CLRct}. Go back\n"
+		printf "\n${menuSepStr}\n\n"
 
 		printf "Choose an option:  "
 		read -r notificationsmenu
@@ -4678,7 +4682,7 @@ Menu_Notifications()
 }
 
 ##----------------------------------------##
-## Modified by Martinski W. [2025-Nov-14] ##
+## Modified by Martinski W. [2025-Dec-15] ##
 ##----------------------------------------##
 NotificationMethods()
 {
@@ -4687,7 +4691,7 @@ NotificationMethods()
 			while true
 			do
 				ScriptHeader
-				printf " ${BOLD}${GRNct}${UNDERLINE}${2}${CLEARFORMAT}\n\n"
+				printf " ${BOLD}${GRNct}${UNDERLINE}${2}${CLRct}\n\n"
 				if [ "$2" = "PingThreshold" ]  || \
 				   [ "$2" = "JitterThreshold" ] || \
 				   [ "$2" = "LineQualityThreshold" ]
@@ -4706,18 +4710,18 @@ NotificationMethods()
 							UNIT="%%"
 						;;
 					esac
-					printf "c1.   Set threshold value - Currently: ${SETTING}$(Conf_Parameters check "$PARAMETERNAME") $UNIT${CLEARFORMAT}\n\n"
+					printf " ${GRNct}c1${CLRct}. Set threshold value - Currently: ${SETTING}$(Conf_Parameters check "$PARAMETERNAME") $UNIT${CLRct}\n\n"
 				fi
 				SETTINGNAME="" ; SETTINGVALUE=""
 
-				printf "Please choose the notification methods to enable\n"
-				printf "${BOLD}Currently enabled: ${SETTING}%s${CLEARFORMAT}\n\n" "$(NotificationMethods check "$2")"
-				printf " 1.   Email\n"
-				printf " 2.   Webhook\n"
-				printf " 3.   Pushover\n"
-				printf " 4.   Custom\n"
-				printf " 5.   None\n\n"
-				printf " e.   Go back\n\n"
+				printf " Please choose the notification methods to enable\n"
+				printf " ${BOLD}Currently enabled: ${SETTING}%s${CLRct}\n\n" "$(NotificationMethods check "$2")"
+				printf "  ${GRNct}1${CLRct}. Email\n"
+				printf "  ${GRNct}2${CLRct}. Webhook\n"
+				printf "  ${GRNct}3${CLRct}. Pushover\n"
+				printf "  ${GRNct}4${CLRct}. Custom\n"
+				printf "  ${GRNct}5${CLRct}. None\n\n"
+				printf "  ${GRNct}e${CLRct}. Go back\n\n"
 				printf "Choose an option:  "
 				read -r methodsmenu
 				case "$methodsmenu" in
@@ -4955,32 +4959,107 @@ _CronScheduleHourMinsInfo_()
 }
 
 ##----------------------------------------##
-## Modified by Martinski W. [2025-Nov-14] ##
+## Modified by Martinski W. [2025-Dec-15] ##
 ##----------------------------------------##
-MainMenu()
+_HandleInvalidMenuOption_()
 {
-	local menuOption  storageLocStr  automaticModeStatus
-	local jffsFreeSpace  jffsFreeSpaceStr  jffsSpaceMsgTag
+	[ -n "$menuOption" ] && \
+	printf "\n${REDct}INVALID input [$menuOption]${CLRct}"
+	printf "\nPlease choose a valid option.\n\n"
+}
+
+##----------------------------------------##
+## Modified by Martinski W. [2025-Dec-15] ##
+##----------------------------------------##
+_Menu_PingTestOptions_()
+{
+	local menuOption  exitMenu=false
+	local OPTION_FOR_QOS  TEST_SCHED_LINE  TEST_SCHED_DAYS
+	local TEST_SCHED_MENU  CRON_SCHED_DAYS  CRON_SCHED_HOUR  CRON_SCHED_MINS
 
 	if [ "$(ExcludeFromQoS check)" = "true" ]
-	then EXCLUDEFROMQOS_MENU="excluded from"
-	else EXCLUDEFROMQOS_MENU="included in"
+	then OPTION_FOR_QOS="excluded from"
+	else OPTION_FOR_QOS="included in"
 	fi
 
-	if AutomaticMode check
-	then automaticModeStatus="${PassBGRNct} ENABLED ${CLRct}"
-	else automaticModeStatus="${CritIREDct} DISABLED ${CLRct}"
-	fi
-
-	TEST_SCHEDULE="$(CronTestSchedule check)"
-	CRON_SCHED_DAYS="$(echo "$TEST_SCHEDULE" | cut -f1 -d'|')"
-	CRON_SCHED_HOUR="$(echo "$TEST_SCHEDULE" | cut -f2 -d'|')"
-	CRON_SCHED_MINS="$(echo "$TEST_SCHEDULE" | cut -f3 -d'|')"
+	TEST_SCHED_LINE="$(CronTestSchedule check)"
+	CRON_SCHED_DAYS="$(echo "$TEST_SCHED_LINE" | cut -f1 -d'|')"
+	CRON_SCHED_HOUR="$(echo "$TEST_SCHED_LINE" | cut -f2 -d'|')"
+	CRON_SCHED_MINS="$(echo "$TEST_SCHED_LINE" | cut -f3 -d'|')"
 	if [ "$CRON_SCHED_DAYS" = "*" ]
-	then TEST_SCHEDULE_DAYS="Every day"
-	else TEST_SCHEDULE_DAYS="Days of Week: $CRON_SCHED_DAYS"
+	then TEST_SCHED_DAYS="Every day"
+	else TEST_SCHED_DAYS="Days of Week: $CRON_SCHED_DAYS"
 	fi
-	TEST_SCHEDULE_MENU="$(_CronScheduleHourMinsInfo_ "$CRON_SCHED_HOUR" "$CRON_SCHED_MINS")"
+	TEST_SCHED_MENU="$(_CronScheduleHourMinsInfo_ "$CRON_SCHED_HOUR" "$CRON_SCHED_MINS")"
+
+	ScriptHeader
+	printf " ${BOLDUNDERLN}${GRNct}Ping Test Options${CLRct}\n\n"
+
+	printf "  ${GRNct}1${CLRct}. Set preferred ping server\n"
+	printf "     Currently: ${SETTING}%s${CLRct}\n\n" "$(PingServer check)"
+	printf "  ${GRNct}2${CLRct}. Set ping test duration\n"
+	printf "     Currently: ${SETTING}%s sec.${CLRct}\n\n" "$(PingDuration check)"
+	printf "  ${GRNct}3${CLRct}. Set schedule for automatic ping tests\n"
+	printf "     Currently: ${SETTING}%s - %s${CLRct}\n\n" "$TEST_SCHED_MENU" "$TEST_SCHED_DAYS"
+	printf "  ${GRNct}q${CLRct}. Toggle exclusion of %s ping tests from QoS\n" "$SCRIPT_NAME"
+	printf "     Currently: %s ping tests are ${SETTING}%s${CLRct} QoS\n\n" "$SCRIPT_NAME" "$OPTION_FOR_QOS"
+	printf "  ${GRNct}e${CLRct}. Return to Main Menu\n"
+	printf "\n${menuSepStr}\n\n"
+
+	while true
+	do
+		printf "Choose an option:  "
+		read -r menuOption
+		case "$menuOption" in
+			1)
+				printf "\n"
+				PingServer update
+				break
+			;;
+			2)
+				printf "\n"
+				PingDuration update && PressEnter
+				break
+			;;
+			3)
+				printf "\n"
+				Menu_EditCronSchedule
+				PressEnter
+				break
+			;;
+			q)
+				printf "\n"
+				if [ "$(ExcludeFromQoS check)" = "true" ]
+				then
+					ExcludeFromQoS disable
+				elif [ "$(ExcludeFromQoS check)" = "false" ]
+				then
+					ExcludeFromQoS enable
+				fi
+				break
+			;;
+			e) exitMenu=true
+			   break
+			;;
+			*)
+				_HandleInvalidMenuOption_
+				PressEnter
+				break
+			;;
+		esac
+	done
+
+	"$exitMenu" && return 0
+	_Menu_PingTestOptions_
+}
+
+##----------------------------------------##
+## Modified by Martinski W. [2025-Dec-15] ##
+##----------------------------------------##
+_Menu_DatabaseOptions_()
+{
+	local menuOption  exitMenu=false  storageLocStr
+	local jffsFreeSpace  jffsFreeSpaceStr  jffsSpaceMsgTag
 
 	storageLocStr="$(ScriptStorageLocation check | tr 'a-z' 'A-Z')"
 
@@ -4997,39 +5076,21 @@ MainMenu()
 		jffsFreeSpaceStr="${WarnBYLWct} $jffsFreeSpace ${CLRct}  ${jffsSpaceMsgTag}${CLRct}"
 	fi
 
-	printf " WebUI for %s is available at:\n ${SETTING}%s${CLEARFORMAT}\n\n" "$SCRIPT_NAME" "$(Get_WebUI_URL)"
+	ScriptHeader
+	printf " ${BOLDUNDERLN}${GRNct}Database Options${CLRct}\n\n"
 
-	printf "  1.   Check connection now\n"
-	printf "       Database size: ${SETTING}%s${CLEARFORMAT}\n\n" "$(_GetFileSize_ "$CONNSTATS_DB" HRx)"
-	printf "  2.   Set preferred ping server\n"
-	printf "       Currently: ${SETTING}%s${CLEARFORMAT}\n\n" "$(PingServer check)"
-	printf "  3.   Set ping test duration\n"
-	printf "       Currently: ${SETTING}%s sec.${CLEARFORMAT}\n\n" "$(PingDuration check)"
-	printf "  4.   Toggle automatic ping tests\n"
-	printf "       Currently: ${automaticModeStatus}${CLEARFORMAT}\n\n"
-	printf "  5.   Set schedule for automatic ping tests\n"
-	printf "       Currently: ${SETTING}%s - %s${CLEARFORMAT}\n\n" "$TEST_SCHEDULE_MENU" "$TEST_SCHEDULE_DAYS"
-	printf "  6.   Toggle time output mode\n"
-	printf "       Currently: ${SETTING}%s${CLEARFORMAT} time values will be used for CSV exports\n\n" "$(OutputTimeMode check)"
-	printf "  7.   Set number of ping test results to show in WebUI\n"
-	printf "       Currently: ${SETTING}%s results will be shown${CLEARFORMAT}\n\n" "$(LastXResults check)"
-	printf "  8.   Set number of days data to keep in database\n"
-	printf "       Currently: ${SETTING}%s days data will be kept${CLEARFORMAT}\n\n" "$(DaysToKeep check)"
-	printf "  s.   Toggle storage location for stats and config\n"
-	printf "       Current location: ${SETTING}%s${CLEARFORMAT}\n" "$storageLocStr"
-	printf "       JFFS Available: ${jffsFreeSpaceStr}${CLEARFORMAT}\n\n"
-	printf "  q.   Toggle exclusion of %s ping tests from QoS\n" "$SCRIPT_NAME"
-	printf "       Currently: %s ping tests are ${SETTING}%s${CLEARFORMAT} QoS\n\n" "$SCRIPT_NAME" "$EXCLUDEFROMQOS_MENU"
-	printf "  n.   Configure notifications and integrations for %s\n\n" "$SCRIPT_NAME"
-	printf "  u.   Check for updates\n"
-	printf " uf.   Update %s with latest version (force update)\n\n" "$SCRIPT_NAME"
-	printf " cl.   View changelog for %s (use q to exit)\n\n" "$SCRIPT_NAME"
-	printf "  r.   Reset %s database / delete all data\n\n" "$SCRIPT_NAME"
-	printf "  e.   Exit %s\n\n" "$SCRIPT_NAME"
-	printf "  z.   Uninstall %s\n" "$SCRIPT_NAME"
-	printf "\n"
-	printf "${BOLD}##############################################################${CLEARFORMAT}\n"
-	printf "\n"
+	printf "   ${GRNct}1${CLRct}. Toggle time output mode\n"
+	printf "      Currently: ${SETTING}%s${CLRct} time values will be used for CSV exports\n\n" "$(OutputTimeMode check)"
+	printf "   ${GRNct}2${CLRct}. Set number of ping test database results to show in WebUI\n"
+	printf "      Currently: ${SETTING}%s results will be shown${CLRct}\n\n" "$(LastXResults check)"
+	printf "   ${GRNct}3${CLRct}. Set maximum number of days data to keep in database\n"
+	printf "      Currently: ${SETTING}%s days data will be kept${CLRct}\n\n" "$(DaysToKeep check)"
+	printf "   ${GRNct}s${CLRct}. Toggle storage location for database stats and config\n"
+	printf "      Current location: ${SETTING}%s${CLRct}\n" "$storageLocStr"
+	printf "      JFFS Available: ${jffsFreeSpaceStr}${CLRct}\n\n"
+	printf "  ${GRNct}rs${CLRct}. Reset %s database / delete all data\n\n" "$SCRIPT_NAME"
+	printf "   ${GRNct}e${CLRct}. Return to Main Menu\n"
+	printf "\n${menuSepStr}\n\n"
 
 	while true
 	do
@@ -5038,58 +5099,21 @@ MainMenu()
 		case "$menuOption" in
 			1)
 				printf "\n"
-				if Check_Lock menu
+				if [ "$(OutputTimeMode check)" = "unix" ]
 				then
-					Run_PingTest
-					Clear_Lock
-				fi
-				PressEnter
-				break
-			;;
-			2)
-				printf "\n"
-				PingServer update
-				break
-			;;
-			3)
-				printf "\n"
-				PingDuration update && PressEnter
-				break
-			;;
-			4)
-				printf "\n"
-				if Check_Lock menu
-				then
-				    if AutomaticMode check
-				    then AutomaticMode disable
-				    else AutomaticMode enable
-				    fi
-				    Clear_Lock
-				    PressEnter
-				fi
-				break
-			;;
-			5)
-				printf "\n"
-				Menu_EditSchedule
-				PressEnter
-				break
-			;;
-			6)
-				printf "\n"
-				if [ "$(OutputTimeMode check)" = "unix" ]; then
 					OutputTimeMode non-unix
-				elif [ "$(OutputTimeMode check)" = "non-unix" ]; then
+				elif [ "$(OutputTimeMode check)" = "non-unix" ]
+				then
 					OutputTimeMode unix
 				fi
 				break
 			;;
-			7)
+			2)
 				printf "\n"
 				LastXResults update && PressEnter
 				break
 			;;
-			8)
+			3)
 				printf "\n"
 				DaysToKeep update && PressEnter
 				break
@@ -5116,13 +5140,95 @@ MainMenu()
 				fi
 				break
 			;;
-			q)
+			rs)
 				printf "\n"
-				if [ "$(ExcludeFromQoS check)" = "true" ]; then
-					ExcludeFromQoS disable
-				elif [ "$(ExcludeFromQoS check)" = "false" ]; then
-					ExcludeFromQoS enable
+				if Check_Lock menu
+				then
+					Menu_ResetDB
+					Clear_Lock
 				fi
+				PressEnter
+				break
+			;;
+			e) exitMenu=true
+			   break
+			;;
+			*)
+				_HandleInvalidMenuOption_
+				PressEnter
+				break
+			;;
+		esac
+	done
+
+	"$exitMenu" && return 0
+	_Menu_DatabaseOptions_
+}
+
+##----------------------------------------##
+## Modified by Martinski W. [2025-Dec-15] ##
+##----------------------------------------##
+MainMenu()
+{
+	local menuOption  automaticModeStatus
+
+	if AutomaticMode check
+	then automaticModeStatus="${PassBGRNct} ENABLED ${CLRct}"
+	else automaticModeStatus="${CritIREDct} DISABLED ${CLRct}"
+	fi
+	_UpdateJFFS_FreeSpaceInfo_
+
+	printf " WebUI for %s is available at:\n" "$SCRIPT_NAME"
+	printf " ${SETTING}%s${CLRct}\n\n" "$(Get_WebUI_URL)"
+
+	printf "   ${GRNct}1${CLRct}. Check connection now\n"
+	printf "      Database size: ${SETTING}%s${CLRct}\n\n" "$(_GetFileSize_ "$CONNSTATS_DB" HRx)"
+	printf "   ${GRNct}2${CLRct}. Toggle automatic ping tests\n"
+	printf "      Currently: ${automaticModeStatus}${CLRct}\n\n"
+	printf "   ${GRNct}3${CLRct}. Configure ping test options\n\n"
+	printf "   ${GRNct}4${CLRct}. Configure database options\n\n"
+	printf "   ${GRNct}n${CLRct}. Configure notifications and integrations for %s\n\n" "$SCRIPT_NAME"
+	printf "   ${GRNct}u${CLRct}. Check for updates\n"
+	printf "  ${GRNct}uf${CLRct}. Update %s with latest version (force update)\n\n" "$SCRIPT_NAME"
+	printf "  ${GRNct}cl${CLRct}. View changelog for %s (use q to exit)\n\n" "$SCRIPT_NAME"
+	printf "   ${GRNct}e${CLRct}. Exit %s\n\n" "$SCRIPT_NAME"
+	printf "   ${GRNct}z${CLRct}. Uninstall %s\n" "$SCRIPT_NAME"
+	printf "\n${menuSepStr}\n\n"
+
+	while true
+	do
+		printf "Choose an option:  "
+		read -r menuOption
+		case "$menuOption" in
+			1)
+				printf "\n"
+				if Check_Lock menu
+				then
+					Run_PingTest
+					Clear_Lock
+				fi
+				PressEnter
+				break
+			;;
+			2)
+				printf "\n"
+				if Check_Lock menu
+				then
+				    if AutomaticMode check
+				    then AutomaticMode disable
+				    else AutomaticMode enable
+				    fi
+				    Clear_Lock
+				    PressEnter
+				fi
+				break
+			;;
+			3)
+				_Menu_PingTestOptions_
+				break
+			;;
+			4)
+				_Menu_DatabaseOptions_
 				break
 			;;
 			n)
@@ -5132,7 +5238,8 @@ MainMenu()
 			;;
 			u)
 				printf "\n"
-				if Check_Lock menu; then
+				if Check_Lock menu
+				then
 					Update_Version
 					Clear_Lock
 				fi
@@ -5141,7 +5248,8 @@ MainMenu()
 			;;
 			uf)
 				printf "\n"
-				if Check_Lock menu; then
+				if Check_Lock menu
+				then
 					Update_Version force
 					Clear_Lock
 				fi
@@ -5152,24 +5260,15 @@ MainMenu()
 				less "$SCRIPT_DIR/CHANGELOG.md"
 				break
 			;;
-			r)
-				printf "\n"
-				if Check_Lock menu; then
-					Menu_ResetDB
-					Clear_Lock
-				fi
-				PressEnter
-				break
-			;;
 			e)
 				ScriptHeader
-				printf "\n${BOLD}Thanks for using %s!${CLEARFORMAT}\n\n\n" "$SCRIPT_NAME"
+				printf "\n${BOLD}Thanks for using %s!${CLRct}\n\n\n" "$SCRIPT_NAME"
 				exit 0
 			;;
 			z)
 				while true
 				do
-					printf "\n${BOLD}Are you sure you want to uninstall %s? (y/n)${CLEARFORMAT}  " "$SCRIPT_NAME"
+					printf "\n${BOLD}Are you sure you want to uninstall %s? (y/n)${CLRct}  " "$SCRIPT_NAME"
 					read -r confirm
 					case "$confirm" in
 						y|Y)
@@ -5183,9 +5282,7 @@ MainMenu()
 				done
 			;;
 			*)
-				[ -n "$menuOption" ] && \
-				printf "\n${REDct}INVALID input [$menuOption]${CLEARFORMAT}"
-				printf "\nPlease choose a valid option.\n\n"
+				_HandleInvalidMenuOption_
 				PressEnter
 				break
 			;;
@@ -5589,7 +5686,7 @@ _ValidateCronMINS_()
 ##----------------------------------------##
 ## Modified by Martinski W. [2024-Dec-22] ##
 ##----------------------------------------##
-Menu_EditSchedule()
+Menu_EditCronSchedule()
 {
 	local exitMenu  testScheduleStr
 	local cruDays  cruHour  cruMins  formatType
@@ -5652,10 +5749,11 @@ Menu_EditSchedule()
 	while true
 	do
 		ScriptHeader
-		printf "${BOLD}Current schedule: ${GRNct}$(_GetScheduleHR_ "$cruHour" "$cruMins" "$cruDays")${CLRct}\n"
-		printf "\n${BOLD}Please enter the DAYS of the week when to run the ping tests.\n"
-        printf "[${GRNct}0-6${CLRct}], ${GRNct}0${CLRct}=Sunday, ${GRNct}6${CLRct}=Saturday, ${GRNct}*${CLRct}=Every day, or comma-separated days.${CLEARFORMAT}"
-        printf "\n\n${BOLD}Enter DAYS of the week (${GRNct}e${CLRct}=Exit)${CLEARFORMAT}:  "
+		printf " ${BOLD}Current schedule: ${GRNct}$(_GetScheduleHR_ "$cruHour" "$cruMins" "$cruDays")${CLRct}\n\n"
+		printf " ${BOLD}Please enter the DAYS of the week when to run the ping tests.\n"
+		printf " [${GRNct}0-6${CLRct}], ${GRNct}0${CLRct}=Sunday, ${GRNct}6${CLRct}=Saturday,"
+		printf " ${GRNct}*${CLRct}=Every day, or comma-separated days.${CLRct}"
+		printf "\n\n ${BOLD}Enter DAYS of the week (${GRNct}e${CLRct}=Exit)${CLRct}:  "
 		read -r day_choice
 
 		if [ "$day_choice" = "e" ]
@@ -5679,10 +5777,11 @@ Menu_EditSchedule()
 		while true
 		do
 			ScriptHeader
-			printf "${BOLD}Please choose the method to specify the hour/minute(s)\nto run the ping tests:${CLEARFORMAT}\n\n"
-			printf "    1. Every X hours/minutes\n"
-			printf "    2. Custom\n"
-			printf "    e. Exit to Main Menu\n\n"
+			printf " ${BOLD}Please choose the method to specify the hour/minute(s)\n"
+			printf " to run the ping tests:${CLRct}\n\n"
+			printf "  ${GRNct}1${CLRct}. Every X hours/minutes\n"
+			printf "  ${GRNct}2${CLRct}. Custom\n"
+			printf "  ${GRNct}e${CLRct}. Go back\n\n"
 			printf "Choose an option:  "
 			read -r formatChoice
 
@@ -5690,7 +5789,7 @@ Menu_EditSchedule()
 				1) formatType="everyx" ; echo ; break ;;
 				2) formatType="custom" ; echo ; break ;;
 				e) exitMenu=true ; break ;;
-				*) printf "\n${ERR}Please enter a valid choice [1-2]${CLEARFORMAT}\n"
+				*) printf "\n${ERR}Please enter a valid choice [1-2]${CLRct}\n"
 				   PressEnter ;;
 			esac
 		done
@@ -5703,10 +5802,11 @@ Menu_EditSchedule()
 			while true
 			do
 				ScriptHeader
-				printf "${BOLD}Please choose whether to specify every X hours or every X minutes\nto run the ping tests:${CLEARFORMAT}\n\n"
-				printf "    1. Hours\n"
-				printf "    2. Minutes\n"
-				printf "    e. Exit to Main Menu\n\n"
+				printf " ${BOLD}Please choose whether to specify every X hours or every X minutes\n"
+				printf " to run the ping tests:${CLRct}\n\n"
+				printf "  ${GRNct}1${CLRct}. Hours\n"
+				printf "  ${GRNct}2${CLRct}. Minutes\n"
+				printf "  ${GRNct}e${CLRct}. Go back\n\n"
 				printf "Choose an option:  "
 				read -r formatChoice
 
@@ -5714,7 +5814,7 @@ Menu_EditSchedule()
 					1) formatType="hours" ; echo ; break ;;
 					2) formatType="mins" ; echo ; break ;;
 					e) exitMenu=true ; break ;;
-					*) printf "\n${ERR}Please enter a valid choice [1-2]${CLEARFORMAT}\n"
+					*) printf "\n${ERR}Please enter a valid choice [1-2]${CLRct}\n"
 					   PressEnter ;;
 				esac
 			done
@@ -5729,9 +5829,9 @@ Menu_EditSchedule()
 			while true
 			do
 				ScriptHeader
-				printf "${BOLD}Current schedule: ${GRNct}$(_GetScheduleHR_ "$cruHour" "$cruMins" "$cruDays")${CLRct}\n"
-				printf "\n${BOLD}Please enter how often in HOURS to run the ping tests.\n"
-				printf "Every X hours, where X is ${GRNct}1-24${CLRct}, (${GRNct}e${CLRct}=Exit)${CLEARFORMAT}:  "
+				printf " ${BOLD}Current schedule: ${GRNct}$(_GetScheduleHR_ "$cruHour" "$cruMins" "$cruDays")${CLRct}\n\n"
+				printf " ${BOLD}Please enter how often in HOURS to run the ping tests.\n"
+				printf " Every X hours, where X is [${GRNct}1-24${CLRct}], (${GRNct}e${CLRct}=Exit)${CLRct}:  "
 				read -r hour_choice
 
 				if [ "$hour_choice" = "e" ]
@@ -5742,7 +5842,7 @@ Menu_EditSchedule()
 					if _ValidateCronHOURS_ "$cruHour" -quiet || \
 					   _ValidateCronFreqHOURS_ "$cruHour" -quiet
 					then echo ; break ; fi
-					printf "\n${ERR}Please enter a number between 1 and 24${CLEARFORMAT}\n"
+					printf "\n${ERR}Please enter a number between 1 and 24${CLRct}\n"
 					PressEnter
 				elif ! _ValidateCronFreqHOURS_ "$hour_choice"
 				then
@@ -5770,9 +5870,9 @@ Menu_EditSchedule()
 			while true
 			do
 				ScriptHeader
-				printf "${BOLD}Current schedule: ${GRNct}$(_GetScheduleHR_ "$cruHour" "$cruMins" "$cruDays")${CLRct}\n"
-				printf "\n${BOLD}Please enter how often in MINUTES to run the ping tests.\n"
-				printf "Every X minutes, where X is ${GRNct}1-30${CLRct}, (${GRNct}e${CLRct}=Exit)${CLEARFORMAT}:  "
+				printf " ${BOLD}Current schedule: ${GRNct}$(_GetScheduleHR_ "$cruHour" "$cruMins" "$cruDays")${CLRct}\n\n"
+				printf " ${BOLD}Please enter how often in MINUTES to run the ping tests.\n"
+				printf " Every X minutes, where X is [${GRNct}1-30${CLRct}], (${GRNct}e${CLRct}=Exit)${CLRct}:  "
 				read -r mins_choice
 
 				if [ "$mins_choice" = "e" ]
@@ -5783,7 +5883,7 @@ Menu_EditSchedule()
 					if _ValidateCronMINS_ "$cruMins" -quiet || \
 					   _ValidateCronFreqMINS_ "$cruMins" -quiet
 					then echo ; break ; fi
-					printf "\n${ERR}Please enter a number between 1 and 30${CLEARFORMAT}\n"
+					printf "\n${ERR}Please enter a number between 1 and 30${CLRct}\n"
 					PressEnter
 				elif ! _ValidateCronFreqMINS_ "$mins_choice"
 				then
@@ -5810,9 +5910,9 @@ Menu_EditSchedule()
 			while true
 			do
 				ScriptHeader
-				printf "${BOLD}Current schedule: ${GRNct}$(_GetScheduleHR_ "$cruHour" "$cruMins" "$cruDays")${CLRct}\n"
-				printf "\n${BOLD}Please enter the HOURS when to run the ping tests.\n"
-				printf "[${GRNct}0-23${CLRct}], ${GRNct}*${CLRct}=Every hour, or comma-separated hours, (${GRNct}e${CLRct}=Exit)${CLEARFORMAT}:  "
+				printf " ${BOLD}Current schedule: ${GRNct}$(_GetScheduleHR_ "$cruHour" "$cruMins" "$cruDays")${CLRct}\n\n"
+				printf " ${BOLD}Please enter the HOURS when to run the ping tests.\n"
+				printf " [${GRNct}0-23${CLRct}], ${GRNct}*${CLRct}=Every hour, or comma-separated hours, (${GRNct}e${CLRct}=Exit)${CLRct}:  "
 				read -r hour_choice
 
 				if [ "$hour_choice" = "e" ]
@@ -5823,7 +5923,7 @@ Menu_EditSchedule()
 					if _ValidateCronHOURS_ "$cruHour" -quiet || \
 					   _ValidateCronFreqHOURS_ "$cruHour" -quiet
 					then echo ; break ; fi
-					printf "\n${ERR}Please enter a number between 0 and 23${CLEARFORMAT}\n"
+					printf "\n${ERR}Please enter a number between 0 and 23${CLRct}\n"
 					PressEnter
 				else
 					if _ValidateCronHOURS_ "$hour_choice"
@@ -5875,9 +5975,9 @@ Menu_EditSchedule()
 			while true
 			do
 				ScriptHeader
-				printf "${BOLD}Current schedule: ${GRNct}$(_GetScheduleHR_ "$cruHour" "$cruMins" "$cruDays")${CLRct}\n"
-				printf "\n${BOLD}Please enter the MINUTES when to run the ping tests.\n"
-				printf "[${GRNct}0-59${CLRct}], ${GRNct}*${CLRct}=Every minute, or comma-separated minutes, (${GRNct}e${CLRct}=Exit)${CLEARFORMAT}:  "
+				printf " ${BOLD}Current schedule: ${GRNct}$(_GetScheduleHR_ "$cruHour" "$cruMins" "$cruDays")${CLRct}\n\n"
+				printf " ${BOLD}Please enter the MINUTES when to run the ping tests.\n"
+				printf " [${GRNct}0-59${CLRct}], ${GRNct}*${CLRct}=Every minute, or comma-separated minutes, (${GRNct}e${CLRct}=Exit)${CLRct}:  "
 				read -r mins_choice
 
 				if [ "$mins_choice" = "e" ]
@@ -5888,7 +5988,7 @@ Menu_EditSchedule()
 					if _ValidateCronMINS_ "$cruMins" -quiet || \
 					   _ValidateCronFreqMINS_ "$cruMins" -quiet
 					then echo ; break ; fi
-					printf "\n${ERR}Please enter a number between 0 and 59${CLEARFORMAT}\n"
+					printf "\n${ERR}Please enter a number between 0 and 59${CLRct}\n"
 					PressEnter
 				else
 					if _ValidateCronMINS_ "$mins_choice"
@@ -5944,8 +6044,8 @@ Menu_EditSchedule()
 Menu_ResetDB()
 {
 	printf "${BOLD}${WARN}WARNING: This will reset the %s database by deleting all database records.\n" "$SCRIPT_NAME"
-	printf "A backup of the database will be created if you change your mind.${CLEARFORMAT}\n"
-	printf "\n${BOLD}Do you want to continue? (y/n)${CLEARFORMAT}  "
+	printf "A backup of the database will be created if you change your mind.${CLRct}\n"
+	printf "\n${BOLD}Do you want to continue? (y/n)${CLRct}  "
 	read -r confirm
 	case "$confirm" in
 		y|Y)
@@ -5953,7 +6053,7 @@ Menu_ResetDB()
 			Reset_DB
 		;;
 		*)
-			printf "\n${BOLD}${WARN}Database reset cancelled${CLEARFORMAT}\n\n"
+			printf "\n${BOLD}${WARN}Database reset cancelled${CLRct}\n\n"
 		;;
 	esac
 }
