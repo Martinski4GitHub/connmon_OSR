@@ -1,16 +1,17 @@
 # Changelog
 
 ## v3.0.10
-Updated on 2025-Dec-10
-*   FIXED: Bug fix in a CLI script function to get the full value of notification parameters from the configuration file.
+Updated on 2025-Dec-21
+*   FIXED: Bug fix in a CLI shell script function to get the full value of notification parameters from the configuration file.
 *   FIXED: Bug fix in a WebUI JS function to get the full value of notification parameters from the configuration file.
-*   FIXED: Added new "InfluxDB Organization" parameter to WebUI page and CLI menu. This parameter is now required to send data to InfluxDB.
-*   FIXED: Modified the curl command sending data to InfluxDB so that it conforms to new API requirements.
+*   FIXED: Modified the curl command sending data to InfluxDB so that it conforms to new API requirements and the proper database schema structure.
 *   FIXED: Modified WebUI text message to show default interval of 5 minutes. Functionality was correct. This is just a correction to the text string.
-*   NEW: Added "InfluxDB Protocol" parameter to WebUI page and CLI menus to specify whether to use HTTP or HTTPS protocol.
-*   NEW: Added "PingServer" field to each data point being sent to InfluxDB.
+*   NEW: Added new "InfluxDB Organization" parameter to WebUI page and CLI menu. This parameter is now required to send data to InfluxDB.
+*   NEW: Added new "InfluxDB Protocol" parameter to WebUI page and CLI menus to specify whether to use HTTP or HTTPS protocol.
+*   NEW: Added "Ping Server" and "Router Model" information to each data point being sent to InfluxDB.
+*   NEW: Added "Ping Server" and "Router Model" information to all Pushover and Email notifications.
+*   IMPROVED: Modified the CLI top Main Menu to separate some groups of options and settings into their own sub-menus. This is an effort to make the top Main Menu shorter, more manageable, more user-friendly, and to improve the user experience.
 *   Miscellaneous code improvements.
-
 
 ## v3.0.9
 Updated on 2025-Nov-27
