@@ -3,7 +3,7 @@ name: Feature Request
 about: Suggest an idea for this project
 title: "[REQ] - "
 labels: enhancement
-assignees: ExtremeFiretop, Martinski4GitHub
+assignees: ExtremeFiretop, Martinski4GitHub, jumpsmm7
 ---
 
 <!-- Thanks for filing! -->
