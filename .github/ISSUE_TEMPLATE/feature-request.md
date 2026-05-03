@@ -3,7 +3,7 @@ name: Feature Request
 about: Suggest an idea for this project
 title: "[REQ] - "
 labels: enhancement
-assignees: @AMTM-OSR/maintainers
+assignees: ExtremeFiretop, Martinski4GitHub
 ---
 
 <!-- Thanks for filing! -->
