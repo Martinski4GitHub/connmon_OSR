@@ -1,5 +1,5 @@
 /**----------------------------**/
-/** Last Modified: 2025-Dec-12 **/
+/** Last Modified: 2026-Jun-24 **/
 /**----------------------------**/
 
 iziToast.settings({
@@ -17,7 +17,36 @@ iziToast.settings({
 	pauseOnHover: false
 });
 
-function getCookie(cookiename, returntype)
+/**----------------------------------------------------------------**
+ ** Compatibility layer for the latest AsusWRT6 routers, such as
+ ** the GT-BE19000AI, where the previous global 'cookie' helper 
+ ** functions defined in the 'state.js' file are now removed in 
+ ** favour of using the "window.localStorage" property.
+ **----------------------------------------------------------------**/
+if (typeof window.cookie === "undefined" ||
+    typeof window.cookie.get !== "function" ||
+    typeof window.cookie.set !== "function")
+{
+    window.cookie = {
+        get: function (key) {
+            return window.localStorage.getItem(key);
+        },
+
+        /** In the previous 'cookie' function a 3rd argument was given for 'days' **/
+        /** Here, we ignore the value because there is no expiration date anymore **/
+        set: function (key, value, days) {
+            window.localStorage.setItem(key, String(value));
+        },
+
+        unset: function (key) {
+            window.localStorage.removeItem(key);
+        }
+    };
+
+    console.log("Installed localStorage compatibility for cookie API.");
+}
+
+function GetCookie(cookiename, returntype)
 {
 	if (cookie.get('conn_' + cookiename) !== null)
 	{
@@ -43,7 +72,7 @@ function getCookie(cookiename, returntype)
 	}
 }
 
-function setCookie(cookiename, cookievalue)
+function SetCookie(cookiename, cookievalue)
 { cookie.set('conn_' + cookiename, cookievalue, 10 * 365); }
 
 /**----------------------------------------**/
@@ -61,15 +90,15 @@ var pingtestdur = 60;
 var arraysortlistlines = [];
 var sortname = 'Time';
 var sortdir = 'desc';
-var AltLayout = getCookie('AltLayout', 'string');
+var AltLayout = GetCookie('AltLayout', 'string');
 if (AltLayout === '') {
 	AltLayout = 'false';
 }
 
 var maxNoCharts = 27;
 var currentNoCharts = 0;
-var ShowLines = getCookie('ShowLines', 'string');
-var ShowFill = getCookie('ShowFill', 'string');
+var ShowLines = GetCookie('ShowLines', 'string');
+var ShowFill = GetCookie('ShowFill', 'string');
 if (ShowFill === '') {
 	ShowFill = 'origin';
 }
@@ -156,12 +185,12 @@ function toggleLines()
 	if (ShowLines === '')
 	{
 		ShowLines = 'line';
-		setCookie('ShowLines', 'line');
+		SetCookie('ShowLines', 'line');
 	}
 	else
 	{
 		ShowLines = '';
-		setCookie('ShowLines', '');
+		SetCookie('ShowLines', '');
 	}
 	for (var i = 0; i < metriclist.length; i++)
 	{
@@ -177,11 +206,11 @@ function toggleFill()
 {
 	if (ShowFill === 'false') {
 		ShowFill = 'origin';
-		setCookie('ShowFill', 'origin');
+		SetCookie('ShowFill', 'origin');
 	}
 	else {
 		ShowFill = 'false';
-		setCookie('ShowFill', 'false');
+		SetCookie('ShowFill', 'false');
 	}
 	for (var i = 0; i < metriclist.length; i++) {
 		window['LineChart_' + metriclist[i]].data.datasets[0].fill = ShowFill;
@@ -933,10 +962,10 @@ function setGlobalDataset(txtchartname, dataobject)
 		}
 		for (var i = 0; i < metriclist.length; i++)
 		{
-			$('#' + metriclist[i] + '_Interval').val(getCookie(metriclist[i] + '_Interval', 'number'));
+			$('#' + metriclist[i] + '_Interval').val(GetCookie(metriclist[i] + '_Interval', 'number'));
 			changePeriod(document.getElementById(metriclist[i] + '_Interval'));
-			$('#' + metriclist[i] + '_Period').val(getCookie(metriclist[i] + '_Period', 'number'));
-			$('#' + metriclist[i] + '_Scale').val(getCookie(metriclist[i] + '_Scale', 'number'));
+			$('#' + metriclist[i] + '_Period').val(GetCookie(metriclist[i] + '_Period', 'number'));
+			$('#' + metriclist[i] + '_Scale').val(GetCookie(metriclist[i] + '_Scale', 'number'));
 			drawChart(metriclist[i], titlelist[i], measureunitlist[i], bordercolourlist[i], backgroundcolourlist[i]);
 		}
 		getLastXFile();
@@ -1708,7 +1737,7 @@ function getStatsTitleFile()
 			if (databaseResetDone === 1)
 			{
 				currentNoCharts = 0;
-				$('#Time_Format').val(getCookie('Time_Format', 'number'));
+				$('#Time_Format').val(GetCookie('Time_Format', 'number'));
 				redrawAllCharts();
 				databaseResetDone += 1;
 			}
@@ -1848,7 +1877,7 @@ function initial()
 	$('#sortTableContainer').empty();
 	$('#sortTableContainer').append(buildLastXTableNoData());
 	d3.csv('/ext/connmon/csv/CompleteResults.htm').then(function (data) { parseCSVExport(data); }).catch(function () { errorCSVExport(); });
-	$('#Time_Format').val(getCookie('Time_Format', 'number'));
+	$('#Time_Format').val(GetCookie('Time_Format', 'number'));
 	redrawAllCharts();
 	scriptUpdateLayout();
 	showhide('databaseSize_text',true);
@@ -1857,7 +1886,7 @@ function initial()
 	showhide('jffsFreeSpace_WARN',false);
 	showhide('jffsFreeSpace_NOTE',false);
 	showhide('autoModeState_text',true);
-	var starttab = getCookie('StartTab', 'number');
+	var starttab = GetCookie('StartTab', 'number');
 	if (starttab === 0) { starttab = 1; }
 	$('#starttab').val(starttab);
 	jyNavigate(starttab, '', 5);
@@ -1868,7 +1897,7 @@ function initial()
 
 function setStartTab(dropdown)
 {
-	setCookie('StartTab', $(dropdown).val());
+	SetCookie('StartTab', $(dropdown).val());
 }
 
 function passChecked(obj, showobj)
@@ -1879,7 +1908,7 @@ function passChecked(obj, showobj)
 function toggleAlternateLayout(checkbox)
 {
 	AltLayout = checkbox.checked.toString();
-	setCookie('AltLayout', AltLayout);
+	SetCookie('AltLayout', AltLayout);
 	sortTable(sortname + ' ' + sortdir.replace('desc', '↑').replace('asc', '↓').trim());
 }
 
@@ -1951,7 +1980,7 @@ function doUpdate()
 function postConnTest()
 {
 	currentNoCharts = 0;
-	$('#Time_Format').val(getCookie('Time_Format', 'number'));
+	$('#Time_Format').val(GetCookie('Time_Format', 'number'));
 	setTimeout(getStatsTitleFile, 3000);
 	setTimeout(redrawAllCharts, 3000);
 }
@@ -2272,7 +2301,7 @@ function changeAllCharts(e)
 {
 	value = e.value * 1;
 	name = e.id.substring(0, e.id.indexOf('_'));
-	setCookie(e.id, value);
+	SetCookie(e.id, value);
 	for (var i = 0; i < metriclist.length; i++)
 	{
 		drawChart(metriclist[i], titlelist[i], measureunitlist[i], bordercolourlist[i], backgroundcolourlist[i]);
@@ -2283,7 +2312,7 @@ function changeChart(e)
 {
 	value = e.value * 1;
 	name = e.id.substring(0, e.id.indexOf('_'));
-	setCookie(e.id, value);
+	SetCookie(e.id, value);
 
 	if (name === 'Ping')
 	{
