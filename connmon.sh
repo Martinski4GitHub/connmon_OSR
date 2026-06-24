@@ -11,7 +11,7 @@
 ##      Forked from https://github.com/jackyaz/connmon      ##
 ##                                                          ##
 ##############################################################
-# Last Modified: 2026-Apr-15
+# Last Modified: 2026-Jun-24
 #-------------------------------------------------------------
 
 ##############        Shellcheck directives      #############
@@ -37,7 +37,7 @@
 ### Start of script variables ###
 readonly SCRIPT_NAME="connmon"
 readonly SCRIPT_VERSION="v3.0.13"
-readonly SCRIPT_VERSTAG="26041500"
+readonly SCRIPT_VERSTAG="26062400"
 SCRIPT_BRANCH="develop"
 SCRIPT_REPO="https://raw.githubusercontent.com/AMTM-OSR/$SCRIPT_NAME/$SCRIPT_BRANCH"
 readonly SCRIPT_DIR="/jffs/addons/$SCRIPT_NAME.d"
@@ -75,6 +75,13 @@ readonly curlOutLogFile="/tmp/var/tmp/temp_${SCRIPT_NAME}_curl_OUT.LOG"
 readonly curlErrLogFile="/tmp/var/tmp/temp_${SCRIPT_NAME}_curl_ERR.LOG"
 readonly tmpCurlSEPstr="-------------------------------------------------------"
 
+# IPv4 Address Validation #
+IPv4octet_RegEx="([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])"
+IPv4addrs_RegEx="(${IPv4octet_RegEx}[.]){3}${IPv4octet_RegEx}"
+
+readonly pingServersMAXnum=5
+readonly pingServersLFName=".pingServerList"
+
 # To support automatic script updates from AMTM #
 doScriptUpdateFromAMTM=true
 
@@ -104,11 +111,11 @@ readonly sqlDBLogFileName="${SCRIPT_NAME}_DBSQL_DEBUG.LOG"
 ### End of script variables ###
 
 ### Start of output format variables ###
-readonly CRIT="\\e[41m"
-readonly ERR="\\e[31m"
-readonly WARN="\\e[33m"
-readonly PASS="\\e[32m"
-readonly BOLD="\\e[1m"
+readonly CRIT="\e[41m"
+readonly ERR="\e[31m"
+readonly WARN="\e[33m"
+readonly PASS="\e[32m"
+readonly BOLD="\e[1m"
 readonly SETTING="${BOLD}\e[36m"
 readonly UNDERLINE="\e[4m"
 readonly CLEARFORMAT="\e[0m"
@@ -121,6 +128,8 @@ readonly CLRct="\e[0m"
 readonly REDct="\e[1;31m"
 readonly GRNct="\e[1;32m"
 readonly MGNTct="\e[1;35m"
+readonly GRAYct="\e[0;37m"
+readonly GRAYEDct="\e[0;30;47m"
 readonly CritIREDct="\e[41m"
 readonly CritBREDct="\e[30;101m"
 readonly PassBGRNct="\e[30;102m"
@@ -161,7 +170,7 @@ Print_Output()
 		esac
 		logger -t "${SCRIPT_NAME}_[$$]" -p $prioNum "$2"
 	fi
-	printf "${BOLD}${3}%s${CLEARFORMAT}\n\n" "$2"
+	printf "${BOLD}${3}${2}${CLEARFORMAT}\n\n"
 }
 
 Firmware_Version_Check()
@@ -472,24 +481,33 @@ Validate_Number()
 ##----------------------------------------##
 Validate_IPv4_Address()
 {
-	local theOctet
-	if expr "$1" : '[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*$' >/dev/null
+	if [ $# -eq 0 ] || [ -z "$1" ]
 	then
-		for i in 1 2 3 4
-		do
-			theOctet="$(echo "$1" | cut -d'.' -f$i)"
-			if [ "$theOctet" -gt 255 ]
-			then
-				echo
-				Print_Output false "Octet $i ($theOctet) is invalid. It must be less than 256." "$ERR"
-				return 1
-			fi
-		done
-	else
-		echo
-		Print_Output false "'${1}' is not a valid IPv4 address. Valid format is 11.22.33.44" "$ERR"
+		Print_Output false "\n IPv4 address CANNOT be empty." "$ERR"
 		return 1
 	fi
+	if echo "$1" | grep -qE "[^0-9.]"
+	then
+		Print_Output false "\n The argument '${1}' is NOT a valid IPv4 address." "$ERR"
+		return 1
+	fi
+	local theOctet
+
+	if echo "$1" | grep -qE "^${IPv4addrs_RegEx}$"
+	then return 0
+	fi
+	Print_Output false "\n '${1}' is NOT a valid IPv4 address. Valid format is 12.34.56.78" "$ERR"
+
+	for indx in 1 2 3 4
+	do
+		theOctet="$(echo "$1" | cut -d'.' -f$indx)"
+		if [ -n "$theOctet" ] && [ "$theOctet" -gt 255 ]
+		then
+			Print_Output false "\n Octet $indx ($theOctet) is INVALID. It must be less than 256." "$ERR"
+			break
+		fi
+	done
+	return 1
 }
 
 Validate_DomainName()
@@ -497,7 +515,7 @@ Validate_DomainName()
 	if ! nslookup "$1" >/dev/null 2>&1
 	then
 		echo
-		Print_Output false "'${1}' cannot be resolved by nslookup. Please enter a valid domain name." "$ERR"
+		Print_Output false "'${1}' cannot be resolved by nslookup. Please enter a valid Domain Name." "$ERR"
 		return 1
 	else
 		return 0
@@ -676,13 +694,14 @@ Create_Symlinks()
 _GetConfigParam_()
 {
    if [ $# -eq 0 ] || [ -z "$1" ]
-   then echo '' ; return 1 ; fi
-
+   then echo ; return 1
+   fi
    local keyValue  checkFile
    local defValue="$([ $# -eq 2 ] && echo "$2" || echo '')"
 
    if [ ! -s "$SCRIPT_CONF" ]
-   then echo "$defValue" ; return 0 ; fi
+   then echo "$defValue" ; return 0
+   fi
 
    if [ "$(grep -c "^${1}=" "$SCRIPT_CONF")" -gt 1 ]
    then  ## Remove duplicates. Keep ONLY the 1st key ##
@@ -704,6 +723,7 @@ _GetConfigParam_()
 ##----------------------------------------##
 Conf_Exists()
 {
+	local retCode
 	local PINGFREQUENCY  AUTOMATEDopt  delCRON=false  sedNum  portNum
 
 	if [ -s "$SCRIPT_CONF" ]
@@ -713,17 +733,17 @@ Conf_Exists()
 		sed -i -e 's/"//g' "$SCRIPT_CONF"
 		if grep -q "^AUTOMATED=.*" "$SCRIPT_CONF"
 		then
-			AUTOMATEDopt="$(Conf_Parameters check AUTOMATED)"
+			AUTOMATEDopt="$(_GetConfigParam_ AUTOMATED 'true')"
 			sed -i 's/^AUTOMATED=.*$/AUTOMATICMODE='"$AUTOMATEDopt"'/' "$SCRIPT_CONF"
 		fi
 		if ! grep -q "^PINGSERVER=" "$SCRIPT_CONF"; then
 			echo "PINGSERVER=8.8.8.8" >> "$SCRIPT_CONF"
 		fi
-		if ! grep -q "^AUTOMATICMODE=" "$SCRIPT_CONF"; then
-			echo "AUTOMATICMODE=true" >> "$SCRIPT_CONF"
-		fi
 		if ! grep -q "^PINGDURATION=" "$SCRIPT_CONF"; then
 			echo "PINGDURATION=30" >> "$SCRIPT_CONF"
+		fi
+		if ! grep -q "^AUTOMATICMODE=" "$SCRIPT_CONF"; then
+			echo "AUTOMATICMODE=true" >> "$SCRIPT_CONF"
 		fi
 		if grep -q "SCHEDULESTART" "$SCRIPT_CONF"
 		then
@@ -731,9 +751,9 @@ Conf_Exists()
 				echo "SCHDAYS=*" >> "$SCRIPT_CONF"
 			fi
 			echo "SCHHOURS=*" >> "$SCRIPT_CONF"
-			PINGFREQUENCY="$(Conf_Parameters check PINGFREQUENCY)"
+			PINGFREQUENCY="$(_GetConfigParam_ PINGFREQUENCY 5)"
 			echo "SCHMINS=*/$PINGFREQUENCY" >> "$SCRIPT_CONF"
-			sed -i '/SCHEDULESTART/d;/SCHEDULEEND/d;/PINGFREQUENCY/d;' "$SCRIPT_CONF"
+			sed -i '/SCHEDULESTART=/d;/SCHEDULEEND=/d;/PINGFREQUENCY=/d;' "$SCRIPT_CONF"
 			delCRON=true
 		fi
 		if ! grep -q "^SCHDAYS=" "$SCRIPT_CONF"; then
@@ -752,7 +772,7 @@ Conf_Exists()
 		then Auto_Cron delete 2>/dev/null
 		fi
 		if grep -q "OUTPUTDATAMODE" "$SCRIPT_CONF"; then
-			sed -i '/OUTPUTDATAMODE/d;' "$SCRIPT_CONF"
+			sed -i '/OUTPUTDATAMODE=/d;' "$SCRIPT_CONF"
 		fi
 		if ! grep -q "^OUTPUTTIMEMODE=" "$SCRIPT_CONF"; then
 			echo "OUTPUTTIMEMODE=unix" >> "$SCRIPT_CONF"
@@ -826,13 +846,13 @@ Conf_Exists()
 			[ -n "$sedNum" ] && sedNum="$((sedNum + 1))" && \
 			sed -i "$sedNum i NOTIFICATIONS_INFLUXDB_PROTO=$protoStr" "$SCRIPT_CONF"
 		fi
-		return 0
+		retCode=0
 	else
 		{
 		   echo "PINGSERVER=8.8.8.8"
+		   echo "PINGDURATION=30"
 		   echo "OUTPUTTIMEMODE=unix"
 		   echo "STORAGELOCATION=jffs"
-		   echo "PINGDURATION=30"
 		   echo "AUTOMATICMODE=true"
 		   echo "SCHDAYS=*"; echo "SCHHOURS=*"; echo "SCHMINS=*/5"
 		   echo "JFFS_MSGLOGTIME=0"
@@ -869,8 +889,9 @@ Conf_Exists()
 		   echo "NOTIFICATIONS_INFLUXDB_PASSWORD="
 		   echo "NOTIFICATIONS_INFLUXDB_APITOKEN="
 		} > "$SCRIPT_CONF"
-		return 1
+		retCode=1
 	fi
+	return "$retCode"
 }
 
 ##-------------------------------------##
@@ -946,9 +967,9 @@ PingServer()
 				then PressEnter ; break
 				fi
 				printf "  ${GRNct}1${CLRct}. Enter IP Address\n"
-				printf "  ${GRNct}2${CLRct}. Enter Domain Name\n"
-				printf "  ${GRNct}e${CLRct}. Go back\n"
-				printf "\n${BOLD}Choose an option:${CLRct}  "
+				printf "  ${GRNct}2${CLRct}. Enter Domain Name\n\n"
+				printf "  ${GRNct}e${CLRct}. Go back\n\n"
+				printf " ${BOLD}Choose an option:${CLRct}  "
 				read -r pingOption
 
 				case "$pingOption" in
@@ -958,7 +979,7 @@ PingServer()
 					   ;;
 					e) break
 					   ;;
-					*) printf "\n${BOLD}${ERR}Please choose a valid option.${CLRct}\n\n"
+					*) printf "\n ${BOLD}${ERR}Please choose a valid option.${CLRct}\n\n"
 					   PressEnter
 					   ;;
 				esac
@@ -1672,6 +1693,7 @@ ScriptStorageLocation()
 			CONNSTATS_DB="$SCRIPT_STORAGE_DIR/connstats.db"
 			CSV_OUTPUT_DIR="$SCRIPT_STORAGE_DIR/csv"
 			USER_SCRIPT_DIR="$SCRIPT_STORAGE_DIR/userscripts.d"
+			PING_SERVERS_FILE="$SCRIPT_STORAGE_DIR/$pingServersLFName"
 			if [ $# -gt 1 ] && [ "$2" = "true" ]
 			then _UpdateJFFS_FreeSpaceInfo_ ; fi
 			;;
@@ -2319,14 +2341,20 @@ Run_PingTest()
 	ScriptStorageLocation load
 	Create_Symlinks
 
-	pingFile="/tmp/pingfile.txt"
-	resultFile="$SCRIPT_WEB_DIR/ping-result.txt"
-	local pingDuration="$(PingDuration check)"
-	local pingTarget="$(PingServer check)"
+	local pingTarget  pingDuration  pingTestCount=0
 	local pingTestOK  pingTargetIP  fullPingTarget
 	local stoppedQoS  nvramQoSenable  nvramQoStype
+	local pingServerCount=0  pingServerSeq=""  pingServerNum  pingServerStr
 
-	rm -f "$pingFile" "$resultFile"
+	local pingOutputFile="/tmp/pingfile.txt"
+	local pingResultFile="$SCRIPT_WEB_DIR/ping-result.txt"
+
+	pingTarget="$(PingServer check)"
+	pingDuration="$(PingDuration check)"
+	pingTestOK=false
+	stoppedQoS=false
+
+	rm -f "$pingOutputFile" "$pingResultFile"
 
 	echo 'var connmonstatus = "InProgress";' > "$SCRIPT_WEB_DIR/detect_connmon.js"
 
@@ -2340,8 +2368,7 @@ Run_PingTest()
 		fullPingTarget="$pingTarget"
 	fi
 
-	stoppedQoS=false
-	if [ "$(ExcludeFromQoS check)" = "true" ]
+	if [ "$(ExcludeFromQoS check)" = "true" ] && [ "$stoppedQoS" = "false" ]
 	then
 		nvramQoStype="$(nvram get qos_type)"
 		nvramQoSenable="$(nvram get qos_enable)"
@@ -2373,9 +2400,9 @@ Run_PingTest()
 		fi
 	fi
 
-	Print_Output true "$pingDuration second ping test to $pingTarget starting..." "$PASS"
+	Print_Output true "${pingDuration}-second ping test to $pingTarget starting..." "$PASS"
 
-	if ping -w "$pingDuration" "$pingTargetIP" > "$pingFile"
+	if ping -w "$pingDuration" "$pingTargetIP" > "$pingOutputFile"
 	then pingTestOK=true
 	else pingTestOK=false
 	fi
@@ -2409,12 +2436,12 @@ Run_PingTest()
 		fi
 	fi
 
-	ScriptStorageLocation load
+	##*OFF*## ScriptStorageLocation load
 
 	PREVPING=0
 	TOTALDIFF=0
 	COUNTER=1
-	PINGLIST="$(grep -E 'seq=.+ ttl=.+ time=.+' "$pingFile")"
+	PINGLIST="$(grep -E 'seq=.+ ttl=.+ time=.+' "$pingOutputFile")"
 	PINGCOUNT="$(echo "$PINGLIST" | sed '/^\s*$/d' | wc -l)"
 	DIFFCOUNT="$((PINGCOUNT - 1))"
 
@@ -2443,17 +2470,17 @@ Run_PingTest()
 	timenowfriendly="$(/bin/date +'%c')"
 
 	pkt_trans=0 ; pkt_recvd=0
-	pingAvrge=0.0 ; jitterVal=0.0 ; lineQualt=0.0
+	pingAvrge="0.0" ; jitterVal="0.0" ; lineQualt="0.0"
 
 	## Double-check to make sure we have all the required data ##
 	if "$pingTestOK" && [ "$PINGCOUNT" -gt 1 ] && \
-	   grep -qE 'round-trip min/avg/max =.+' "$pingFile" && \
-	   grep -qE 'packets transmitted,.+ packets received,.+' "$pingFile"
+	   grep -qE 'round-trip min/avg/max =.+' "$pingOutputFile" && \
+	   grep -qE 'packets transmitted,.+ packets received,.+' "$pingOutputFile"
 	then
-		pingAvrge="$(tail -n 1 "$pingFile" | cut -f4 -d'/')"
+		pingAvrge="$(tail -n 1 "$pingOutputFile" | cut -f4 -d'/')"
 		jitterVal="$(echo "$TOTALDIFF" "$DIFFCOUNT" | awk '{printf "%4.3f\n",$1/$2}')"
-		pkt_trans="$(tail -n 2 "$pingFile" | head -n 1 | cut -f1 -d',' | cut -f1 -d' ')"
-		pkt_recvd="$(tail -n 2 "$pingFile" | head -n 1 | cut -f2 -d',' | cut -f2 -d' ')"
+		pkt_trans="$(tail -n 2 "$pingOutputFile" | head -n 1 | cut -f1 -d',' | cut -f1 -d' ')"
+		pkt_recvd="$(tail -n 2 "$pingOutputFile" | head -n 1 | cut -f2 -d',' | cut -f2 -d' ')"
 		lineQualt="$(echo "$pkt_recvd" "$pkt_trans" | awk '{printf "%4.3f\n",100*$1/$2}')"
 	else
 		pingTestOK=false
@@ -2461,10 +2488,10 @@ Run_PingTest()
 		{
 		   printf "Ping test to '$fullPingTarget' failed.\n"
 		   printf "Check if WAN interface and specified ping target are up.\n"
-		} > "$resultFile"
+		} > "$pingResultFile"
 		echo 'var connmonstatus = "Error";' > "$SCRIPT_WEB_DIR/detect_connmon.js"
 		TriggerNotifications PingTestFailed "$timenowfriendly" "$fullPingTarget"
-		rm -f "$pingFile"
+		rm -f "$pingOutputFile"
 	fi
 
 	Process_Upgrade
@@ -2484,9 +2511,9 @@ Run_PingTest()
 
 	echo "Stats last updated: $timenowfriendly" > /tmp/connstatstitle.txt
 	WriteStats_ToJS /tmp/connstatstitle.txt "$SCRIPT_STORAGE_DIR/connstatstext.js" setConnmonStatsTitle statstitle
-	rm -f "$pingFile" /tmp/connstatstitle.txt
+	rm -f "$pingOutputFile" /tmp/connstatstitle.txt
 
-	if ! "$pingTestOK"
+	if [ "$pingTestOK" = "false" ]
 	then
 		echo 'var connmonstatus = "Error";' > "$SCRIPT_WEB_DIR/detect_connmon.js"
 		return 1
@@ -2496,7 +2523,7 @@ Run_PingTest()
 	{
 		printf "Ping test results:\n"
 		printf "\nPing %s ms - Jitter %s ms - Line Quality %s %%\n" "$pingAvrge" "$jitterVal" "$lineQualt"
-	} > "$resultFile"
+	} > "$pingResultFile"
 
 	TriggerNotifications PingTestOK "$timenowfriendly" "$pingAvrge ms" "$jitterVal ms" "$lineQualt %" "$timenow" "$fullPingTarget"
 
@@ -2864,13 +2891,35 @@ PressEnter()
 	fi
 	while true
 	do
-		printf "Press <Enter> key to continue..."
+		printf " Press <Enter> key to continue..."
 		read -rs key
 		case "$key" in
 			*) break ;;
 		esac
 	done
 	return 0
+}
+
+##-------------------------------------##
+## Added by Martinski W. [2026-May-08] ##
+##-------------------------------------##
+_ConfirmYESorNO_()
+{
+	if ! "$isInteractive"
+	then return 0
+	fi
+	local promptStr  theAnswer
+
+	if [ $# -eq 0 ] || [ -z "$1" ]
+	then promptStr=" [yY|nN]?  "
+	else promptStr="$1 [yY|nN]?  "
+	fi
+	printf "$promptStr" ; read -r theAnswer
+	[ -z "$theAnswer" ] && theAnswer="NO"
+	if echo "$theAnswer" | grep -qE "^([Yy](es)?|YES)$"
+	then echo "OK" ; return 0
+	else echo "NO" ; return 1
+	fi
 }
 
 Email_ConfExists()
@@ -3049,10 +3098,10 @@ Email_Protocol()
 {
 	while true
 	do
-		printf "\\n${BOLD}Please choose the protocol for your email provider:${CLEARFORMAT}\\n"
-		printf "    1. smtp\\n"
-		printf "    2. smtps\\n\\n"
-		printf "Choose an option:  "
+		printf "\n ${BOLD}Please choose the protocol for your email provider:${CLRct}\n"
+		printf "   1. smtp\n"
+		printf "   2. smtps\n\n"
+		printf " Choose an option:  "
 		read -r protomenu
 
 		case "$protomenu" in
@@ -3068,7 +3117,7 @@ Email_Protocol()
 				break
 			;;
 			*)
-				printf "\\n${ERR}Please enter a valid choice (1-2)${CLEARFORMAT}\\n"
+				printf "\n ${ERR}Please enter a valid option [1-2]${CLRct}\n"
 			;;
 		esac
 	done
@@ -3079,10 +3128,10 @@ Email_SSL()
 	SSL_FLAG=""
 	while true
 	do
-		printf "\\n${BOLD}Please choose the SSL security level:${CLEARFORMAT}\\n"
-		printf "    1. Secure (recommended)\\n"
-		printf "    2. Insecure (choose this if you see SSL errors)\\n\\n"
-		printf "Choose an option:  "
+		printf "\n ${BOLD}Please choose the SSL security level:${CLRct}\n"
+		printf "   1. Secure (recommended)\n"
+		printf "   2. Insecure (choose this if you see SSL errors)\n\n"
+		printf " Choose an option:  "
 		read -r protomenu
 
 		case "$protomenu" in
@@ -3099,7 +3148,7 @@ Email_SSL()
 				break
 			;;
 			*)
-				printf "\\n${ERR}Please enter a valid choice (1-2)${CLEARFORMAT}\\n"
+				printf "\n ${ERR}Please enter a valid option [1-2]${CLRct}\n"
 			;;
 		esac
 	done
@@ -3110,14 +3159,14 @@ Email_Password()
 	PASSWORD=""
 	while true
 	do
-		printf "\n${BOLD}Enter Password:${CLEARFORMAT}  "
+		printf "\n ${BOLD}Enter Password:${CLRct}  "
 		read -r PASSWORD
 		if [ "$PASSWORD" = "e" ]
 		then
 			PASSWORD=""
 			break
 		else
-			printf "${BOLD}${WARN}Is this correct? (y/n):${CLEARFORMAT}  "
+			printf " ${BOLD}${WARN}Is this correct? (y/n):${CLRct}  "
 			read -r CONFIRM_INPUT
 			case "$CONFIRM_INPUT" in
 				y|Y)
@@ -3171,19 +3220,18 @@ Email_Recipients()
 		while true
 		do
 			ScriptHeader
-
-			printf "${BOLD}${UNDERLINE}Email Recipients Override List${CLEARFORMAT}\\n\\n"
+			printf " ${BOLD}${UNDERLINE}Email Recipients Override List${CLRct}\n\n"
 			NOTIFICATIONS_EMAIL_LIST="$(Email_Recipients check)"
 			if [ "$NOTIFICATIONS_EMAIL_LIST" = "" ]
 			then
 				NOTIFICATIONS_EMAIL_LIST="Generic To Address will be used"
 			fi
-			printf "Currently: ${SETTING}${NOTIFICATIONS_EMAIL_LIST}${CLEARFORMAT}\\n\\n"
-			printf "Available options:\\n"
-			printf "1.    Update list\\n"
-			printf "2.    Clear list\\n"
-			printf "e.    Go back\\n\\n"
-			printf "Choose an option:  "
+			printf " Currently: ${SETTING}${NOTIFICATIONS_EMAIL_LIST}${CLRct}\n\n"
+			printf " Available options:\n"
+			printf "   1. Update list\n"
+			printf "   2. Clear list\n\n"
+			printf "   e. Go back\n\n"
+			printf " Choose an option:  "
 			read -r emailrecipientmenu
 			case "$emailrecipientmenu" in
 				1)
@@ -3196,7 +3244,7 @@ Email_Recipients()
 					break
 				;;
 				*)
-					printf "\\n${BOLD}${ERR}Please choose a valid option${CLEARFORMAT}\\n\\n"
+					printf "\n ${BOLD}${ERR}Please choose a valid option${CLRct}\n\n"
 					PressEnter
 				;;
 			esac
@@ -3339,15 +3387,14 @@ Webhook_Targets()
 		while true
 		do
 			ScriptHeader
-
-			printf "${BOLD}${UNDERLINE}Discord Webhook List${CLEARFORMAT}\n\n"
+			printf " ${BOLD}${UNDERLINE}Discord Webhook List${CLRct}\n\n"
 			NOTIFICATIONS_WEBHOOK_LIST="$(Webhook_Targets check | sed 's~,~\n~g')"
-			printf "Currently: ${SETTING}${NOTIFICATIONS_WEBHOOK_LIST}${CLEARFORMAT}\n\n"
-			printf "Available options:\n"
-			printf "1.    Update list\n"
-			printf "2.    Clear list\n"
-			printf "e.    Go back\n\n"
-			printf "Choose an option:  "
+			printf " Currently: ${SETTING}${NOTIFICATIONS_WEBHOOK_LIST}${CLRct}\n\n"
+			printf " Available options:\n"
+			printf "   1. Update list\n"
+			printf "   2. Clear list\n\n"
+			printf "   e. Go back\n\n"
+			printf " Choose an option:  "
 			read -r webhooktargetmenu
 			case "$webhooktargetmenu" in
 				1)
@@ -3360,7 +3407,7 @@ Webhook_Targets()
 					break
 				;;
 				*)
-					printf "\n${BOLD}${ERR}Please choose a valid option${CLEARFORMAT}\n\n"
+					printf "\n ${BOLD}${ERR}Please choose a valid option${CLRct}\n\n"
 					PressEnter
 				;;
 			esac
@@ -3432,15 +3479,14 @@ Pushover_Devices()
 		while true
 		do
 			ScriptHeader
-
-			printf "${BOLD}${UNDERLINE}Pushover Device List${CLEARFORMAT}\\n\\n"
+			printf " ${BOLD}${UNDERLINE}Pushover Device List${CLRct}\n\n"
 			NOTIFICATIONS_PUSHOVER_LIST="$(Pushover_Devices check | sed 's~,~\n~g')"
-			printf "Currently: ${SETTING}${NOTIFICATIONS_PUSHOVER_LIST}${CLEARFORMAT}\\n\\n"
-			printf "Available options:\\n"
-			printf "1.    Update list\\n"
-			printf "2.    Clear list\\n"
-			printf "e.    Go back\\n\\n"
-			printf "Choose an option:  "
+			printf " Currently: ${SETTING}${NOTIFICATIONS_PUSHOVER_LIST}${CLRct}\n\n"
+			printf " Available options:\n"
+			printf "   1. Update list\n"
+			printf "   2. Clear list\n\n"
+			printf "   e. Go back\n\n"
+			printf " Choose an option:  "
 			read -r pushoverdevicemenu
 			case "$pushoverdevicemenu" in
 				1)
@@ -3453,7 +3499,7 @@ Pushover_Devices()
 					break
 				;;
 				*)
-					printf "\\n${BOLD}${ERR}Please choose a valid option${CLEARFORMAT}\\n\\n"
+					printf "\n ${BOLD}${ERR}Please choose a valid option${CLRct}\n\n"
 					PressEnter
 				;;
 			esac
@@ -4111,7 +4157,7 @@ Menu_EmailNotifications()
 		printf "   ${GRNct}e${CLRct}. Go back\n"
 		printf "\n${menuSepStr}\n\n"
 
-		printf "Choose an option:  "
+		printf " Choose an option:  "
 		read -r emailmenu
 		case "$emailmenu" in
 			1)
@@ -4174,7 +4220,7 @@ Menu_EmailNotifications()
 				break
 			;;
 			*)
-				printf "\n${BOLD}${ERR}Please choose a valid option${CLRct}\n\n"
+				printf "\n ${BOLD}${ERR}Please choose a valid option${CLRct}\n\n"
 				PressEnter
 			;;
 		esac
@@ -4209,7 +4255,7 @@ Menu_WebhookNotifications()
 		printf "  ${GRNct}e${CLRct}. Go back\n"
 		printf "\n${menuSepStr}\n\n"
 
-		printf "Choose an option:  "
+		printf " Choose an option:  "
 		read -r webhookmenu
 		case "$webhookmenu" in
 			1)
@@ -4244,7 +4290,7 @@ Menu_WebhookNotifications()
 				break
 			;;
 			*)
-				printf "\n${BOLD}${ERR}Please choose a valid option${CLRct}\n\n"
+				printf "\n ${BOLD}${ERR}Please choose a valid option${CLRct}\n\n"
 				PressEnter
 			;;
 		esac
@@ -4297,7 +4343,7 @@ Menu_PushoverNotifications()
 		printf "  ${GRNct}e${CLRct}. Go back\n"
 		printf "\n${menuSepStr}\n\n"
 
-		printf "Choose an option:  "
+		printf " Choose an option:  "
 		read -r pushoverOption
 		case "$pushoverOption" in
 			1)
@@ -4327,7 +4373,7 @@ Menu_PushoverNotifications()
 				break
 			;;
 			*)
-				printf "\n${BOLD}${ERR}Please choose a valid option${CLRct}\n\n"
+				printf "\n ${BOLD}${ERR}Please choose a valid option${CLRct}\n\n"
 				PressEnter
 			;;
 		esac
@@ -4449,7 +4495,7 @@ Menu_CustomActions()
 		fi
 		CustomAction_Info
 
-		printf "Choose an option:  "
+		printf " Choose an option:  "
 		read -r custommenu
 		case "$custommenu" in
 			1)
@@ -4487,7 +4533,7 @@ Menu_CustomActions()
 				break
 			;;
 			*)
-				printf "\n${BOLD}${ERR}Please choose a valid option${CLRct}\n\n"
+				printf "\n ${BOLD}${ERR}Please choose a valid option${CLRct}\n\n"
 				PressEnter
 			;;
 		esac
@@ -4532,7 +4578,7 @@ Menu_HealthcheckNotifications()
 		printf "  ${GRNct}e${CLRct}. Go back\n"
 		printf "\n${menuSepStr}\n\n"
 
-		printf "Choose an option:  "
+		printf " Choose an option:  "
 		read -r healthcheckOption
 		case "$healthcheckOption" in
 			1)
@@ -4555,7 +4601,7 @@ Menu_HealthcheckNotifications()
 				break
 			;;
 			*)
-				printf "\n${BOLD}${ERR}Please choose a valid option${CLRct}\n\n"
+				printf "\n ${BOLD}${ERR}Please choose a valid option${CLRct}\n\n"
 				PressEnter
 			;;
 		esac
@@ -4602,7 +4648,7 @@ Menu_InfluxDB()
 		printf "   ${GRNct}e${CLRct}. Go back\n"
 		printf "\n${menuSepStr}\n\n"
 
-		printf "Choose an option:  "
+		printf " Choose an option:  "
 		read -r influxdbOption
 		case "$influxdbOption" in
 			1)
@@ -4655,7 +4701,7 @@ Menu_InfluxDB()
 				break
 			;;
 			*)
-				printf "\n${BOLD}${ERR}Please choose a valid option${CLRct}\n\n"
+				printf "\n ${BOLD}${ERR}Please choose a valid option${CLRct}\n\n"
 				PressEnter
 			;;
 		esac
@@ -4726,7 +4772,7 @@ Menu_Notifications()
 		printf "   ${GRNct}e${CLRct}. Go back\n"
 		printf "\n${menuSepStr}\n\n"
 
-		printf "Choose an option:  "
+		printf " Choose an option:  "
 		read -r notificationsmenu
 		case "$notificationsmenu" in
 			1)
@@ -4754,7 +4800,7 @@ Menu_Notifications()
 			e)
 				break ;;
 			*)
-				printf "\n${BOLD}${ERR}Please choose a valid option${CLEARFORMAT}\n\n"
+				printf "\n ${BOLD}${ERR}Please choose a valid option${CLEARFORMAT}\n\n"
 				PressEnter ;;
 		esac
 	done
@@ -4801,7 +4847,7 @@ NotificationMethods()
 				printf "  ${GRNct}4${CLRct}. Custom\n"
 				printf "  ${GRNct}5${CLRct}. None\n\n"
 				printf "  ${GRNct}e${CLRct}. Go back\n\n"
-				printf "Choose an option:  "
+				printf " Choose an option:  "
 				read -r methodsmenu
 				case "$methodsmenu" in
 					1)
@@ -4819,7 +4865,7 @@ NotificationMethods()
 					e)
 						break ;;
 					*)
-						printf "\n${BOLD}${ERR}Please choose a valid option${CLEARFORMAT}\n\n"
+						printf "\n ${BOLD}${ERR}Please choose a valid option${CLRct}\n\n"
 						PressEnter ;;
 				esac
 				if [ "$methodsmenu" != "e" ] && [ "$methodsmenu" != "c1" ]
@@ -5043,8 +5089,8 @@ _CronScheduleHourMinsInfo_()
 _HandleInvalidMenuOption_()
 {
 	[ -n "$menuOption" ] && \
-	printf "\n${REDct}INVALID input [$menuOption]${CLRct}"
-	printf "\nPlease choose a valid option.\n\n"
+	printf "\n ${REDct}INVALID input [$menuOption]${CLRct}"
+	printf "\n Please choose a valid option.\n\n"
 }
 
 ##----------------------------------------##
@@ -5087,7 +5133,7 @@ _Menu_PingTestOptions_()
 
 	while true
 	do
-		printf "Choose an option:  "
+		printf " Choose an option:  "
 		read -r menuOption
 		case "$menuOption" in
 			1)
@@ -5109,11 +5155,9 @@ _Menu_PingTestOptions_()
 			q)
 				printf "\n"
 				if [ "$(ExcludeFromQoS check)" = "true" ]
-				then
-					ExcludeFromQoS disable
+				then ExcludeFromQoS disable
 				elif [ "$(ExcludeFromQoS check)" = "false" ]
-				then
-					ExcludeFromQoS enable
+				then ExcludeFromQoS enable
 				fi
 				break
 			;;
@@ -5173,17 +5217,15 @@ _Menu_DatabaseOptions_()
 
 	while true
 	do
-		printf "Choose an option:  "
+		printf " Choose an option:  "
 		read -r menuOption
 		case "$menuOption" in
 			1)
 				printf "\n"
 				if [ "$(OutputTimeMode check)" = "unix" ]
-				then
-					OutputTimeMode non-unix
+				then OutputTimeMode non-unix
 				elif [ "$(OutputTimeMode check)" = "non-unix" ]
-				then
-					OutputTimeMode unix
+				then OutputTimeMode unix
 				fi
 				break
 			;;
@@ -5276,7 +5318,7 @@ MainMenu()
 
 	while true
 	do
-		printf "Choose an option:  "
+		printf " Choose an option:  "
 		read -r menuOption
 		case "$menuOption" in
 			1)
@@ -5474,15 +5516,16 @@ Menu_Install()
 ##-------------------------------------##
 _SetParameters_()
 {
-    if [ -f "/opt/share/$SCRIPT_NAME.d/config" ]
-    then SCRIPT_STORAGE_DIR="/opt/share/${SCRIPT_NAME}.d"
-    else SCRIPT_STORAGE_DIR="/jffs/addons/${SCRIPT_NAME}.d"
-    fi
+	if [ -f "/opt/share/$SCRIPT_NAME.d/config" ]
+	then SCRIPT_STORAGE_DIR="/opt/share/${SCRIPT_NAME}.d"
+	else SCRIPT_STORAGE_DIR="/jffs/addons/${SCRIPT_NAME}.d"
+	fi
 
-    SCRIPT_CONF="$SCRIPT_STORAGE_DIR/config"
-    CONNSTATS_DB="$SCRIPT_STORAGE_DIR/connstats.db"
-    CSV_OUTPUT_DIR="$SCRIPT_STORAGE_DIR/csv"
-    USER_SCRIPT_DIR="$SCRIPT_STORAGE_DIR/userscripts.d"
+	SCRIPT_CONF="$SCRIPT_STORAGE_DIR/config"
+	CONNSTATS_DB="$SCRIPT_STORAGE_DIR/connstats.db"
+	CSV_OUTPUT_DIR="$SCRIPT_STORAGE_DIR/csv"
+	USER_SCRIPT_DIR="$SCRIPT_STORAGE_DIR/userscripts.d"
+	PING_SERVERS_FILE="$SCRIPT_STORAGE_DIR/$pingServersLFName"
 }
 
 ##----------------------------------------##
@@ -5859,16 +5902,16 @@ Menu_EditCronSchedule()
 			printf " ${BOLD}Please choose the method to specify the hour/minute(s)\n"
 			printf " to run the ping tests:${CLRct}\n\n"
 			printf "  ${GRNct}1${CLRct}. Every X hours/minutes\n"
-			printf "  ${GRNct}2${CLRct}. Custom\n"
+			printf "  ${GRNct}2${CLRct}. Custom\n\n"
 			printf "  ${GRNct}e${CLRct}. Go back\n\n"
-			printf "Choose an option:  "
+			printf " Choose an option:  "
 			read -r formatChoice
 
 			case "$formatChoice" in
 				1) formatType="everyx" ; echo ; break ;;
 				2) formatType="custom" ; echo ; break ;;
 				e) exitMenu=true ; break ;;
-				*) printf "\n${ERR}Please enter a valid choice [1-2]${CLRct}\n"
+				*) printf "\n ${ERR}Please enter a valid option [1-2]${CLRct}\n"
 				   PressEnter ;;
 			esac
 		done
@@ -5884,9 +5927,9 @@ Menu_EditCronSchedule()
 				printf " ${BOLD}Please choose whether to specify every X hours or every X minutes\n"
 				printf " to run the ping tests:${CLRct}\n\n"
 				printf "  ${GRNct}1${CLRct}. Hours\n"
-				printf "  ${GRNct}2${CLRct}. Minutes\n"
+				printf "  ${GRNct}2${CLRct}. Minutes\n\n"
 				printf "  ${GRNct}e${CLRct}. Go back\n\n"
-				printf "Choose an option:  "
+				printf " Choose an option:  "
 				read -r formatChoice
 
 				case "$formatChoice" in
